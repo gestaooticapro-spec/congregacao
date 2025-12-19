@@ -1,4 +1,4 @@
-import FormularioNovoMembro from './FormularioNovoMembro'
+import FormularioNovoMembro from '@/components/admin/membros/FormularioNovoMembro'
 
 export const dynamic = 'force-dynamic';
 

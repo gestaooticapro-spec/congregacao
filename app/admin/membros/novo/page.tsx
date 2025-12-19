@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import { Database } from '@/types/database.types'
 
+export const dynamic = 'force-dynamic';
+
 type MembroInsert = Database['public']['Tables']['membros']['Insert']
 
 export default function NovoMembroPage() {

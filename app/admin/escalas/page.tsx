@@ -131,24 +131,28 @@ export default function EscalasSuportePage() {
 
     return (
         <div className="max-w-7xl mx-auto p-8 pb-24">
-            <div className="flex justify-between items-center mb-8 print:hidden">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Designações Mecânicas</h1>
+            <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6 print:hidden">
+                <div className="text-center md:text-left">
+                    <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Designações Mecânicas</h1>
+                    <div className="h-1 w-20 bg-primary rounded-full mx-auto md:mx-0"></div>
+                </div>
 
-                <div className="flex items-center gap-4">
-                    <div className="flex gap-2">
+                <div className="flex flex-wrap justify-center items-center gap-4">
+                    <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
                         <select
                             value={selectedMonth}
                             onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                            className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                            className="bg-transparent border-none focus:ring-0 text-slate-700 dark:text-slate-300 font-medium px-4 py-2"
                         >
                             {months.map((month, index) => (
                                 <option key={month} value={index}>{month}</option>
                             ))}
                         </select>
+                        <div className="w-px bg-slate-200 dark:bg-slate-700 my-2"></div>
                         <select
                             value={selectedYear}
                             onChange={(e) => setSelectedYear(Number(e.target.value))}
-                            className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                            className="bg-transparent border-none focus:ring-0 text-slate-700 dark:text-slate-300 font-medium px-4 py-2"
                         >
                             {years.map(year => (
                                 <option key={year} value={year}>{year}</option>
@@ -158,17 +162,17 @@ export default function EscalasSuportePage() {
 
                     <button
                         onClick={handlePrint}
-                        className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 flex items-center gap-2"
+                        className="px-6 py-2.5 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition-all shadow-lg shadow-slate-200 dark:shadow-none flex items-center gap-2"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                         </svg>
-                        Imprimir Mês
+                        Imprimir
                     </button>
 
                     <button
                         onClick={handleNew}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2"
+                        className="px-6 py-2.5 bg-primary text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
@@ -179,44 +183,54 @@ export default function EscalasSuportePage() {
             </div>
 
             {/* Print Header */}
-            <div className="hidden print:block mb-8 text-center">
-                <h1 className="text-2xl font-bold text-black mb-2">Designação Mecânica</h1>
-                <h2 className="text-xl text-black">{months[selectedMonth]} de {selectedYear}</h2>
+            <div className="hidden print:block mb-12 text-center">
+                <h1 className="text-3xl font-bold text-slate-900 mb-2">Designação Mecânica</h1>
+                <p className="text-xl text-slate-600 font-medium">{months[selectedMonth]} de {selectedYear}</p>
+                <div className="h-1 w-32 bg-primary mx-auto mt-4 rounded-full"></div>
             </div>
 
             {/* Screen View */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 print:hidden">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 print:hidden">
                 {filteredSummaries.map((summary) => (
                     <div
                         key={summary.data}
                         onClick={() => router.push(`/admin/escalas/${summary.data}`)}
-                        className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 cursor-pointer hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700"
+                        className="group bg-white dark:bg-slate-900 rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200 dark:border-slate-800 p-6 cursor-pointer hover:border-primary/50 hover:-translate-y-1 transition-all"
                     >
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                    {new Date(summary.data + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                        <div className="flex justify-between items-start mb-6">
+                            <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl group-hover:bg-primary/5 transition-colors">
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white capitalize">
+                                    {new Date(summary.data + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long' })}
                                 </h3>
-                                <p className="text-gray-500 dark:text-gray-400 mt-1">
-                                    {new Date(summary.data + 'T00:00:00').getFullYear()}
+                                <p className="text-primary font-bold">
+                                    {new Date(summary.data + 'T00:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}
                                 </p>
                             </div>
-                            <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">
+                            <span className="bg-blue-50 text-blue-600 text-xs font-bold px-3 py-1 rounded-full border border-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
                                 {summary.count} designações
+                            </span>
+                        </div>
+
+                        <div className="mt-6 pt-4 border-t border-slate-50 dark:border-slate-800 flex justify-end">
+                            <span className="text-primary text-sm font-bold group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                                Gerenciar <span>→</span>
                             </span>
                         </div>
                     </div>
                 ))}
 
                 {filteredSummaries.length === 0 && (
-                    <div className="col-span-full text-center py-12 text-gray-500">
-                        Nenhuma escala encontrada para este período.
+                    <div className="col-span-full bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 py-20 text-center">
+                        <div className="text-4xl mb-4">⚙️</div>
+                        <p className="text-slate-500 dark:text-slate-400 font-medium">
+                            Nenhuma escala encontrada para este período.
+                        </p>
                     </div>
                 )}
             </div>
 
             {/* Print View */}
-            <div className="hidden print:grid print:grid-cols-2 print:gap-4">
+            <div className="hidden print:grid print:grid-cols-2 print:gap-6">
                 {Object.entries(groupedAssignments).map(([date, assignments]) => {
                     const getAssignment = (role: string) => {
                         return assignments.find(a => a.funcao === role)
@@ -235,38 +249,41 @@ export default function EscalasSuportePage() {
                     const indAuditorio = getAssignment('INDICADOR_AUDITORIO')
 
                     return (
-                        <div key={date} className="break-inside-avoid border border-gray-300 rounded p-3 text-sm">
-                            <h3 className="font-bold text-black mb-2 uppercase border-b border-gray-200 pb-1 text-center bg-gray-50">
-                                {new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
-                            </h3>
+                        <div key={date} className="break-inside-avoid bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                            <div className="text-center mb-4 pb-2 border-b border-slate-100">
+                                <h3 className="font-bold text-slate-900 uppercase text-sm">
+                                    {new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                                </h3>
+                            </div>
 
-                            <div className="space-y-2">
-                                {/* Som */}
-                                <div className="flex justify-between items-center border-b border-gray-100 pb-1">
-                                    <span className="font-bold text-gray-700">Som:</span>
-                                    <span className="font-medium">{formatName(som?.membro?.nome_completo)}</span>
+                            <div className="space-y-3">
+                                <div className="flex justify-between items-center bg-slate-50 p-2 rounded-lg">
+                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Som</span>
+                                    <span className="text-sm font-bold text-slate-900">{formatName(som?.membro?.nome_completo)}</span>
                                 </div>
 
-                                {/* Microfones */}
-                                <div className="border-b border-gray-100 pb-1">
-                                    <span className="font-bold text-gray-700 block mb-1">Microfones:</span>
-                                    <div className="flex justify-end gap-2 text-xs">
-                                        <span>{formatName(mic1?.membro?.nome_completo)}</span>
-                                        {mic2?.membro?.nome_completo && <span>/ {formatName(mic2.membro.nome_completo)}</span>}
+                                <div className="space-y-2">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block px-1">Microfones</span>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="bg-slate-50 p-2 rounded-lg text-center">
+                                            <span className="text-sm font-bold text-slate-900">{formatName(mic1?.membro?.nome_completo)}</span>
+                                        </div>
+                                        <div className="bg-slate-50 p-2 rounded-lg text-center">
+                                            <span className="text-sm font-bold text-slate-900">{formatName(mic2?.membro?.nome_completo)}</span>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Indicadores */}
-                                <div>
-                                    <span className="font-bold text-gray-700 block mb-1">Indicadores:</span>
-                                    <div className="flex flex-col items-end text-xs gap-1">
-                                        <div className="flex justify-between w-full">
-                                            <span className="text-gray-500">Auditório:</span>
-                                            <span>{formatName(indAuditorio?.membro?.nome_completo)}</span>
+                                <div className="space-y-2">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block px-1">Indicadores</span>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="bg-slate-50 p-2 rounded-lg">
+                                            <span className="text-[10px] text-slate-500 block">Auditório</span>
+                                            <span className="text-sm font-bold text-slate-900">{formatName(indAuditorio?.membro?.nome_completo)}</span>
                                         </div>
-                                        <div className="flex justify-between w-full">
-                                            <span className="text-gray-500">Entrada:</span>
-                                            <span>{formatName(indEntrada?.membro?.nome_completo)}</span>
+                                        <div className="bg-slate-50 p-2 rounded-lg">
+                                            <span className="text-[10px] text-slate-500 block">Entrada</span>
+                                            <span className="text-sm font-bold text-slate-900">{formatName(indEntrada?.membro?.nome_completo)}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -276,8 +293,8 @@ export default function EscalasSuportePage() {
                 })}
 
                 {detailedAssignments.length === 0 && (
-                    <div className="col-span-2 text-center py-8 text-gray-500">
-                        Nenhuma designação encontrada para este mês.
+                    <div className="col-span-2 text-center py-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                        <p className="text-slate-500 font-medium">Nenhuma designação encontrada para este mês.</p>
                     </div>
                 )}
             </div>
@@ -285,10 +302,11 @@ export default function EscalasSuportePage() {
             <style jsx global>{`
                 @media print {
                     @page {
-                        margin: 2cm;
+                        margin: 1.5cm;
                     }
                     body {
-                        background: white;
+                        background: white !important;
+                        color: black !important;
                     }
                     .print\\:hidden {
                         display: none !important;

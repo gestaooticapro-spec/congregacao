@@ -80,59 +80,74 @@ export default function ManagePermissionsPage() {
     }
 
     return (
-        <div className="p-8 max-w-4xl mx-auto">
-            <h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Gerenciar Permissões</h1>
+        <div className="max-w-4xl mx-auto p-8">
+            <div className="text-center mb-12">
+                <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Gerenciar Permissões</h1>
+                <div className="h-1 w-20 bg-primary mx-auto rounded-full"></div>
+            </div>
 
-            {/* Search Input */}
-            <div className="mb-8">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Buscar Membro
-                </label>
-                <input
-                    type="text"
-                    className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                    placeholder="Digite o nome do irmão..."
-                    value={searchQuery}
-                    onChange={(e) => handleSearch(e.target.value)}
-                />
+            {/* Search Card */}
+            <div className="bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/50 dark:shadow-none rounded-2xl border border-slate-200 dark:border-slate-800 p-8 mb-8">
+                <div className="max-w-2xl mx-auto">
+                    <label className="block text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 text-center">
+                        Buscar Membro
+                    </label>
+                    <div className="relative">
+                        <input
+                            type="text"
+                            className="w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all dark:text-white shadow-inner"
+                            placeholder="Digite o nome do irmão..."
+                            value={searchQuery}
+                            onChange={(e) => handleSearch(e.target.value)}
+                        />
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl">🔍</span>
+                    </div>
+                </div>
             </div>
 
             {/* Results */}
-            {loading && <p className="text-gray-500 dark:text-gray-400">Carregando...</p>}
+            {loading && (
+                <div className="text-center py-8">
+                    <div className="animate-spin inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full mb-2"></div>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium">Buscando...</p>
+                </div>
+            )}
 
-            <div className="space-y-4">
+            <div className="space-y-6">
                 {members.map((member) => (
                     <div
                         key={member.id}
-                        className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+                        className="group bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-lg shadow-slate-200/50 dark:shadow-none border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 hover:border-primary/30 transition-all"
                     >
-                        <div>
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{member.nome_completo}</h3>
-                            <div className="flex flex-wrap gap-2 mt-2">
+                        <div className="flex-1">
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3 group-hover:text-primary transition-colors">
+                                {member.nome_completo}
+                            </h3>
+                            <div className="flex flex-wrap gap-2">
                                 {member.membro_perfis?.map((mp) => (
                                     <span
                                         key={mp.id}
-                                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-600 border border-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800"
                                     >
                                         {mp.perfil}
                                         <button
                                             onClick={() => removeRole(member.id, mp.perfil)}
-                                            className="ml-1.5 text-blue-600 hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-100 focus:outline-none"
+                                            className="ml-2 w-4 h-4 flex items-center justify-center rounded-full hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
                                         >
                                             &times;
                                         </button>
                                     </span>
                                 ))}
                                 {member.membro_perfis?.length === 0 && (
-                                    <span className="text-sm text-gray-500 dark:text-gray-400 italic">Sem perfis</span>
+                                    <span className="text-sm text-slate-400 dark:text-slate-500 italic">Nenhum perfil atribuído</span>
                                 )}
                             </div>
                         </div>
 
                         {/* Add Role Action */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3 w-full md:w-auto bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
                             <select
-                                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                className="flex-1 md:w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-primary focus:border-transparent outline-none dark:text-white"
                                 value={selectedRole}
                                 onChange={(e) => setSelectedRole(e.target.value as PerfilAcesso)}
                             >
@@ -144,7 +159,7 @@ export default function ManagePermissionsPage() {
                             </select>
                             <button
                                 onClick={() => addRole(member.id, selectedRole)}
-                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                className="px-4 py-2 bg-primary text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-all shadow-md shadow-primary/20"
                             >
                                 Adicionar
                             </button>
@@ -153,7 +168,9 @@ export default function ManagePermissionsPage() {
                 ))}
 
                 {!loading && searchQuery.length >= 2 && members.length === 0 && (
-                    <p className="text-gray-500 dark:text-gray-400">Nenhum membro encontrado.</p>
+                    <div className="text-center py-12 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700">
+                        <p className="text-slate-500 dark:text-slate-400 font-medium">Nenhum membro encontrado.</p>
+                    </div>
                 )}
             </div>
         </div>

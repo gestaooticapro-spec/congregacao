@@ -118,203 +118,116 @@ export default function EditarMembroPage() {
     if (loading) return <div className="p-8">Carregando...</div>
 
     return (
-        <div className="max-w-2xl mx-auto p-8">
-            <h1 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white">Editar Membro</h1>
+        <div className="max-w-4xl mx-auto p-8">
+            <div className="text-center mb-12">
+                <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Editar Membro</h1>
+                <div className="h-1 w-20 bg-primary mx-auto rounded-full"></div>
+            </div>
 
-            <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 space-y-6">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome Completo</label>
-                    <input
-                        type="text"
-                        value={formData.nome_completo}
-                        onChange={(e) => handleChange('nome_completo', e.target.value)}
-                        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-transparent"
-                    />
+            <div className="bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/50 dark:shadow-none rounded-2xl border border-slate-200 dark:border-slate-800 p-8 space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-6">
+                        <div>
+                            <label className="block text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Nome Completo</label>
+                            <input
+                                type="text"
+                                value={formData.nome_completo}
+                                onChange={(e) => handleChange('nome_completo', e.target.value)}
+                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all dark:text-white"
+                                placeholder="Ex: João Silva"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Grupo de Serviço</label>
+                            <select
+                                value={formData.grupo_id || ''}
+                                onChange={(e) => handleChange('grupo_id', e.target.value || null)}
+                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all dark:text-white"
+                            >
+                                <option value="">Nenhum</option>
+                                {grupos.map(g => (
+                                    <option key={g.id} value={g.id}>{g.nome}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-700">
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                            <span className="text-primary">🏅</span> Qualificações
+                        </h3>
+                        <div className="grid grid-cols-1 gap-3">
+                            {[
+                                { id: 'is_anciao', label: 'Ancião' },
+                                { id: 'is_servo_ministerial', label: 'Servo Ministerial' },
+                                { id: 'is_pioneiro', label: 'Pioneiro' },
+                                { id: 'is_publicador', label: 'Publicador' },
+                                { id: 'is_batizado', label: 'Batizado' },
+                            ].map((item) => (
+                                <label key={item.id} className="flex items-center space-x-3 p-2 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        checked={(formData as any)[item.id] || false}
+                                        onChange={(e) => handleChange(item.id as any, e.target.checked)}
+                                        className="h-5 w-5 text-primary border-slate-300 rounded-md focus:ring-primary transition-all"
+                                    />
+                                    <span className="text-slate-700 dark:text-slate-300 font-medium group-hover:text-primary transition-colors">{item.label}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
                 </div>
 
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Grupo de Serviço</label>
-                    <select
-                        value={formData.grupo_id || ''}
-                        onChange={(e) => handleChange('grupo_id', e.target.value || null)}
-                        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    >
-                        <option value="">Nenhum</option>
-                        {grupos.map(g => (
-                            <option key={g.id} value={g.id}>{g.nome}</option>
+                <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+                        <span className="text-primary">📋</span> Designações Possíveis
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {[
+                            { id: 'is_presidente', label: 'Presidente' },
+                            { id: 'is_leitor_biblia', label: 'Leitor da Bíblia' },
+                            { id: 'is_leitor_sentinela', label: 'Leitor de A Sentinela' },
+                            { id: 'is_som', label: 'Som' },
+                            { id: 'is_microfone', label: 'Microfone' },
+                            { id: 'is_indicador', label: 'Indicador' },
+                            { id: 'is_balcao', label: 'Balcão' },
+                            { id: 'is_leitor_estudo_biblico', label: 'Leitor do Estudo Bíblico' },
+                            { id: 'is_parte_vida_ministerio', label: 'Partes Vida e Ministério' },
+                            { id: 'is_ajudante', label: 'Ajudante' },
+                        ].map((item) => (
+                            <label key={item.id} className="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 rounded-xl border border-transparent hover:border-primary/20 transition-all cursor-pointer group shadow-sm">
+                                <input
+                                    type="checkbox"
+                                    checked={(formData as any)[item.id] || false}
+                                    onChange={(e) => handleChange(item.id as any, e.target.checked)}
+                                    className="h-5 w-5 text-primary border-slate-300 rounded-md focus:ring-primary transition-all"
+                                />
+                                <span className="text-slate-700 dark:text-slate-300 font-medium group-hover:text-primary transition-colors">{item.label}</span>
+                            </label>
                         ))}
-                    </select>
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <h3 className="col-span-full text-lg font-medium text-gray-900 dark:text-white border-b pb-2 mt-4">Qualificações</h3>
-
-                    <label className="flex items-center space-x-3">
-                        <input
-                            type="checkbox"
-                            checked={formData.is_anciao || false}
-                            onChange={(e) => handleChange('is_anciao', e.target.checked)}
-                            className="h-4 w-4 text-blue-600 rounded"
-                        />
-                        <span className="text-gray-700 dark:text-gray-300">Ancião</span>
-                    </label>
-
-                    <label className="flex items-center space-x-3">
-                        <input
-                            type="checkbox"
-                            checked={formData.is_servo_ministerial || false}
-                            onChange={(e) => handleChange('is_servo_ministerial', e.target.checked)}
-                            className="h-4 w-4 text-blue-600 rounded"
-                        />
-                        <span className="text-gray-700 dark:text-gray-300">Servo Ministerial</span>
-                    </label>
-
-                    <label className="flex items-center space-x-3">
-                        <input
-                            type="checkbox"
-                            checked={formData.is_pioneiro || false}
-                            onChange={(e) => handleChange('is_pioneiro', e.target.checked)}
-                            className="h-4 w-4 text-blue-600 rounded"
-                        />
-                        <span className="text-gray-700 dark:text-gray-300">Pioneiro</span>
-                    </label>
-
-                    <label className="flex items-center space-x-3">
-                        <input
-                            type="checkbox"
-                            checked={formData.is_publicador || false}
-                            onChange={(e) => handleChange('is_publicador', e.target.checked)}
-                            className="h-4 w-4 text-blue-600 rounded"
-                        />
-                        <span className="text-gray-700 dark:text-gray-300">Publicador</span>
-                    </label>
-
-                    <label className="flex items-center space-x-3">
-                        <input
-                            type="checkbox"
-                            checked={formData.is_batizado || false}
-                            onChange={(e) => handleChange('is_batizado', e.target.checked)}
-                            className="h-4 w-4 text-blue-600 rounded"
-                        />
-                        <span className="text-gray-700 dark:text-gray-300">Batizado</span>
-                    </label>
-
-                    <h3 className="col-span-full text-lg font-medium text-gray-900 dark:text-white border-b pb-2 mt-4">Designações Possíveis</h3>
-
-                    <label className="flex items-center space-x-3">
-                        <input
-                            type="checkbox"
-                            checked={formData.is_presidente || false}
-                            onChange={(e) => handleChange('is_presidente', e.target.checked)}
-                            className="h-4 w-4 text-blue-600 rounded"
-                        />
-                        <span className="text-gray-700 dark:text-gray-300">Presidente</span>
-                    </label>
-
-                    <label className="flex items-center space-x-3">
-                        <input
-                            type="checkbox"
-                            checked={formData.is_leitor_biblia || false}
-                            onChange={(e) => handleChange('is_leitor_biblia', e.target.checked)}
-                            className="h-4 w-4 text-blue-600 rounded"
-                        />
-                        <span className="text-gray-700 dark:text-gray-300">Leitor da Bíblia</span>
-                    </label>
-
-                    <label className="flex items-center space-x-3">
-                        <input
-                            type="checkbox"
-                            checked={formData.is_leitor_sentinela || false}
-                            onChange={(e) => handleChange('is_leitor_sentinela', e.target.checked)}
-                            className="h-4 w-4 text-blue-600 rounded"
-                        />
-                        <span className="text-gray-700 dark:text-gray-300">Leitor de A Sentinela</span>
-                    </label>
-
-                    <label className="flex items-center space-x-3">
-                        <input
-                            type="checkbox"
-                            checked={formData.is_som || false}
-                            onChange={(e) => handleChange('is_som', e.target.checked)}
-                            className="h-4 w-4 text-blue-600 rounded"
-                        />
-                        <span className="text-gray-700 dark:text-gray-300">Som</span>
-                    </label>
-
-                    <label className="flex items-center space-x-3">
-                        <input
-                            type="checkbox"
-                            checked={formData.is_microfone || false}
-                            onChange={(e) => handleChange('is_microfone', e.target.checked)}
-                            className="h-4 w-4 text-blue-600 rounded"
-                        />
-                        <span className="text-gray-700 dark:text-gray-300">Microfone</span>
-                    </label>
-
-                    <label className="flex items-center space-x-3">
-                        <input
-                            type="checkbox"
-                            checked={formData.is_indicador || false}
-                            onChange={(e) => handleChange('is_indicador', e.target.checked)}
-                            className="h-4 w-4 text-blue-600 rounded"
-                        />
-                        <span className="text-gray-700 dark:text-gray-300">Indicador</span>
-                    </label>
-
-                    <label className="flex items-center space-x-3">
-                        <input
-                            type="checkbox"
-                            checked={formData.is_balcao || false}
-                            onChange={(e) => handleChange('is_balcao', e.target.checked)}
-                            className="h-4 w-4 text-blue-600 rounded"
-                        />
-                        <span className="text-gray-700 dark:text-gray-300">Balcão</span>
-                    </label>
-
-                    <label className="flex items-center space-x-3">
-                        <input
-                            type="checkbox"
-                            checked={formData.is_leitor_estudo_biblico || false}
-                            onChange={(e) => handleChange('is_leitor_estudo_biblico', e.target.checked)}
-                            className="h-4 w-4 text-blue-600 rounded"
-                        />
-                        <span className="text-gray-700 dark:text-gray-300">Leitor do Estudo Bíblico</span>
-                    </label>
-
-                    <label className="flex items-center space-x-3">
-                        <input
-                            type="checkbox"
-                            checked={formData.is_parte_vida_ministerio || false}
-                            onChange={(e) => handleChange('is_parte_vida_ministerio', e.target.checked)}
-                            className="h-4 w-4 text-blue-600 rounded"
-                        />
-                        <span className="text-gray-700 dark:text-gray-300">Partes Vida e Ministério</span>
-                    </label>
-
-                    <label className="flex items-center space-x-3">
-                        <input
-                            type="checkbox"
-                            checked={formData.is_ajudante || false}
-                            onChange={(e) => handleChange('is_ajudante', e.target.checked)}
-                            className="h-4 w-4 text-blue-600 rounded"
-                        />
-                        <span className="text-gray-700 dark:text-gray-300">Ajudante</span>
-                    </label>
-                </div>
-
-                <div className="flex justify-end gap-4 mt-8">
+                <div className="flex flex-col sm:flex-row justify-end gap-4 pt-8">
                     <button
                         onClick={() => router.back()}
-                        className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                        className="px-8 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
                     >
                         Cancelar
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium shadow-sm"
+                        className="px-8 py-3 bg-primary text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
                     >
-                        {saving ? 'Salvar Alterações' : 'Salvar Alterações'}
+                        {saving ? (
+                            <>
+                                <span className="animate-spin">⏳</span> Salvando...
+                            </>
+                        ) : (
+                            'Salvar Alterações'
+                        )}
                     </button>
                 </div>
             </div>

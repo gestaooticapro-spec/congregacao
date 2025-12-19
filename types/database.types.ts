@@ -106,6 +106,22 @@ export interface Database {
           is_leitor_estudo_biblico: boolean
           is_parte_vida_ministerio: boolean
           is_ajudante: boolean
+          data_batismo: string | null
+          data_nascimento: string | null
+          contato: string | null
+          contato_emergencia: string | null
+          endereco: string | null
+          observacoes: string | null
+          is_leitor_livro: boolean
+          is_dirigente_campo: boolean
+          is_sg: boolean
+          is_conselheiro_assistente: boolean
+          is_spte_vida_ministerio: boolean
+          is_contato_manutencao: boolean
+          is_contas: boolean
+          is_balcao_publicacao: boolean
+          is_ungido: boolean
+          is_discurso_fora: boolean
           created_at: string
           updated_at: string
         }
@@ -129,6 +145,22 @@ export interface Database {
           is_leitor_estudo_biblico?: boolean
           is_parte_vida_ministerio?: boolean
           is_ajudante?: boolean
+          data_batismo?: string | null
+          data_nascimento?: string | null
+          contato?: string | null
+          contato_emergencia?: string | null
+          endereco?: string | null
+          observacoes?: string | null
+          is_leitor_livro?: boolean
+          is_dirigente_campo?: boolean
+          is_sg?: boolean
+          is_conselheiro_assistente?: boolean
+          is_spte_vida_ministerio?: boolean
+          is_contato_manutencao?: boolean
+          is_contas?: boolean
+          is_balcao_publicacao?: boolean
+          is_ungido?: boolean
+          is_discurso_fora?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -152,6 +184,22 @@ export interface Database {
           is_leitor_estudo_biblico?: boolean
           is_parte_vida_ministerio?: boolean
           is_ajudante?: boolean
+          data_batismo?: string | null
+          data_nascimento?: string | null
+          contato?: string | null
+          contato_emergencia?: string | null
+          endereco?: string | null
+          observacoes?: string | null
+          is_leitor_livro?: boolean
+          is_dirigente_campo?: boolean
+          is_sg?: boolean
+          is_conselheiro_assistente?: boolean
+          is_spte_vida_ministerio?: boolean
+          is_contato_manutencao?: boolean
+          is_contas?: boolean
+          is_balcao_publicacao?: boolean
+          is_ungido?: boolean
+          is_discurso_fora?: boolean
           created_at?: string
           updated_at?: string
         }

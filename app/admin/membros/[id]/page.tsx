@@ -119,7 +119,7 @@ export default function EditarMembroPage() {
 
     return (
         <div className="max-w-4xl mx-auto p-8">
-            <div className="text-center mb-12">
+            <div className="text-center mb-12 relative">
                 <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Editar Membro</h1>
                 <div className="h-1 w-20 bg-primary mx-auto rounded-full"></div>
             </div>
@@ -151,11 +151,20 @@ export default function EditarMembroPage() {
                                 ))}
                             </select>
                         </div>
+
+                        <div className="pt-2">
+                            <button
+                                onClick={() => router.push(`/admin/membros/${id}/detalhes`)}
+                                className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700"
+                            >
+                                <span>📝</span> Editar Detalhes Extras
+                            </button>
+                        </div>
                     </div>
 
                     <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-700">
                         <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                            <span className="text-primary">🏅</span> Qualificações
+                            <span className="text-primary">💼</span> Qualificações
                         </h3>
                         <div className="grid grid-cols-1 gap-3">
                             {[

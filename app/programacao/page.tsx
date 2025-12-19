@@ -53,12 +53,20 @@ export default function ProgramacaoPage() {
                         </h2>
                         <p className="text-gray-600 dark:text-gray-400 mb-4">{prog.semana_descricao}</p>
                         <div className="flex justify-between items-center">
-                            <Link
-                                href={`/admin/designacoes/${prog.id}`}
-                                className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium text-sm"
-                            >
-                                Ver Designações →
-                            </Link>
+                            <div className="flex gap-3">
+                                <Link
+                                    href={`/programacao/editar/${prog.id}`}
+                                    className="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300 font-medium text-sm"
+                                >
+                                    Editar
+                                </Link>
+                                <Link
+                                    href={`/admin/designacoes/${prog.id}`}
+                                    className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium text-sm"
+                                >
+                                    Ver Designações →
+                                </Link>
+                            </div>
                         </div>
                     </div>
                 ))}

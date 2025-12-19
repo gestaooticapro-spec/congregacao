@@ -364,7 +364,7 @@ export interface Database {
           id: string
           programacao_id: string | null
           membro_id: string | null
-          funcao: 'SOM' | 'MICROFONE_1' | 'MICROFONE_2' | 'INDICADOR_ENTRADA' | 'INDICADOR_AUDITORIO' | 'VIDEO' | 'PRESIDENTE'
+          funcao: 'SOM' | 'MICROFONE_1' | 'MICROFONE_2' | 'INDICADOR_ENTRADA' | 'INDICADOR_AUDITORIO' | 'VIDEO' | 'PRESIDENTE' | 'LEITOR_SENTINELA'
           data: string
           created_at: string
         }
@@ -372,7 +372,7 @@ export interface Database {
           id?: string
           programacao_id?: string | null
           membro_id?: string | null
-          funcao: 'SOM' | 'MICROFONE_1' | 'MICROFONE_2' | 'INDICADOR_ENTRADA' | 'INDICADOR_AUDITORIO' | 'VIDEO' | 'PRESIDENTE'
+          funcao: 'SOM' | 'MICROFONE_1' | 'MICROFONE_2' | 'INDICADOR_ENTRADA' | 'INDICADOR_AUDITORIO' | 'VIDEO' | 'PRESIDENTE' | 'LEITOR_SENTINELA'
           data: string
           created_at?: string
         }
@@ -380,7 +380,7 @@ export interface Database {
           id?: string
           programacao_id?: string | null
           membro_id?: string | null
-          funcao?: 'SOM' | 'MICROFONE_1' | 'MICROFONE_2' | 'INDICADOR_ENTRADA' | 'INDICADOR_AUDITORIO' | 'VIDEO' | 'PRESIDENTE'
+          funcao?: 'SOM' | 'MICROFONE_1' | 'MICROFONE_2' | 'INDICADOR_ENTRADA' | 'INDICADOR_AUDITORIO' | 'VIDEO' | 'PRESIDENTE' | 'LEITOR_SENTINELA'
           data?: string
           created_at?: string
         }

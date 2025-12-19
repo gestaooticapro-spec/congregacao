@@ -16,6 +16,7 @@ const ROLES = [
     { id: 'MICROFONE_2', label: 'Microfone 2', required: 'is_microfone' },
     { id: 'INDICADOR_ENTRADA', label: 'Indicador Entrada', required: 'is_indicador' },
     { id: 'INDICADOR_AUDITORIO', label: 'Indicador Auditório', required: 'is_indicador' },
+    { id: 'LEITOR_SENTINELA', label: 'Leitor da Sentinela', required: 'is_leitor_sentinela' },
 ] as const
 
 export default function EscalaEditorPage({ params }: { params: Promise<{ date: string }> }) {
@@ -124,7 +125,7 @@ export default function EscalaEditorPage({ params }: { params: Promise<{ date: s
 
             // Filter roles based on weekend logic
             const isWknd = isWeekend(selectedDate)
-            const validRoles = ROLES.filter(r => r.id !== 'PRESIDENTE' || isWknd)
+            const validRoles = ROLES.filter(r => (r.id !== 'PRESIDENTE' && r.id !== 'LEITOR_SENTINELA') || isWknd)
 
             validRoles.forEach(role => {
                 const membroId = assignments[role.id]
@@ -214,7 +215,7 @@ export default function EscalaEditorPage({ params }: { params: Promise<{ date: s
 
                 <div className="space-y-4">
                     {ROLES.map(role => {
-                        if (role.id === 'PRESIDENTE' && !isWknd) return null
+                        if ((role.id === 'PRESIDENTE' || role.id === 'LEITOR_SENTINELA') && !isWknd) return null
 
                         return (
                             <div key={role.id}>

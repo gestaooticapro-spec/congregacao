@@ -127,10 +127,18 @@ export default function EscalasSuportePage() {
         return roles[role] || role
     }
 
+    const isWeekend = (dateString: string) => {
+        if (!dateString) return false
+        const [year, month, day] = dateString.split('-').map(Number)
+        const date = new Date(year, month - 1, day)
+        const dayOfWeek = date.getDay()
+        return dayOfWeek === 0 || dayOfWeek === 6
+    }
+
     if (loading) return <div className="p-8">Carregando...</div>
 
     return (
-        <div className="max-w-7xl mx-auto p-8 pb-24">
+        <div className="max-w-7xl mx-auto p-8 pb-24 print:max-w-none print:p-0">
             <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6 print:hidden">
                 <div className="text-center md:text-left">
                     <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Designações Mecânicas</h1>
@@ -183,10 +191,10 @@ export default function EscalasSuportePage() {
             </div>
 
             {/* Print Header */}
-            <div className="hidden print:block mb-12 text-center">
-                <h1 className="text-3xl font-bold text-slate-900 mb-2">Designação Mecânica</h1>
-                <p className="text-xl text-slate-600 font-medium">{months[selectedMonth]} de {selectedYear}</p>
-                <div className="h-1 w-32 bg-primary mx-auto mt-4 rounded-full"></div>
+            <div className="hidden print:block mb-4 text-center">
+                <h1 className="text-xl font-bold text-slate-900 mb-1">Designação Mecânica</h1>
+                <p className="text-sm text-slate-600 font-medium">{months[selectedMonth]} de {selectedYear}</p>
+                <div className="h-0.5 w-16 bg-primary mx-auto mt-2 rounded-full"></div>
             </div>
 
             {/* Screen View */}
@@ -230,7 +238,7 @@ export default function EscalasSuportePage() {
             </div>
 
             {/* Print View */}
-            <div className="hidden print:grid print:grid-cols-2 print:gap-6">
+            <div className="hidden print:grid print:grid-cols-4 print:gap-2">
                 {Object.entries(groupedAssignments).map(([date, assignments]) => {
                     const getAssignment = (role: string) => {
                         return assignments.find(a => a.funcao === role)
@@ -249,41 +257,54 @@ export default function EscalasSuportePage() {
                     const indAuditorio = getAssignment('INDICADOR_AUDITORIO')
 
                     return (
-                        <div key={date} className="break-inside-avoid bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-                            <div className="text-center mb-4 pb-2 border-b border-slate-100">
-                                <h3 className="font-bold text-slate-900 uppercase text-sm">
-                                    {new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                        <div key={date} className="break-inside-avoid bg-white border border-slate-200 rounded-xl p-2 shadow-sm print:border-slate-300">
+                            <div className="text-center mb-2 pb-1 border-b border-slate-100">
+                                <h3 className="font-bold text-slate-900 uppercase text-[10px]">
+                                    {new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' }).replace('.', '')}
                                 </h3>
                             </div>
 
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center bg-slate-50 p-2 rounded-lg">
-                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Som</span>
-                                    <span className="text-sm font-bold text-slate-900">{formatName(som?.membro?.nome_completo)}</span>
+                            <div className="space-y-1">
+                                {isWeekend(date) && (
+                                    <div className="space-y-1 mb-1 border-b border-slate-100 pb-1">
+                                        <div className="flex justify-between items-center bg-slate-50 p-1 rounded">
+                                            <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider">Pres.</span>
+                                            <span className="text-[9px] font-bold text-slate-900 truncate max-w-[80px]">{formatName(getAssignment('PRESIDENTE')?.membro?.nome_completo)}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center bg-slate-50 p-1 rounded">
+                                            <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider">Leitor</span>
+                                            <span className="text-[9px] font-bold text-slate-900 truncate max-w-[80px]">{formatName(getAssignment('LEITOR_SENTINELA')?.membro?.nome_completo)}</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="flex justify-between items-center bg-slate-50 p-1 rounded">
+                                    <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider">Som</span>
+                                    <span className="text-[9px] font-bold text-slate-900 truncate max-w-[80px]">{formatName(som?.membro?.nome_completo)}</span>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block px-1">Microfones</span>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <div className="bg-slate-50 p-2 rounded-lg text-center">
-                                            <span className="text-sm font-bold text-slate-900">{formatName(mic1?.membro?.nome_completo)}</span>
+                                <div className="space-y-1">
+                                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block px-1">Mics</span>
+                                    <div className="grid grid-cols-2 gap-1">
+                                        <div className="bg-slate-50 p-1 rounded text-center">
+                                            <span className="text-[9px] font-bold text-slate-900 truncate block">{formatName(mic1?.membro?.nome_completo)}</span>
                                         </div>
-                                        <div className="bg-slate-50 p-2 rounded-lg text-center">
-                                            <span className="text-sm font-bold text-slate-900">{formatName(mic2?.membro?.nome_completo)}</span>
+                                        <div className="bg-slate-50 p-1 rounded text-center">
+                                            <span className="text-[9px] font-bold text-slate-900 truncate block">{formatName(mic2?.membro?.nome_completo)}</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block px-1">Indicadores</span>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <div className="bg-slate-50 p-2 rounded-lg">
-                                            <span className="text-[10px] text-slate-500 block">Auditório</span>
-                                            <span className="text-sm font-bold text-slate-900">{formatName(indAuditorio?.membro?.nome_completo)}</span>
+                                <div className="space-y-1">
+                                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block px-1">Indic.</span>
+                                    <div className="grid grid-cols-2 gap-1">
+                                        <div className="bg-slate-50 p-1 rounded">
+                                            <span className="text-[7px] text-slate-500 block">Aud.</span>
+                                            <span className="text-[9px] font-bold text-slate-900 truncate block">{formatName(indAuditorio?.membro?.nome_completo)}</span>
                                         </div>
-                                        <div className="bg-slate-50 p-2 rounded-lg">
-                                            <span className="text-[10px] text-slate-500 block">Entrada</span>
-                                            <span className="text-sm font-bold text-slate-900">{formatName(indEntrada?.membro?.nome_completo)}</span>
+                                        <div className="bg-slate-50 p-1 rounded">
+                                            <span className="text-[7px] text-slate-500 block">Ent.</span>
+                                            <span className="text-[9px] font-bold text-slate-900 truncate block">{formatName(indEntrada?.membro?.nome_completo)}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -302,7 +323,7 @@ export default function EscalasSuportePage() {
             <style jsx global>{`
                 @media print {
                     @page {
-                        margin: 1.5cm;
+                        margin: 0.5cm;
                     }
                     body {
                         background: white !important;

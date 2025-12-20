@@ -8,10 +8,10 @@ export default function Home() {
         <div className="mb-12 w-full">
           <div className="mb-8">
             <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-2">
-              Congregation Manager
+              Gestor Congregação Guaira
             </h1>
             <p className="text-slate-600 dark:text-slate-400">
-              Consulte suas designações e escalas rapidamente.
+              Programa para organizar as designações da nossa congregação
             </p>
           </div>
 

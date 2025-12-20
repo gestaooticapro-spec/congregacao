@@ -199,7 +199,7 @@ export default function HomeMemberSearch() {
                         setShowResults(false)
                         setSelectedMembro(null)
                     }}
-                    placeholder="Selecione o nome pra ver quais partes voce tem no proximo mes"
+                    placeholder="Quais as minhas próximas partes?"
                     className="w-full p-4 text-lg border-2 border-slate-200 dark:border-slate-700 rounded-xl shadow-lg focus:ring-4 focus:ring-primary/20 focus:border-primary outline-none transition-all bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400"
                 />
 

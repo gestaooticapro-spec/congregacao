@@ -475,6 +475,186 @@ export interface Database {
           }
         ]
       }
+      temas: {
+        Row: {
+          id: string
+          numero: number
+          titulo: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          numero: number
+          titulo: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          numero?: number
+          titulo?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      oradores_visitantes: {
+        Row: {
+          id: string
+          nome: string
+          congregacao: string
+          cidade: string
+          telefone: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          nome: string
+          congregacao: string
+          cidade: string
+          telefone?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          nome?: string
+          congregacao?: string
+          cidade?: string
+          telefone?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      membros_temas: {
+        Row: {
+          id: string
+          membro_id: string
+          tema_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          membro_id: string
+          tema_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          membro_id?: string
+          tema_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "membros_temas_membro_id_fkey"
+            columns: ["membro_id"]
+            referencedRelation: "membros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membros_temas_tema_id_fkey"
+            columns: ["tema_id"]
+            referencedRelation: "temas"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      agenda_discursos_locais: {
+        Row: {
+          id: string
+          data: string
+          orador_local_id: string | null
+          orador_visitante_id: string | null
+          tema_id: string
+          cantico: number | null
+          tem_midia: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          data: string
+          orador_local_id?: string | null
+          orador_visitante_id?: string | null
+          tema_id: string
+          cantico?: number | null
+          tem_midia?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          data?: string
+          orador_local_id?: string | null
+          orador_visitante_id?: string | null
+          tema_id?: string
+          cantico?: number | null
+          tem_midia?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_discursos_locais_orador_local_id_fkey"
+            columns: ["orador_local_id"]
+            referencedRelation: "membros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agenda_discursos_locais_orador_visitante_id_fkey"
+            columns: ["orador_visitante_id"]
+            referencedRelation: "oradores_visitantes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agenda_discursos_locais_tema_id_fkey"
+            columns: ["tema_id"]
+            referencedRelation: "temas"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      agenda_discursos_fora: {
+        Row: {
+          id: string
+          data: string
+          orador_id: string
+          destino_cidade: string
+          destino_congregacao: string
+          horario: string
+          tema_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          data: string
+          orador_id: string
+          destino_cidade: string
+          destino_congregacao: string
+          horario: string
+          tema_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          data?: string
+          orador_id?: string
+          destino_cidade?: string
+          destino_congregacao?: string
+          horario?: string
+          tema_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_discursos_fora_orador_id_fkey"
+            columns: ["orador_id"]
+            referencedRelation: "membros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agenda_discursos_fora_tema_id_fkey"
+            columns: ["tema_id"]
+            referencedRelation: "temas"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

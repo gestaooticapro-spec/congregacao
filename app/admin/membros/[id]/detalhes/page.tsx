@@ -16,11 +16,83 @@ export default function DetalhesMembroPage() {
     const [saving, setSaving] = useState(false)
     const [formData, setFormData] = useState<MembroUpdate>({})
 
+    const [temasPreparados, setTemasPreparados] = useState<{ id: string, numero: number, titulo: string }[]>([])
+    const [temasDisponiveis, setTemasDisponiveis] = useState<{ id: string, numero: number, titulo: string }[]>([])
+    const [temaSelecionadoId, setTemaSelecionadoId] = useState('')
+    const [addingTema, setAddingTema] = useState(false)
+
     useEffect(() => {
         if (id) {
             fetchMembro()
+            fetchTemasPreparados()
+            fetchTemasDisponiveis()
         }
     }, [id])
+
+    const fetchTemasPreparados = async () => {
+        const { data, error } = await supabase
+            .from('membros_temas')
+            .select('tema:temas(id, numero, titulo)')
+            .eq('membro_id', id)
+
+        if (error) {
+            console.error('Erro ao buscar temas:', error)
+        } else {
+            const temas = data.map((item: any) => item.tema).sort((a: any, b: any) => a.numero - b.numero)
+            setTemasPreparados(temas)
+        }
+    }
+
+    const fetchTemasDisponiveis = async () => {
+        const { data } = await supabase.from('temas').select('id, numero, titulo').order('numero')
+        setTemasDisponiveis(data || [])
+    }
+
+    const handleAddTema = async () => {
+        if (!temaSelecionadoId) return
+        setAddingTema(true)
+        try {
+            // Link theme to member
+            const { error: linkError } = await supabase
+                .from('membros_temas')
+                .insert({ membro_id: id, tema_id: temaSelecionadoId })
+
+            if (linkError) {
+                if (linkError.code === '23505') { // Unique violation
+                    alert('Este tema já está na lista do orador.')
+                } else {
+                    throw linkError
+                }
+            } else {
+                setTemaSelecionadoId('')
+                fetchTemasPreparados()
+            }
+
+        } catch (error: any) {
+            console.error('Erro ao adicionar tema:', error)
+            alert('Erro ao adicionar tema: ' + error.message)
+        } finally {
+            setAddingTema(false)
+        }
+    }
+
+    const handleRemoveTema = async (temaId: string) => {
+        if (!confirm('Remover este tema da lista do orador?')) return
+
+        try {
+            const { error } = await supabase
+                .from('membros_temas')
+                .delete()
+                .eq('membro_id', id)
+                .eq('tema_id', temaId)
+
+            if (error) throw error
+            fetchTemasPreparados()
+        } catch (error) {
+            console.error('Erro ao remover tema:', error)
+            alert('Erro ao remover tema')
+        }
+    }
 
     const fetchMembro = async () => {
         try {
@@ -134,6 +206,60 @@ export default function DetalhesMembroPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* Temas Preparados - Apenas para Anciãos e Servos */}
+                {(formData.is_anciao || formData.is_servo_ministerial) && (
+                    <div className="space-y-6">
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b pb-2 border-slate-100 dark:border-slate-800">
+                            <span className="text-primary">🎤</span> Temas Preparados
+                        </h3>
+                        <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-700">
+                            <div className="flex gap-4 mb-6">
+                                <select
+                                    value={temaSelecionadoId}
+                                    onChange={(e) => setTemaSelecionadoId(e.target.value)}
+                                    className="flex-1 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary outline-none"
+                                >
+                                    <option value="">Selecione um tema...</option>
+                                    {temasDisponiveis.map(t => (
+                                        <option key={t.id} value={t.id}>#{t.numero} - {t.titulo}</option>
+                                    ))}
+                                </select>
+                                <button
+                                    onClick={handleAddTema}
+                                    disabled={addingTema || !temaSelecionadoId}
+                                    className="px-6 py-2 bg-primary text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-all"
+                                >
+                                    {addingTema ? 'Adicionando...' : 'Adicionar'}
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-2">
+                                {temasPreparados.length === 0 ? (
+                                    <p className="text-slate-500 dark:text-slate-400 italic">Nenhum tema cadastrado para este orador.</p>
+                                ) : (
+                                    temasPreparados.map((tema) => (
+                                        <div key={tema.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
+                                            <div className="flex items-center gap-3">
+                                                <span className="w-10 h-10 flex items-center justify-center bg-blue-100 text-blue-700 font-bold rounded-lg text-sm">
+                                                    {tema.numero}
+                                                </span>
+                                                <span className="font-medium text-slate-700 dark:text-slate-300">{tema.titulo}</span>
+                                            </div>
+                                            <button
+                                                onClick={() => handleRemoveTema(tema.id)}
+                                                className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                                                title="Remover tema"
+                                            >
+                                                🗑️
+                                            </button>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Qualificações Extras */}
                 <div className="space-y-6">

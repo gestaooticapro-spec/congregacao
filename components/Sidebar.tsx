@@ -12,15 +12,25 @@ export default function Sidebar() {
         return pathname === path || pathname.startsWith(`${path}/`);
     };
 
-    const links = [
-        { href: '/', label: 'Home', icon: '🏠' },
-        { href: '/programacao', label: 'Programação', icon: '📅' },
-        { href: '/admin/membros', label: 'Membros', icon: '👥' },
-        { href: '/admin/grupos', label: 'Grupos', icon: '🏘️' },
-        { href: '/admin/campo', label: 'Campo', icon: '👜' },
-        { href: '/admin/limpeza', label: 'Limpeza', icon: '🧹' },
-        { href: '/admin/escalas', label: 'Escalas', icon: '📋' },
-        { href: '/admin/permissoes', label: 'Permissões', icon: '🔒' },
+    type MenuItem =
+        | { type: 'link'; href: string; label: string; icon: string }
+        | { type: 'separator' };
+
+    const menuItems: MenuItem[] = [
+        { type: 'link', href: '/', label: 'Home', icon: '🏠' },
+        { type: 'separator' },
+        { type: 'link', href: '/programacao', label: 'Reunião de Quinta', icon: '📅' },
+        { type: 'link', href: '/admin/discursos', label: 'Discursos', icon: '🎤' },
+        { type: 'separator' },
+        { type: 'link', href: '/admin/escalas', label: 'Outras Designações', icon: '📋' },
+        { type: 'link', href: '/admin/campo', label: 'Campo', icon: '👜' },
+        { type: 'link', href: '/admin/limpeza', label: 'Limpeza', icon: '🧹' },
+        { type: 'separator' },
+        { type: 'link', href: '/admin/cadastros', label: 'Cadastros', icon: '📚' },
+        { type: 'link', href: '/admin/grupos', label: 'Grupos', icon: '🏘️' },
+        { type: 'link', href: '/admin/membros', label: 'Membros', icon: '👥' },
+        { type: 'separator' },
+        { type: 'link', href: '/admin/permissoes', label: 'Permissões', icon: '🔒' },
     ];
 
     const toggleMenu = () => setIsOpen(!isOpen);
@@ -37,7 +47,10 @@ export default function Sidebar() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
                 </button>
-                <span className="ml-4 font-bold text-lg text-slate-800 dark:text-white">Congregation Manager</span>
+                <span className="ml-4 font-bold text-lg text-slate-800 dark:text-white">
+                    <span className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">Cong</span>
+                    <span>Guaíra</span>
+                </span>
             </div>
 
             {/* Overlay for Mobile */}
@@ -54,8 +67,9 @@ export default function Sidebar() {
                     } md:translate-x-0 print:hidden`}
             >
                 <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
-                    <Link href="/" className="text-xl font-bold text-primary" onClick={() => setIsOpen(false)}>
-                        CM
+                    <Link href="/" className="text-xl font-bold" onClick={() => setIsOpen(false)}>
+                        <span className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">Cong</span>
+                        <span className="text-slate-700 dark:text-white">Guaíra</span>
                     </Link>
                     <button onClick={() => setIsOpen(false)} className="md:hidden text-slate-500 hover:text-slate-700">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -65,20 +79,26 @@ export default function Sidebar() {
                 </div>
 
                 <nav className="p-4 space-y-2 overflow-y-auto h-[calc(100vh-80px)]">
-                    {links.map((link) => (
-                        <Link
-                            key={link.href}
-                            href={link.href}
-                            onClick={() => setIsOpen(false)}
-                            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium ${isActive(link.href) && link.href !== '/'
-                                ? 'bg-primary text-white shadow-md shadow-blue-500/20'
-                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white'
-                                }`}
-                        >
-                            <span className="text-xl">{link.icon}</span>
-                            <span>{link.label}</span>
-                        </Link>
-                    ))}
+                    {menuItems.map((item, index) => {
+                        if (item.type === 'separator') {
+                            return <div key={`sep-${index}`} className="my-2 border-t border-slate-100 dark:border-slate-800" />
+                        }
+
+                        return (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                onClick={() => setIsOpen(false)}
+                                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium ${isActive(item.href) && item.href !== '/'
+                                    ? 'bg-primary text-white shadow-md shadow-blue-500/20'
+                                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white'
+                                    }`}
+                            >
+                                <span className="text-xl">{item.icon}</span>
+                                <span>{item.label}</span>
+                            </Link>
+                        )
+                    })}
                 </nav>
 
                 <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">

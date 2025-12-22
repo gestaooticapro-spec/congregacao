@@ -19,6 +19,7 @@ function ConfirmarContent() {
     const [membro, setMembro] = useState<Membro | null>(null)
     const [status, setStatus] = useState<string | null>(null)
     const [partName, setPartName] = useState<string>('')
+    const [assistantName, setAssistantName] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
@@ -77,6 +78,20 @@ function ConfirmarContent() {
                     // Check if member is main or assistant
                     if (p.membro_id === membroId) {
                         currentStatus = p.status || 'pending'
+
+                        // If there is an assistant, fetch their name
+                        if (p.ajudante_id) {
+                            const { data: assistantData } = await supabase
+                                .from('membros')
+                                .select('nome_completo')
+                                .eq('id', p.ajudante_id)
+                                .single()
+
+                            if (assistantData) {
+                                setAssistantName(assistantData.nome_completo)
+                            }
+                        }
+
                     } else if (p.ajudante_id === membroId) {
                         currentStatus = p.ajudante_status || 'pending'
                         name += ' (Ajudante)'
@@ -162,6 +177,12 @@ function ConfirmarContent() {
                     <p className="text-lg font-medium text-gray-900 dark:text-white">
                         {partName}
                     </p>
+                    {assistantName && (
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
+                            <span className="font-semibold text-blue-600 dark:text-blue-400 uppercase text-xs tracking-wide">Ajudante: </span>
+                            {assistantName}
+                        </p>
+                    )}
                 </div>
 
                 {status === 'pending' && (

@@ -21,6 +21,15 @@ export default function DetalhesMembroPage() {
     const [temaSelecionadoId, setTemaSelecionadoId] = useState('')
     const [addingTema, setAddingTema] = useState(false)
 
+    // Search states
+    const [searchTerm, setSearchTerm] = useState('')
+    const [showResults, setShowResults] = useState(false)
+
+    const filteredTemas = temasDisponiveis.filter(t =>
+        t.numero.toString().includes(searchTerm) ||
+        t.titulo.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+
     useEffect(() => {
         if (id) {
             fetchMembro()
@@ -65,6 +74,7 @@ export default function DetalhesMembroPage() {
                 }
             } else {
                 setTemaSelecionadoId('')
+                setSearchTerm('')
                 fetchTemasPreparados()
             }
 
@@ -214,25 +224,64 @@ export default function DetalhesMembroPage() {
                             <span className="text-primary">🎤</span> Temas Preparados
                         </h3>
                         <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-700">
-                            <div className="flex gap-4 mb-6">
-                                <select
-                                    value={temaSelecionadoId}
-                                    onChange={(e) => setTemaSelecionadoId(e.target.value)}
-                                    className="flex-1 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary outline-none"
-                                >
-                                    <option value="">Selecione um tema...</option>
-                                    {temasDisponiveis.map(t => (
-                                        <option key={t.id} value={t.id}>#{t.numero} - {t.titulo}</option>
-                                    ))}
-                                </select>
+                            <div className="flex flex-col sm:flex-row gap-4 mb-6 relative z-20">
+                                <div className="flex-1 relative">
+                                    <input
+                                        type="text"
+                                        value={searchTerm}
+                                        onChange={(e) => {
+                                            setSearchTerm(e.target.value)
+                                            setShowResults(true)
+                                            setTemaSelecionadoId('') // Clear selection when typing
+                                        }}
+                                        onFocus={() => setShowResults(true)}
+                                        placeholder="Digite o número ou nome do tema..."
+                                        className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary outline-none"
+                                    />
+
+                                    {/* Dropdown Results */}
+                                    {showResults && (
+                                        <div className="absolute z-30 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                                            {filteredTemas.length === 0 ? (
+                                                <div className="p-3 text-slate-500 dark:text-slate-400 text-center">
+                                                    Nenhum tema encontrado
+                                                </div>
+                                            ) : (
+                                                filteredTemas.map(t => (
+                                                    <button
+                                                        key={t.id}
+                                                        onClick={() => {
+                                                            setTemaSelecionadoId(t.id)
+                                                            setSearchTerm(`#${t.numero} - ${t.titulo}`)
+                                                            setShowResults(false)
+                                                        }}
+                                                        className="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-b border-slate-100 dark:border-slate-800 last:border-0"
+                                                    >
+                                                        <span className="font-bold text-primary">#{t.numero}</span>
+                                                        <span className="ml-2 text-slate-700 dark:text-slate-300">{t.titulo}</span>
+                                                    </button>
+                                                ))
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
                                 <button
                                     onClick={handleAddTema}
                                     disabled={addingTema || !temaSelecionadoId}
-                                    className="px-6 py-2 bg-primary text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-all"
+                                    className="px-6 py-2 bg-primary text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-all sm:w-auto w-full"
                                 >
                                     {addingTema ? 'Adicionando...' : 'Adicionar'}
                                 </button>
                             </div>
+
+                            {/* Overlay to close dropdown when clicking outside */}
+                            {showResults && (
+                                <div
+                                    className="fixed inset-0 z-10"
+                                    onClick={() => setShowResults(false)}
+                                ></div>
+                            )}
 
                             <div className="grid grid-cols-1 gap-2">
                                 {temasPreparados.length === 0 ? (

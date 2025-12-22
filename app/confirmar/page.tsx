@@ -13,6 +13,7 @@ function ConfirmarContent() {
     const id = searchParams.get('id')
     const membroId = searchParams.get('membro')
     const role = searchParams.get('role')
+    const type = searchParams.get('type') // 'programacao' (default) or 'hospitalidade'
 
     const [loading, setLoading] = useState(true)
     const [programacao, setProgramacao] = useState<Programacao | null>(null)
@@ -23,27 +24,17 @@ function ConfirmarContent() {
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-        if (id && membroId && role) {
+        if (id && membroId) {
             fetchData()
         } else {
             setError('Link inválido.')
             setLoading(false)
         }
-    }, [id, membroId, role])
+    }, [id, membroId, role, type])
 
     const fetchData = async () => {
         try {
             if (!id || !membroId) return
-
-            // Fetch Schedule
-            const { data: progData, error: progError } = await supabase
-                .from('programacao_semanal')
-                .select('*')
-                .eq('id', id)
-                .single()
-
-            if (progError) throw progError
-            setProgramacao(progData)
 
             // Fetch Member
             const { data: membData, error: membError } = await supabase
@@ -55,52 +46,83 @@ function ConfirmarContent() {
             if (membError) throw membError
             setMembro(membData)
 
-            // Determine Status and Part Name
-            let currentStatus = 'pending'
-            let name = ''
+            if (type === 'hospitalidade') {
+                // Fetch Hospitality Assignment
+                const { data: hospData, error: hospError } = await supabase
+                    .from('agenda_discursos_locais')
+                    .select('*, orador_visitante:oradores_visitantes(nome)')
+                    .eq('id', id)
+                    .single()
 
-            if (role === 'presidente') {
-                currentStatus = progData.presidente_status || 'pending'
-                name = 'Presidente'
-            } else if (role === 'oracao_inicial') {
-                currentStatus = progData.oracao_inicial_status || 'pending'
-                name = 'Oração Inicial'
-            } else if (role === 'oracao_final') {
-                currentStatus = progData.oracao_final_status || 'pending'
-                name = 'Oração Final'
+                if (hospError) throw hospError
+
+                // Mock Programacao structure for date display
+                setProgramacao({ data_reuniao: hospData.data } as any)
+
+                setStatus(hospData.hospitalidade_status || 'pending')
+                setPartName(`Hospedagem/Lanche - Orador: ${hospData.orador_visitante?.nome}`)
+
             } else {
-                // It's a part index or ID
-                const partes = (progData.partes as any[]) || []
-                const index = parseInt(role as string)
-                if (!isNaN(index) && partes[index]) {
-                    const p = partes[index]
-                    name = p.nome
-                    // Check if member is main or assistant
-                    if (p.membro_id === membroId) {
-                        currentStatus = p.status || 'pending'
+                // Default: Programacao Semanal
+                if (!role) throw new Error('Role missing for programacao')
 
-                        // If there is an assistant, fetch their name
-                        if (p.ajudante_id) {
-                            const { data: assistantData } = await supabase
-                                .from('membros')
-                                .select('nome_completo')
-                                .eq('id', p.ajudante_id)
-                                .single()
+                // Fetch Schedule
+                const { data: progData, error: progError } = await supabase
+                    .from('programacao_semanal')
+                    .select('*')
+                    .eq('id', id)
+                    .single()
 
-                            if (assistantData) {
-                                setAssistantName(assistantData.nome_completo)
+                if (progError) throw progError
+                setProgramacao(progData)
+
+                // Determine Status and Part Name
+                let currentStatus = 'pending'
+                let name = ''
+
+                if (role === 'presidente') {
+                    currentStatus = progData.presidente_status || 'pending'
+                    name = 'Presidente'
+                } else if (role === 'oracao_inicial') {
+                    currentStatus = progData.oracao_inicial_status || 'pending'
+                    name = 'Oração Inicial'
+                } else if (role === 'oracao_final') {
+                    currentStatus = progData.oracao_final_status || 'pending'
+                    name = 'Oração Final'
+                } else {
+                    // It's a part index or ID
+                    const partes = (progData.partes as any[]) || []
+                    const index = parseInt(role as string)
+                    if (!isNaN(index) && partes[index]) {
+                        const p = partes[index]
+                        name = p.nome
+                        // Check if member is main or assistant
+                        if (p.membro_id === membroId) {
+                            currentStatus = p.status || 'pending'
+
+                            // If there is an assistant, fetch their name
+                            if (p.ajudante_id) {
+                                const { data: assistantData } = await supabase
+                                    .from('membros')
+                                    .select('nome_completo')
+                                    .eq('id', p.ajudante_id)
+                                    .single()
+
+                                if (assistantData) {
+                                    setAssistantName(assistantData.nome_completo)
+                                }
                             }
-                        }
 
-                    } else if (p.ajudante_id === membroId) {
-                        currentStatus = p.ajudante_status || 'pending'
-                        name += ' (Ajudante)'
+                        } else if (p.ajudante_id === membroId) {
+                            currentStatus = p.ajudante_status || 'pending'
+                            name += ' (Ajudante)'
+                        }
                     }
                 }
-            }
 
-            setStatus(currentStatus)
-            setPartName(name)
+                setStatus(currentStatus)
+                setPartName(name)
+            }
 
         } catch (err: any) {
             console.error(err)
@@ -111,40 +133,52 @@ function ConfirmarContent() {
     }
 
     const handleResponse = async (newStatus: 'accepted' | 'declined') => {
-        if (!programacao) return
+        if (!programacao && type !== 'hospitalidade') return
         setLoading(true)
 
         try {
             let updateData: any = {}
 
-            if (role === 'presidente') {
-                updateData = { presidente_status: newStatus }
-            } else if (role === 'oracao_inicial') {
-                updateData = { oracao_inicial_status: newStatus }
-            } else if (role === 'oracao_final') {
-                updateData = { oracao_final_status: newStatus }
+            if (type === 'hospitalidade') {
+                updateData = { hospitalidade_status: newStatus }
+
+                const { error } = await supabase
+                    .from('agenda_discursos_locais')
+                    .update(updateData)
+                    .eq('id', id)
+
+                if (error) throw error
+
             } else {
-                // Update part in JSON
-                const partes = [...(programacao.partes as any[])]
-                const index = parseInt(role as string)
-                if (!isNaN(index) && partes[index]) {
-                    if (partes[index].membro_id === membroId) {
-                        partes[index].status = newStatus
-                    } else if (partes[index].ajudante_id === membroId) {
-                        partes[index].ajudante_status = newStatus
+                if (role === 'presidente') {
+                    updateData = { presidente_status: newStatus }
+                } else if (role === 'oracao_inicial') {
+                    updateData = { oracao_inicial_status: newStatus }
+                } else if (role === 'oracao_final') {
+                    updateData = { oracao_final_status: newStatus }
+                } else {
+                    // Update part in JSON
+                    const partes = [...(programacao!.partes as any[])]
+                    const index = parseInt(role as string)
+                    if (!isNaN(index) && partes[index]) {
+                        if (partes[index].membro_id === membroId) {
+                            partes[index].status = newStatus
+                        } else if (partes[index].ajudante_id === membroId) {
+                            partes[index].ajudante_status = newStatus
+                        }
+                        updateData = { partes: partes }
                     }
-                    updateData = { partes: partes }
                 }
+
+                if (!id) throw new Error('ID inválido')
+
+                const { error } = await supabase
+                    .from('programacao_semanal')
+                    .update(updateData)
+                    .eq('id', id)
+
+                if (error) throw error
             }
-
-            if (!id) throw new Error('ID inválido')
-
-            const { error } = await supabase
-                .from('programacao_semanal')
-                .update(updateData)
-                .eq('id', id)
-
-            if (error) throw error
             setStatus(newStatus)
             alert(newStatus === 'accepted' ? 'Designação aceita com sucesso!' : 'Designação recusada.')
 

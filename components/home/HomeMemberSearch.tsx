@@ -158,6 +158,25 @@ export default function HomeMemberSearch() {
                 })
             }
 
+            // 5. Buscar Hospitalidade (Lanche)
+            const { data: lanche } = await supabase
+                .from('agenda_discursos_locais')
+                .select('data, tema:temas(titulo), orador_visitante:oradores_visitantes(nome)')
+                .eq('hospitalidade_id', membro.id)
+                .gte('data', hoje)
+                .order('data')
+
+            if (lanche) {
+                lanche.forEach((l: any) => {
+                    novasDesignacoes.push({
+                        tipo: 'SUPORTE', // Reuse SUPORTE style or create new one
+                        data: l.data,
+                        descricao: 'Hospedagem/Lanche',
+                        detalhe: `Orador: ${l.orador_visitante?.nome}`
+                    })
+                })
+            }
+
             // Ordenar todas por data
             novasDesignacoes.sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime())
             setDesignacoes(novasDesignacoes)

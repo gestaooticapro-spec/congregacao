@@ -9,7 +9,9 @@ import { ptBR } from 'date-fns/locale'
 type DiscursoLocal = Database['public']['Tables']['agenda_discursos_locais']['Row'] & {
     tema: { numero: number, titulo: string },
     orador_local?: { nome_completo: string },
-    orador_visitante?: { nome: string, congregacao: string, cidade: string, telefone: string }
+    orador_visitante?: { nome: string, congregacao: string, cidade: string, telefone: string },
+    hospitalidade?: { nome_completo: string },
+    hospitalidade_id?: string
 }
 
 type DiscursoFora = Database['public']['Tables']['agenda_discursos_fora']['Row'] & {
@@ -38,8 +40,9 @@ export default function DiscursosPage() {
                     .select(`
                         *,
                         tema:temas(numero, titulo),
-                        orador_local:membros(nome_completo),
-                        orador_visitante:oradores_visitantes(nome, congregacao, cidade, telefone)
+                        orador_local:membros!agenda_discursos_locais_orador_local_id_fkey(nome_completo),
+                        orador_visitante:oradores_visitantes(nome, congregacao, cidade, telefone),
+                        hospitalidade:membros!agenda_discursos_locais_hospitalidade_id_fkey(nome_completo)
                     `)
                     .order('data', { ascending: true })
 
@@ -128,12 +131,15 @@ function DiscursosLocaisList({ discursos, onUpdate }: { discursos: DiscursoLocal
     const [temaId, setTemaId] = useState('') // Used for Locals
     const [cantico, setCantico] = useState('')
     const [temMidia, setTemMidia] = useState(false)
+    const [hospitalidadeId, setHospitalidadeId] = useState('')
+    const [hospitalidadeSearch, setHospitalidadeSearch] = useState('')
 
     // Search State
     const [temaSearch, setTemaSearch] = useState('')
 
     // Lists
     const [membros, setMembros] = useState<{ id: string, nome_completo: string }[]>([])
+    const [todosMembros, setTodosMembros] = useState<{ id: string, nome_completo: string }[]>([])
     const [visitantes, setVisitantes] = useState<{ id: string, nome: string, congregacao: string, cidade: string }[]>([])
     const [temasPreparados, setTemasPreparados] = useState<{ id: string, numero: number, titulo: string }[]>([])
     const [allTemas, setAllTemas] = useState<{ id: string, numero: number, titulo: string }[]>([])
@@ -158,7 +164,15 @@ function DiscursosLocaisList({ discursos, onUpdate }: { discursos: DiscursoLocal
             .select('id, nome_completo')
             .or('is_anciao.eq.true,is_servo_ministerial.eq.true')
             .order('nome_completo')
+            .order('nome_completo')
         setMembros(m || [])
+
+        const { data: allM } = await supabase
+            .from('membros')
+            .select('id, nome_completo')
+            .order('nome_completo')
+        setTodosMembros(allM || [])
+
         const { data: v } = await supabase.from('oradores_visitantes').select('id, nome, congregacao, cidade').order('nome')
         setVisitantes(v || [])
         const { data: t } = await supabase.from('temas').select('id, numero, titulo').order('numero')
@@ -222,7 +236,8 @@ function DiscursosLocaisList({ discursos, onUpdate }: { discursos: DiscursoLocal
                 orador_visitante_id: tipoOrador === 'VISITANTE' ? oradorVisitanteId : null,
                 tema_id: temaId,
                 cantico: cantico ? parseInt(cantico) : null,
-                tem_midia: temMidia
+                tem_midia: temMidia,
+                hospitalidade_id: tipoOrador === 'VISITANTE' && hospitalidadeId ? hospitalidadeId : null
             })
 
             if (error) throw error
@@ -323,7 +338,28 @@ ${midiaTexto}`
         setTemaId('')
         setCantico('')
         setTemaSearch('')
+        setTemaSearch('')
         setTemMidia(false)
+        setHospitalidadeId('')
+        setHospitalidadeSearch('')
+    }
+
+    const getWhatsAppUrl = (membroId: string, nome: string, data: string, id: string) => {
+        if (!membroId) return ''
+        const date = new Date(data).toLocaleDateString('pt-BR')
+        let message = `Olá ${nome}!\nVocê foi designado(a) para cuidar da hospedagem/lanche do orador visitante no dia: ${date}`
+
+        // Add confirmation link
+        // We need the ID of the discourse assignment. 
+        // If it's a new assignment (not saved yet), we can't generate the link properly without saving first.
+        // But for existing ones in the list, we can.
+
+        if (id) {
+            const link = `${window.location.origin}/confirmar?id=${id}&membro=${membroId}&type=hospitalidade`
+            message += `\n\nClique no link pra confirmar:\n\n${link}`
+        }
+
+        return `https://wa.me/?text=${encodeURIComponent(message)}`
     }
 
     return (
@@ -389,6 +425,8 @@ ${midiaTexto}`
                                     </div>
                                 </div>
                             )}
+
+
 
                             <div className="flex gap-4">
                                 <div className="flex-1">
@@ -469,6 +507,56 @@ ${midiaTexto}`
                                     <span className="text-slate-700 dark:text-slate-300 font-medium">Tem imagens ou vídeos?</span>
                                 </label>
                             </div>
+
+                            {tipoOrador === 'VISITANTE' && (
+                                <div>
+                                    <label className="block text-sm font-bold mb-1">Lanche (Hospitalidade)</label>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            value={hospitalidadeSearch}
+                                            onChange={e => {
+                                                setHospitalidadeSearch(e.target.value)
+                                                if (!e.target.value) setHospitalidadeId('')
+                                            }}
+                                            placeholder="Buscar irmão(ã) para o lanche..."
+                                            className="w-full p-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700"
+                                        />
+                                        {hospitalidadeSearch && !hospitalidadeId && (
+                                            <div className="absolute top-full left-0 right-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl max-h-48 overflow-y-auto z-10 mt-1">
+                                                {todosMembros
+                                                    .filter(m => m.nome_completo.toLowerCase().includes(hospitalidadeSearch.toLowerCase()))
+                                                    .map(m => (
+                                                        <button
+                                                            key={m.id}
+                                                            onClick={() => {
+                                                                setHospitalidadeId(m.id)
+                                                                setHospitalidadeSearch(m.nome_completo)
+                                                            }}
+                                                            className="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm"
+                                                        >
+                                                            {m.nome_completo}
+                                                        </button>
+                                                    ))}
+                                                {todosMembros.filter(m => m.nome_completo.toLowerCase().includes(hospitalidadeSearch.toLowerCase())).length === 0 && (
+                                                    <div className="p-3 text-sm text-slate-500 text-center">Nenhum membro encontrado.</div>
+                                                )}
+                                            </div>
+                                        )}
+                                        {hospitalidadeId && (
+                                            <button
+                                                onClick={() => {
+                                                    setHospitalidadeId('')
+                                                    setHospitalidadeSearch('')
+                                                }}
+                                                className="absolute right-2 top-2 text-slate-400 hover:text-red-500"
+                                            >
+                                                ✕
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex justify-end gap-3 mt-6">
@@ -512,6 +600,28 @@ ${midiaTexto}`
                                                 {d.orador_visitante?.nome}
                                             </span>
                                             <span className="block text-xs text-slate-500">{d.orador_visitante?.congregacao} - {d.orador_visitante?.cidade}</span>
+                                            {d.hospitalidade && (
+                                                <div className="mt-1 flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-full w-fit">
+                                                    <span>☕</span>
+                                                    <span className="font-medium">Lanche: {d.hospitalidade.nome_completo}</span>
+                                                    <a
+                                                        href={getWhatsAppUrl(d.hospitalidade_id!, d.hospitalidade.nome_completo, d.data, d.id)}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="ml-2 text-green-500 hover:text-green-600 transition-colors"
+                                                        title="Enviar WhatsApp"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                                                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+                                                        </svg>
+                                                    </a>
+                                                    {/* Status Icon */}
+                                                    {(d as any).hospitalidade_status === 'accepted' && <span title="Aceito" className="text-green-500 ml-1">✅</span>}
+                                                    {(d as any).hospitalidade_status === 'declined' && <span title="Recusado" className="text-red-500 ml-1">❌</span>}
+                                                    {(!(d as any).hospitalidade_status || (d as any).hospitalidade_status === 'pending') && <span title="Pendente" className="text-gray-400 ml-1">⏳</span>}
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </td>

@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 import { Database } from '@/types/database.types'
+import { format, startOfWeek, endOfWeek, isSameMonth } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
 type Programacao = Database['public']['Tables']['programacao_semanal']['Row']
 
@@ -31,6 +33,18 @@ export default function ProgramacaoPage() {
         }
     }
 
+    const formatWeekRange = (dateString: string) => {
+        const date = new Date(dateString + 'T00:00:00')
+        const start = startOfWeek(date, { weekStartsOn: 1 }) // Monday
+        const end = endOfWeek(date, { weekStartsOn: 1 }) // Sunday
+
+        if (isSameMonth(start, end)) {
+            return `${format(start, 'd')} - ${format(end, 'd')} de ${format(end, 'MMMM', { locale: ptBR })}`
+        } else {
+            return `${format(start, "d 'de' MMMM", { locale: ptBR })} - ${format(end, "d 'de' MMMM", { locale: ptBR })}`
+        }
+    }
+
     if (loading) return <div className="p-8">Carregando...</div>
 
     return (
@@ -48,8 +62,8 @@ export default function ProgramacaoPage() {
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {programacoes.map((prog) => (
                     <div key={prog.id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-                        <h2 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">
-                            {new Date(prog.data_reuniao + 'T00:00:00').toLocaleDateString('pt-BR')}
+                        <h2 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white capitalize">
+                            {formatWeekRange(prog.data_reuniao)}
                         </h2>
                         <p className="text-gray-600 dark:text-gray-400 mb-4">{prog.semana_descricao}</p>
                         <div className="flex justify-between items-center">

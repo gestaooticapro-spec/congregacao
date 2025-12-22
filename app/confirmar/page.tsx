@@ -59,7 +59,7 @@ function ConfirmarContent() {
                 // Mock Programacao structure for date display
                 setProgramacao({ data_reuniao: hospData.data } as any)
 
-                setStatus(hospData.hospitalidade_status || 'pending')
+                setStatus((hospData as any).hospitalidade_status || 'pending')
                 setPartName(`Hospedagem/Lanche - Orador: ${hospData.orador_visitante?.nome}`)
 
             } else {
@@ -133,6 +133,7 @@ function ConfirmarContent() {
     }
 
     const handleResponse = async (newStatus: 'accepted' | 'declined') => {
+        if (!id) return
         if (!programacao && type !== 'hospitalidade') return
         setLoading(true)
 

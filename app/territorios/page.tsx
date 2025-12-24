@@ -17,7 +17,7 @@ export default function TerritoriosPage() {
         // Fetch territories, count of active visits, and last completion date
         const { data, error } = await supabase
             .from('territorios')
-            .select('*, visitas_ativas(count), historico_conclusao(data_fim)')
+            .select('*, visitas_ativas(count), historico_conclusao(data_fim), responsavel:membros(nome_completo)')
             .order('nome')
             .order('data_fim', { foreignTable: 'historico_conclusao', ascending: false })
             .limit(1, { foreignTable: 'historico_conclusao' })
@@ -33,7 +33,8 @@ export default function TerritoriosPage() {
     const filteredTerritories = territories.filter(t => {
         const search = searchTerm.toLowerCase()
         const matchesSearch = t.nome.toLowerCase().includes(search) ||
-            (t.referencia && t.referencia.toLowerCase().includes(search))
+            (t.referencia && t.referencia.toLowerCase().includes(search)) ||
+            (t.responsavel?.nome_completo && t.responsavel.nome_completo.toLowerCase().includes(search))
 
         // If searching, show all matches
         if (searchTerm) {
@@ -57,7 +58,7 @@ export default function TerritoriosPage() {
             <div className="mb-6">
                 <input
                     type="text"
-                    placeholder="Buscar por nome ou referência..."
+                    placeholder="Buscar por nome, referência ou responsável..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full p-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
@@ -82,9 +83,14 @@ export default function TerritoriosPage() {
                                 />
                             </div>
                             <div className="p-4">
-                                <h2 className="font-semibold text-lg">{t.nome}</h2>
+                                <h2 className="font-semibold text-lg text-gray-900">{t.nome}</h2>
                                 {t.referencia && (
                                     <p className="text-sm text-gray-600 mb-1">{t.referencia}</p>
+                                )}
+                                {t.responsavel?.nome_completo && (
+                                    <p className="text-sm font-medium text-blue-800 mb-1">
+                                        👤 {t.responsavel.nome_completo}
+                                    </p>
                                 )}
                                 <div className="flex justify-between items-end mt-2">
                                     <p className="text-xs text-gray-500">

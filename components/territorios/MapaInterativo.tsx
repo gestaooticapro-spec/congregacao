@@ -69,8 +69,8 @@ export default function MapaInterativo({
                                 style={{
                                     top: `${quadra.y}%`,
                                     left: `${quadra.x}%`,
-                                    width: '44px',
-                                    height: '44px',
+                                    width: '32px',
+                                    height: '32px',
                                     // For user mode:
                                     // - If Visited (Pin): Shift so the "tip" is at the coordinate (translate -10%, -90%)
                                     // - If Unvisited (Target): Center it so the user clicks the point (translate -50%, -50%)
@@ -87,13 +87,13 @@ export default function MapaInterativo({
                                             onQuadraClick?.(quadra.id)
                                         }}
                                         className={`w-full h-full rounded-full flex items-center justify-center transition-all duration-200 ${isVisited
-                                                ? 'bg-transparent' // Pin is visible, button background transparent
-                                                : 'bg-white/50 hover:bg-white/70 border-2 border-dashed border-red-500 shadow-sm' // Improved visibility
+                                            ? 'bg-transparent' // Pin is visible, button background transparent
+                                            : 'bg-white/50 hover:bg-white/70 border-2 border-dashed border-red-500 shadow-sm' // Improved visibility
                                             }`}
                                         aria-label={`Quadra ${quadra.id}`}
                                     >
                                         {isVisited && (
-                                            <span className="text-4xl filter drop-shadow-md animate-bounce-short">
+                                            <span className="text-2xl filter drop-shadow-md animate-bounce-short">
                                                 📌
                                             </span>
                                         )}

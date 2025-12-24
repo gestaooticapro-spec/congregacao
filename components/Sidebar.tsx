@@ -120,7 +120,7 @@ export default function Sidebar() {
                     </button>
                 </div>
 
-                <nav className="p-4 space-y-2 overflow-y-auto flex-1">
+                <nav className="p-4 space-y-2 overflow-y-auto flex-1 thin-scrollbar">
                     {!loading && visibleItems.map((item, index) => {
                         if (item.type === 'separator') {
                             return <div key={`sep-${index}`} className="my-2 border-t border-slate-100 dark:border-slate-800" />

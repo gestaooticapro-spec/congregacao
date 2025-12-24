@@ -122,6 +122,7 @@ export interface Database {
           is_balcao_publicacao: boolean
           is_ungido: boolean
           is_discurso_fora: boolean
+          ativo: boolean
           created_at: string
           updated_at: string
         }
@@ -161,6 +162,7 @@ export interface Database {
           is_balcao_publicacao?: boolean
           is_ungido?: boolean
           is_discurso_fora?: boolean
+          ativo?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -200,6 +202,7 @@ export interface Database {
           is_balcao_publicacao?: boolean
           is_ungido?: boolean
           is_discurso_fora?: boolean
+          ativo?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -662,6 +665,7 @@ export interface Database {
           imagem_url: string
           configuracao: Json
           referencia?: string | null
+          responsavel_id?: string | null
           created_at: string
         }
         Insert: {
@@ -670,6 +674,7 @@ export interface Database {
           imagem_url: string
           configuracao?: Json
           referencia?: string | null
+          responsavel_id?: string | null
           created_at?: string
         }
         Update: {
@@ -678,9 +683,17 @@ export interface Database {
           imagem_url?: string
           configuracao?: Json
           referencia?: string | null
+          responsavel_id?: string | null
           created_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "territorios_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            referencedRelation: "membros"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       visitas_ativas: {
         Row: {
@@ -716,24 +729,33 @@ export interface Database {
           territorio_id: string
           data_inicio: string | null
           data_fim: string
+          responsavel_id: string | null
         }
         Insert: {
           id?: string
           territorio_id: string
           data_inicio?: string | null
           data_fim?: string
+          responsavel_id?: string | null
         }
         Update: {
           id?: string
           territorio_id?: string
           data_inicio?: string | null
           data_fim?: string
+          responsavel_id?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "historico_conclusao_territorio_id_fkey"
             columns: ["territorio_id"]
             referencedRelation: "territorios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_conclusao_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            referencedRelation: "membros"
             referencedColumns: ["id"]
           }
         ]

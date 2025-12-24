@@ -98,43 +98,46 @@ export default function EditarDesignacoesPage() {
     }
 
     const getQualifiedMembers = (parte: Parte, isAssistant = false) => {
+        // Filter out inactive members first
+        const activeMembros = membros.filter(m => m.ativo !== false)
+
         if (isAssistant) {
             if (parte.tipo === 'VIDA_CRISTA' && parte.nome.includes('Estudo Bíblico')) {
-                return membros.filter(m => m.is_leitor_estudo_biblico)
+                return activeMembros.filter(m => m.is_leitor_estudo_biblico)
             }
-            return membros.filter(m => m.is_ajudante)
+            return activeMembros.filter(m => m.is_ajudante)
         }
 
         // Chairman
         if (parte.tipo === 'PRESIDENTE') {
-            return membros.filter(m => m.is_presidente)
+            return activeMembros.filter(m => m.is_presidente)
         }
 
         // Prayers
         if (parte.tipo === 'ORACAO') {
-            return membros.filter(m => m.is_anciao || m.is_servo_ministerial)
+            return activeMembros.filter(m => m.is_anciao || m.is_servo_ministerial)
         }
 
         if (parte.tipo === 'TESOUROS') {
-            if (parte.nome.includes('Leitura da Bíblia')) return membros.filter(m => m.is_leitor_biblia)
+            if (parte.nome.includes('Leitura da Bíblia')) return activeMembros.filter(m => m.is_leitor_biblia)
             // Talks/Gems -> Elders or Servants
-            return membros.filter(m => m.is_anciao || m.is_servo_ministerial)
+            return activeMembros.filter(m => m.is_anciao || m.is_servo_ministerial)
         }
 
         if (parte.tipo === 'MINISTERIO') {
             // General publishers
-            return membros.filter(m => m.is_publicador)
+            return activeMembros.filter(m => m.is_publicador)
         }
 
         if (parte.tipo === 'VIDA_CRISTA') {
-            if (parte.nome.includes('Estudo Bíblico de Congregação')) return membros.filter(m => m.is_anciao) // Conductor
-            if (parte.nome.includes('Leitura do Estudo')) return membros.filter(m => m.is_leitor_estudo_biblico) // Reader
+            if (parte.nome.includes('Estudo Bíblico de Congregação')) return activeMembros.filter(m => m.is_anciao) // Conductor
+            if (parte.nome.includes('Leitura do Estudo')) return activeMembros.filter(m => m.is_leitor_estudo_biblico) // Reader
 
             // Fix: Restrict other parts to Elders or Ministerial Servants
-            return membros.filter(m => m.is_anciao || m.is_servo_ministerial)
+            return activeMembros.filter(m => m.is_anciao || m.is_servo_ministerial)
         }
 
-        return membros
+        return activeMembros
     }
 
     const getStatusIcon = (status: string | undefined) => {

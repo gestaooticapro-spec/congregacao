@@ -50,6 +50,12 @@ export default function MembrosPage() {
 
         if (!matchesSearch) return false
 
+        // Handle Inactive Filter
+        if (filter === 'INACTIVE') return membro.ativo === false
+
+        // For all other filters, only show active members
+        if (membro.ativo === false) return false
+
         if (filter === 'ALL') return true
         if (filter === 'ANCIAO') return membro.is_anciao
         if (filter === 'SERVO') return membro.is_servo_ministerial
@@ -90,7 +96,8 @@ export default function MembrosPage() {
                             onChange={(e) => setFilter(e.target.value)}
                             className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                         >
-                            <option value="ALL">Todos os Membros</option>
+                            <option value="ALL">Todos os Membros (Ativos)</option>
+                            <option value="INACTIVE">Membros Inativos</option>
                             <option value="ANCIAO">Anciãos</option>
                             <option value="SERVO">Servos Ministeriais</option>
                             <option value="PIONEIRO">Pioneiros</option>

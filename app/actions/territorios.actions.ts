@@ -181,15 +181,52 @@ export async function toggleVisita(territorioId: string, quadraId: number) {
     return { success: true }
 }
 
+export async function assignTerritory(territorioId: string, membroId: string) {
+    const supabase = createServerClient()
+
+    const { error } = await supabase
+        .from('territorios')
+        .update({ responsavel_id: membroId })
+        .eq('id', territorioId)
+
+    if (error) {
+        console.error('Error assigning territory:', error)
+        return { error: 'Erro ao definir responsável' }
+    }
+
+    revalidatePath(`/territorios/${territorioId}`)
+    return { success: true }
+}
+
 export async function closeTerritory(territorioId: string) {
     const supabase = createServerClient()
+
+    // 0. Get current responsible
+    const { data: territorio } = await supabase
+        .from('territorios')
+        .select('responsavel_id')
+        .eq('id', territorioId)
+        .single()
+
+    // 0.5 Get start date (first visit)
+    const { data: firstVisit } = await supabase
+        .from('visitas_ativas')
+        .select('data_marcacao')
+        .eq('territorio_id', territorioId)
+        .order('data_marcacao', { ascending: true })
+        .limit(1)
+        .single()
+
+    const dataInicio = firstVisit?.data_marcacao || new Date().toISOString()
 
     // 1. Log history
     const { error: historyError } = await supabase
         .from('historico_conclusao')
         .insert({
             territorio_id: territorioId,
+            data_inicio: dataInicio,
             data_fim: new Date().toISOString(),
+            responsavel_id: territorio?.responsavel_id
         })
 
     if (historyError) {
@@ -197,7 +234,7 @@ export async function closeTerritory(territorioId: string) {
         return { error: 'Erro ao registrar histórico' }
     }
 
-    // 2. Clear visits
+    // 2. Clear visits AND responsible
     const { error: deleteError } = await supabase
         .from('visitas_ativas')
         .delete()
@@ -208,12 +245,25 @@ export async function closeTerritory(territorioId: string) {
         return { error: 'Erro ao limpar visitas' }
     }
 
+    // Clear responsible
+    await supabase
+        .from('territorios')
+        .update({ responsavel_id: null })
+        .eq('id', territorioId)
+
     revalidatePath(`/territorios/${territorioId}`)
     return { success: true }
 }
 
-export async function getTerritoryReport(startDate: string, endDate: string) {
+export async function getTerritoryReport(serviceYear: number) {
     const supabase = createServerClient()
+
+    // Calculate range: Sept 1 of (Year-1) to Aug 31 of Year
+    // Example: Service Year 2025 = 2024-09-01 to 2025-08-31
+    const startDate = `${serviceYear - 1}-09-01T00:00:00.000Z`
+    const endDate = `${serviceYear}-08-31T23:59:59.999Z`
+
+    console.log('Fetching report for Service Year:', serviceYear, `range: ${startDate} to ${endDate}`)
 
     // 1. Get all territories
     const { data: territories, error: territoriesError } = await supabase
@@ -226,21 +276,20 @@ export async function getTerritoryReport(startDate: string, endDate: string) {
         return { error: 'Erro ao buscar territórios' }
     }
 
-    // 2. Get history within range
-    // We want the last 3 completions for each territory within the range
-    // It's easier to fetch all relevant history and process in JS for this scale
-
-    // Ensure endDate covers the entire day
-    const adjustedEndDate = `${endDate}T23:59:59.999Z`
-
-    console.log('Fetching report for range:', startDate, adjustedEndDate)
-
+    // 2. Get history within range with Responsible Name
     const { data: history, error: historyError } = await supabase
         .from('historico_conclusao')
-        .select('territorio_id, data_fim')
+        .select(`
+            territorio_id,
+            data_inicio,
+            data_fim,
+            membros (
+                nome_completo
+            )
+        `)
         .gte('data_fim', startDate)
-        .lte('data_fim', adjustedEndDate)
-        .order('data_fim', { ascending: false })
+        .lte('data_fim', endDate)
+        .order('data_fim', { ascending: true }) // Oldest first to fill slots chronologically
 
     if (historyError) {
         console.error('Error fetching history for report:', historyError)
@@ -250,15 +299,36 @@ export async function getTerritoryReport(startDate: string, endDate: string) {
     // 3. Combine data
     const reportData = territories.map(t => {
         const territoryHistory = history
-            .filter(h => h.territorio_id === t.id)
-            .map(h => new Date(h.data_fim).toLocaleDateString('pt-BR'))
-            .slice(0, 3) // Take top 3 most recent
+            .filter((h: any) => h.territorio_id === t.id)
+            .map((h: any) => {
+                const nomeCompleto = h.membros?.nome_completo || 'Desconhecido'
+                const parts = nomeCompleto.split(' ')
+                const shortName = parts.length > 1
+                    ? `${parts[0]} ${parts[1][0]}.`
+                    : parts[0]
+
+                return {
+                    responsavel: shortName,
+                    data_designacao: h.data_inicio ? new Date(h.data_inicio).toLocaleDateString('pt-BR') : '-',
+                    data_conclusao: new Date(h.data_fim).toLocaleDateString('pt-BR')
+                }
+            })
+
+        // Pad with empty slots to ensure 4 slots
+        const slots: any[] = [...territoryHistory]
+        while (slots.length < 4) {
+            slots.push(null)
+        }
+        // If more than 4, take last 4? Or first 4? Usually first 4 of the year.
+        // User didn't specify, but usually you want to see what happened. 
+        // If there are more than 4, we might need another row, but for now let's cap at 4 or just return all and let UI handle.
+        // The UI has fixed 4 columns. I'll slice to 4.
 
         return {
             id: t.id,
             nome: t.nome,
             referencia: t.referencia,
-            conclusoes: territoryHistory
+            slots: slots.slice(0, 4)
         }
     })
 

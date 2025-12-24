@@ -30,7 +30,8 @@ export default function EditarMembroPage() {
         is_balcao: false,
         is_leitor_estudo_biblico: false,
         is_parte_vida_ministerio: false,
-        is_ajudante: false
+        is_ajudante: false,
+        ativo: true
     })
 
     const [grupos, setGrupos] = useState<Database['public']['Tables']['grupos_servico']['Row'][]>([])
@@ -74,7 +75,8 @@ export default function EditarMembroPage() {
                     is_balcao: data.is_balcao,
                     is_leitor_estudo_biblico: data.is_leitor_estudo_biblico,
                     is_parte_vida_ministerio: data.is_parte_vida_ministerio,
-                    is_ajudante: data.is_ajudante
+                    is_ajudante: data.is_ajudante,
+                    ativo: data.ativo
                 })
             }
         } catch (error) {
@@ -136,6 +138,24 @@ export default function EditarMembroPage() {
                                 className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all dark:text-white"
                                 placeholder="Ex: João Silva"
                             />
+                        </div>
+
+                        <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                            <label className="flex items-center justify-between cursor-pointer group">
+                                <span className="flex flex-col">
+                                    <span className="font-bold text-slate-700 dark:text-slate-300">Status do Membro</span>
+                                    <span className="text-xs text-slate-500">Desative para arquivar (mudou-se ou inativo)</span>
+                                </span>
+                                <div className="relative">
+                                    <input
+                                        type="checkbox"
+                                        checked={(formData as any).ativo ?? true}
+                                        onChange={(e) => handleChange('ativo' as any, e.target.checked)}
+                                        className="sr-only peer"
+                                    />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                </div>
+                            </label>
                         </div>
 
                         <div>

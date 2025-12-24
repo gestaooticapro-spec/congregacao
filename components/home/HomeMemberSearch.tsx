@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Database } from '@/types/database.types'
-import { format, isAfter, parseISO, startOfDay } from 'date-fns'
+import { format, isAfter, parseISO, startOfDay, startOfWeek, endOfWeek, isSameMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 type Membro = Pick<Database['public']['Tables']['membros']['Row'], 'id' | 'nome_completo' | 'grupo_id'>
@@ -36,6 +36,18 @@ export default function HomeMemberSearch() {
         if (data) setMembros(data)
     }
 
+    const formatWeekRange = (dateString: string) => {
+        const date = parseISO(dateString)
+        const start = startOfWeek(date, { weekStartsOn: 1 }) // Monday
+        const end = endOfWeek(date, { weekStartsOn: 1 }) // Sunday
+
+        if (isSameMonth(start, end)) {
+            return `${format(start, 'd')} - ${format(end, 'd')} de ${format(end, 'MMMM', { locale: ptBR })}`
+        } else {
+            return `${format(start, "d 'de' MMMM", { locale: ptBR })} - ${format(end, "d 'de' MMMM", { locale: ptBR })}`
+        }
+    }
+
     const handleSearch = async (membro: Membro) => {
         setSelectedMembro(membro)
         setSearchTerm(membro.nome_completo)
@@ -56,13 +68,15 @@ export default function HomeMemberSearch() {
 
             if (programacoes) {
                 programacoes.forEach(prog => {
+                    const weekRange = formatWeekRange(prog.data_reuniao)
+
                     // Presidente
                     if (prog.presidente_id === membro.id) {
                         novasDesignacoes.push({
                             tipo: 'REUNIAO',
                             data: prog.data_reuniao,
                             descricao: 'Presidente da Reunião',
-                            detalhe: prog.semana_descricao
+                            detalhe: weekRange
                         })
                     }
                     // Oração Inicial
@@ -71,7 +85,7 @@ export default function HomeMemberSearch() {
                             tipo: 'REUNIAO',
                             data: prog.data_reuniao,
                             descricao: 'Oração Inicial',
-                            detalhe: prog.semana_descricao
+                            detalhe: weekRange
                         })
                     }
                     // Oração Final
@@ -80,7 +94,7 @@ export default function HomeMemberSearch() {
                             tipo: 'REUNIAO',
                             data: prog.data_reuniao,
                             descricao: 'Oração Final',
-                            detalhe: prog.semana_descricao
+                            detalhe: weekRange
                         })
                     }
                     // Partes (JSON)
@@ -91,7 +105,7 @@ export default function HomeMemberSearch() {
                                     tipo: 'REUNIAO',
                                     data: prog.data_reuniao,
                                     descricao: parte.nome,
-                                    detalhe: parte.membro_id === membro.id ? 'Designado' : 'Ajudante'
+                                    detalhe: weekRange
                                 })
                             }
                         })
@@ -113,7 +127,7 @@ export default function HomeMemberSearch() {
                         tipo: 'SUPORTE',
                         data: sup.data,
                         descricao: formatarFuncaoSuporte(sup.funcao),
-                        detalhe: 'Equipe de Apoio'
+                        detalhe: formatWeekRange(sup.data)
                     })
                 })
             }
@@ -133,7 +147,7 @@ export default function HomeMemberSearch() {
                             tipo: 'LIMPEZA',
                             data: esc.data_inicio,
                             descricao: 'Limpeza do Salão',
-                            detalhe: 'Seu grupo está designado'
+                            detalhe: formatWeekRange(esc.data_inicio)
                         })
                     })
                 }
@@ -153,7 +167,7 @@ export default function HomeMemberSearch() {
                         tipo: 'CAMPO',
                         data: esc.data,
                         descricao: 'Dirigente de Campo',
-                        detalhe: 'Saída de Campo'
+                        detalhe: formatWeekRange(esc.data)
                     })
                 })
             }
@@ -172,7 +186,7 @@ export default function HomeMemberSearch() {
                         tipo: 'SUPORTE', // Reuse SUPORTE style or create new one
                         data: l.data,
                         descricao: 'Hospedagem/Lanche',
-                        detalhe: `Orador: ${l.orador_visitante?.nome}`
+                        detalhe: formatWeekRange(l.data)
                     })
                 })
             }
@@ -261,7 +275,7 @@ export default function HomeMemberSearch() {
                                     }`}
                             >
                                 <div className="flex justify-between items-start">
-                                    <div>
+                                    <div className="text-left">
                                         <div className="font-bold text-slate-900 dark:text-white text-lg">
                                             {desig.descricao}
                                         </div>

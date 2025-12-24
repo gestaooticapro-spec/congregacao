@@ -1,10 +1,10 @@
 'use server'
 
-import { createServerClient } from '@/lib/supabaseServer'
+import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
 export async function createTerritory(formData: FormData) {
-    const supabase = createServerClient()
+    const supabase = await createClient()
 
     const nome = formData.get('nome') as string
     const referencia = formData.get('referencia') as string
@@ -56,7 +56,7 @@ export async function createTerritory(formData: FormData) {
 }
 
 export async function updateTerritory(formData: FormData) {
-    const supabase = createServerClient()
+    const supabase = await createClient()
 
     const id = formData.get('id') as string
     const nome = formData.get('nome') as string
@@ -117,7 +117,7 @@ export async function updateTerritory(formData: FormData) {
 }
 
 export async function getTerritory(id: string) {
-    const supabase = createServerClient()
+    const supabase = await createClient()
 
     const { data: territorio, error: territorioError } = await supabase
         .from('territorios')
@@ -147,7 +147,7 @@ export async function getTerritory(id: string) {
 }
 
 export async function toggleVisita(territorioId: string, quadraId: number) {
-    const supabase = createServerClient()
+    const supabase = await createClient()
 
     // Check if it exists
     const { data: existing } = await supabase
@@ -182,7 +182,7 @@ export async function toggleVisita(territorioId: string, quadraId: number) {
 }
 
 export async function assignTerritory(territorioId: string, membroId: string) {
-    const supabase = createServerClient()
+    const supabase = await createClient()
 
     const { error } = await supabase
         .from('territorios')
@@ -199,7 +199,7 @@ export async function assignTerritory(territorioId: string, membroId: string) {
 }
 
 export async function closeTerritory(territorioId: string) {
-    const supabase = createServerClient()
+    const supabase = await createClient()
 
     // 0. Get current responsible
     const { data: territorio } = await supabase
@@ -256,7 +256,7 @@ export async function closeTerritory(territorioId: string) {
 }
 
 export async function getTerritoryReport(serviceYear: number) {
-    const supabase = createServerClient()
+    const supabase = await createClient()
 
     // Calculate range: Sept 1 of (Year-1) to Aug 31 of Year
     // Example: Service Year 2025 = 2024-09-01 to 2025-08-31

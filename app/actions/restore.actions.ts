@@ -1,9 +1,9 @@
 'use server'
 
-import { createServerClient } from '@/lib/supabaseServer'
+import { createClient } from '@/lib/supabase/server'
 
 export async function restoreAssignments() {
-    const supabase = createServerClient()
+    const supabase = await createClient()
     const results = []
 
     // 1. Get all schedules

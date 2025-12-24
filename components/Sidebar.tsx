@@ -106,9 +106,9 @@ export default function Sidebar() {
             {/* Sidebar */}
             <aside
                 className={`fixed top-0 left-0 h-full w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-50 transition-transform duration-300 ease-in-out transform ${isOpen ? 'translate-x-0' : '-translate-x-full'
-                    } md:translate-x-0 print:hidden`}
+                    } md:translate-x-0 print:hidden flex flex-col`}
             >
-                <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+                <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
                     <Link href="/" className="text-xl font-bold" onClick={() => setIsOpen(false)}>
                         <span className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">Cong</span>
                         <span className="text-slate-700 dark:text-white">Guaíra</span>
@@ -120,7 +120,7 @@ export default function Sidebar() {
                     </button>
                 </div>
 
-                <nav className="p-4 space-y-2 overflow-y-auto h-[calc(100vh-140px)]">
+                <nav className="p-4 space-y-2 overflow-y-auto flex-1">
                     {!loading && visibleItems.map((item, index) => {
                         if (item.type === 'separator') {
                             return <div key={`sep-${index}`} className="my-2 border-t border-slate-100 dark:border-slate-800" />
@@ -143,7 +143,7 @@ export default function Sidebar() {
                     })}
                 </nav>
 
-                <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
                     {!loading && (
                         session ? (
                             <button

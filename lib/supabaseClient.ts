@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 import { Database } from '@/types/database.types'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -8,7 +8,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
     console.warn('⚠️ AVISO: As chaves do Supabase não foram encontradas. Isso pode causar erros em tempo de execução.')
 }
 
-export const supabase = createClient<Database>(
+export const supabase = createBrowserClient<Database>(
     supabaseUrl || 'https://placeholder.supabase.co',
     supabaseAnonKey || 'placeholder'
 )

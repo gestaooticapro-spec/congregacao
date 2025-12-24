@@ -100,18 +100,14 @@ export default function AdminTerritoriosPage() {
                         </div>
 
                         <div className="p-4 pt-0 mt-auto border-t bg-gray-50 flex justify-between items-center">
-                            <Link
-                                href={`/territorios/${t.id}`}
-                                className="text-sm text-gray-600 hover:text-blue-600"
-                            >
-                                Visualizar
-                            </Link>
-                            <Link
-                                href={`/admin/territorios/${t.id}/editar`}
-                                className="text-sm bg-white border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 text-gray-700 font-medium"
-                            >
-                                ✏️ Editar
-                            </Link>
+                            <div className="flex justify-end w-full">
+                                <Link
+                                    href={`/admin/territorios/${t.id}/editar`}
+                                    className="text-sm bg-white border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 text-gray-700 font-medium"
+                                >
+                                    ✏️ Editar
+                                </Link>
+                            </div>
                         </div>
                     </div>
                 ))}

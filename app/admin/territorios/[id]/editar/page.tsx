@@ -33,13 +33,13 @@ export default function EditarTerritorioPage({ params }: { params: Promise<{ id:
         const res = await getTerritory(id)
         if (res.error) {
             alert(res.error)
-            router.push('/territorios')
+            router.push('/admin/territorios')
             return
         }
         const t = res.territorio
         if (!t) {
             alert('Território não encontrado')
-            router.push('/territorios')
+            router.push('/admin/territorios')
             return
         }
         setNome(t.nome)
@@ -94,7 +94,7 @@ export default function EditarTerritorioPage({ params }: { params: Promise<{ id:
                 alert(result.error)
             } else {
                 alert('Território atualizado com sucesso!')
-                router.push(`/territorios/${id}`)
+                router.push('/admin/territorios')
             }
         } catch (error: any) {
             console.error('Error:', error)
@@ -192,7 +192,7 @@ export default function EditarTerritorioPage({ params }: { params: Promise<{ id:
                 {/* Actions */}
                 <div className="flex justify-end pt-4 space-x-3">
                     <button
-                        onClick={() => router.push(`/territorios/${id}`)}
+                        onClick={() => router.push('/admin/territorios')}
                         className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
                     >
                         Cancelar

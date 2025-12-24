@@ -28,7 +28,7 @@ export default function ProgramacaoForm({ initialData, isEditing = false }: Prog
     // Basic Info
     const [dataReuniao, setDataReuniao] = useState(initialData?.data_reuniao || '')
     const [semanaDescricao, setSemanaDescricao] = useState(initialData?.semana_descricao || '')
-    const [temaTesouros, setTemaTesouros] = useState(initialData?.temas_tesouros || '')
+
 
     // Parts
     const [partes, setPartes] = useState<Parte[]>([])
@@ -45,9 +45,9 @@ export default function ProgramacaoForm({ initialData, isEditing = false }: Prog
         } else {
             // Default structure for new schedule
             setPartes([
-                { id: '1', tipo: 'TESOUROS', nome: 'Discurso', tempo: 10 },
-                { id: '2', tipo: 'TESOUROS', nome: 'Joias Espirituais', tempo: 10 },
-                { id: '3', tipo: 'TESOUROS', nome: 'Leitura da Bíblia', tempo: 4 },
+                { id: '1', tipo: 'TESOUROS', nome: '1. Discurso', tempo: 10 },
+                { id: '2', tipo: 'TESOUROS', nome: '2. Pérolas Espirituais', tempo: 10 },
+                { id: '3', tipo: 'TESOUROS', nome: '3. Leitura da Bíblia', tempo: 4 },
                 { id: '4', tipo: 'MINISTERIO', nome: 'Iniciando Conversas', tempo: 3 },
                 { id: '5', tipo: 'VIDA_CRISTA', nome: 'Estudo Bíblico de Congregação', tempo: 30 },
             ])
@@ -105,16 +105,15 @@ export default function ProgramacaoForm({ initialData, isEditing = false }: Prog
             }
 
             // Clean parts for storage (remove temp ID)
-            const partesParaSalvar = partes.map(({ tipo, nome, tempo }) => ({
-                tipo,
-                nome,
-                tempo
-            }))
+            const partesParaSalvar = partes.map((parte) => {
+                const { id, ...rest } = parte
+                return rest
+            })
 
             const payload = {
                 data_reuniao: dataReuniao,
                 semana_descricao: semanaDescricao,
-                temas_tesouros: temaTesouros,
+                temas_tesouros: '',
                 partes: partesParaSalvar
             }
 
@@ -232,16 +231,7 @@ export default function ProgramacaoForm({ initialData, isEditing = false }: Prog
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 mb-6">
                 <h2 className="text-xl font-semibold mb-4 text-gray-600 dark:text-gray-300">Tesouros da Palavra de Deus</h2>
 
-                <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tema do Tesouros</label>
-                    <input
-                        type="text"
-                        placeholder="Ex: Paulo queria ir para Roma"
-                        value={temaTesouros}
-                        onChange={(e) => setTemaTesouros(e.target.value)}
-                        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-transparent"
-                    />
-                </div>
+
 
                 {renderSection('Partes do Tesouros', 'TESOUROS', 'text-gray-600')}
             </div>

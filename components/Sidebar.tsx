@@ -18,6 +18,7 @@ export default function Sidebar() {
 
     const menuItems: MenuItem[] = [
         { type: 'link', href: '/', label: 'Home', icon: '🏠' },
+        { type: 'link', href: '/territorios', label: 'Territórios', icon: '🗺️' },
         { type: 'separator' },
         { type: 'link', href: '/programacao', label: 'Reunião de Quinta', icon: '📅' },
         { type: 'link', href: '/admin/discursos', label: 'Discursos', icon: '🎤' },
@@ -29,6 +30,7 @@ export default function Sidebar() {
         { type: 'link', href: '/admin/cadastros', label: 'Cadastros', icon: '📚' },
         { type: 'link', href: '/admin/grupos', label: 'Grupos', icon: '🏘️' },
         { type: 'link', href: '/admin/membros', label: 'Membros', icon: '👥' },
+        { type: 'link', href: '/admin/territorios', label: 'Gerenciar Territórios', icon: '⚙️' },
         { type: 'separator' },
         { type: 'link', href: '/admin/permissoes', label: 'Permissões', icon: '🔒' },
     ];

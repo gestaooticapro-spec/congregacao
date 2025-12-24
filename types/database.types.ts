@@ -655,6 +655,89 @@ export interface Database {
           }
         ]
       }
+      territorios: {
+        Row: {
+          id: string
+          nome: string
+          imagem_url: string
+          configuracao: Json
+          referencia?: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          nome: string
+          imagem_url: string
+          configuracao?: Json
+          referencia?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          nome?: string
+          imagem_url?: string
+          configuracao?: Json
+          referencia?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      visitas_ativas: {
+        Row: {
+          id: string
+          territorio_id: string
+          quadra_id: number
+          data_marcacao: string
+        }
+        Insert: {
+          id?: string
+          territorio_id: string
+          quadra_id: number
+          data_marcacao?: string
+        }
+        Update: {
+          id?: string
+          territorio_id?: string
+          quadra_id?: number
+          data_marcacao?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visitas_ativas_territorio_id_fkey"
+            columns: ["territorio_id"]
+            referencedRelation: "territorios"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      historico_conclusao: {
+        Row: {
+          id: string
+          territorio_id: string
+          data_inicio: string | null
+          data_fim: string
+        }
+        Insert: {
+          id?: string
+          territorio_id: string
+          data_inicio?: string | null
+          data_fim?: string
+        }
+        Update: {
+          id?: string
+          territorio_id?: string
+          data_inicio?: string | null
+          data_fim?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_conclusao_territorio_id_fkey"
+            columns: ["territorio_id"]
+            referencedRelation: "territorios"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

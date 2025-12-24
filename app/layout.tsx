@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "CongGuaíra",
   description: "Sistema de Gestão da Congregação Guaíra",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "https://congregacao-five.vercel.app"),
 };
 
 export default function RootLayout({

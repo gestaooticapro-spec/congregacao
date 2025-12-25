@@ -50,7 +50,7 @@ export default function AdminTerritoriosPage() {
                 <div className="flex gap-2">
                     <Link
                         href="/admin/territorios/relatorio"
-                        className="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 transition-colors border"
+                        className="bg-gray-100 text-gray-900 px-4 py-2 rounded-md hover:bg-gray-200 transition-colors border"
                     >
                         📄 Relatório
                     </Link>
@@ -93,9 +93,9 @@ export default function AdminTerritoriosPage() {
                         </div>
 
                         <div className="p-4 flex-grow">
-                            <h2 className="font-semibold text-lg mb-1">{t.nome}</h2>
+                            <h2 className="font-semibold text-lg mb-1 text-gray-900">{t.nome}</h2>
                             {t.referencia && (
-                                <p className="text-sm text-gray-600 mb-2">{t.referencia}</p>
+                                <p className="text-sm text-gray-900 mb-2">{t.referencia}</p>
                             )}
                         </div>
 
@@ -103,7 +103,7 @@ export default function AdminTerritoriosPage() {
                             <div className="flex justify-end w-full">
                                 <Link
                                     href={`/admin/territorios/${t.id}/editar`}
-                                    className="text-sm bg-white border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 text-gray-700 font-medium"
+                                    className="text-sm bg-white border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 text-gray-900 font-medium"
                                 >
                                     ✏️ Editar
                                 </Link>

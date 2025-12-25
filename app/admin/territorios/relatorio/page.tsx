@@ -33,11 +33,23 @@ export default function RelatorioTerritoriosPage() {
     }
 
     const handlePrint = () => {
-        window.print()
+        setTimeout(() => window.print(), 100)
     }
 
+    // Helper to chunk array
+    const chunkArray = (arr: any[], size: number) => {
+        const chunks = []
+        for (let i = 0; i < arr.length; i += size) {
+            chunks.push(arr.slice(i, i + size))
+        }
+        return chunks
+    }
+
+    // Split data into pages of 25 items (reduced from 26 for better margins)
+    const pages = chunkArray(data, 25)
+
     return (
-        <div className="container mx-auto p-8 max-w-[1400px] bg-white min-h-screen">
+        <div className="container mx-auto p-8 max-w-[1400px] bg-white min-h-screen print:p-0 print:m-0 print:max-w-none">
             {/* Header / Controls - Hidden on Print */}
             <div className="print:hidden mb-8">
                 <div className="flex justify-between items-center mb-6">
@@ -83,110 +95,127 @@ export default function RelatorioTerritoriosPage() {
                     @media print {
                         @page {
                             size: A4;
-                            margin: 10mm;
-                            counter-increment: page;
+                            margin: 0;
                         }
                         body {
                             print-color-adjust: exact;
                             -webkit-print-color-adjust: exact;
                         }
-                        /* Ensure headers repeat */
-                        thead {
-                            display: table-header-group;
-                        }
-                        tfoot {
-                            display: table-footer-group;
-                        }
-                        tr {
-                            page-break-inside: avoid;
-                        }
-                        /* Remove overflow clipping to allow page breaks */
-                        .overflow-x-auto {
-                            overflow: visible !important;
-                        }
-                        /* Discreet Page Numbering Footer */
-                        .page-footer {
-                            position: fixed;
-                            bottom: 0;
-                            right: 0;
-                            font-size: 8px;
-                            color: #666;
-                        }
-                        .page-footer::after {
-                            content: "Página " counter(page);
-                        }
                     }
                 `}</style>
-
-                <div className="mb-4 text-center">
-                    <h1 className="text-lg font-bold text-black uppercase mb-2">Registro de Designação de Território</h1>
-                    <div className="text-left font-bold text-sm">
-                        Ano de Serviço: <span className="underline decoration-2 underline-offset-4">{serviceYear}</span>
-                    </div>
-                </div>
-
-                {/* Fixed Footer for Page Numbers (only visible in print if supported, or acts as fixed element) */}
-                <div className="hidden print:block page-footer">
-                    {/* Content injected via CSS ::after */}
-                </div>
 
                 {loading ? (
                     <div className="text-center py-12 text-gray-600">Carregando dados...</div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full border-collapse border border-black text-center text-[10px]">
-                            <thead>
-                                <tr className="bg-gray-100 print:bg-transparent">
-                                    <th className="border border-black py-1 px-1 w-12" rowSpan={2}>Terr. n.º</th>
-                                    <th className="border border-black py-1 px-1 w-40" rowSpan={2}>Última data concluída*</th>
-                                    {[1, 2, 3, 4].map(i => (
-                                        <th key={i} className="border border-black py-0.5 px-1" colSpan={2}>Designado para</th>
-                                    ))}
-                                </tr>
-                                <tr className="bg-gray-100 print:bg-transparent">
-                                    {[1, 2, 3, 4].map(i => (
-                                        <React.Fragment key={i}>
-                                            <th className="border border-black py-0.5 px-1 w-16 text-[9px]">Data da designação</th>
-                                            <th className="border border-black py-0.5 px-1 w-16 text-[9px]">Data da conclusão</th>
-                                        </React.Fragment>
-                                    ))}
-                                </tr>
-                            </thead>
-                            {data.map((t, index) => (
-                                <tbody key={t.id} className="break-inside-avoid border-b border-black">
-                                    <tr className="h-4">
-                                        {/* Territory Number/Name */}
-                                        <td className="border border-black px-1 font-bold" rowSpan={2}>{t.nome.replace(/\D/g, '') || t.nome}</td>
+                    <div>
+                        {pages.map((pageData, pageIndex) => (
+                            <div
+                                key={pageIndex}
+                                className="relative flex flex-col"
+                                style={{
+                                    height: '270mm', // Reduced to 270mm to be absolutely safe
+                                    padding: '20mm 10mm',
+                                    boxSizing: 'border-box',
+                                    overflow: 'hidden', // Clip content that overflows
+                                    pageBreakAfter: pageIndex < pages.length - 1 ? 'always' : 'auto'
+                                }}
+                            >
+                                {/* Header for this page */}
+                                <div className="mb-4">
+                                    <h1 className="text-lg font-bold text-black uppercase mb-1 text-center">Registro de Designação de Território</h1>
+                                    <div className="text-left font-bold text-sm">
+                                        Ano de Serviço: <span className="underline decoration-2 underline-offset-4">{serviceYear}</span>
+                                    </div>
+                                </div>
 
-                                        {/* Territory Description/Name */}
-                                        <td className="border border-black px-1 text-left" rowSpan={2}>
-                                            <div className="font-semibold truncate max-w-[150px]">{t.nome}</div>
-                                            {t.referencia && <div className="text-[9px] truncate max-w-[150px]">{t.referencia}</div>}
-                                        </td>
+                                {/* Table for this page */}
+                                <div className="flex-grow">
+                                    <table className="w-full border-collapse text-center text-[10px]">
+                                        <thead>
+                                            <tr className="bg-gray-100 print:bg-gray-100">
+                                                <th className="border border-black py-1 px-1 w-12" rowSpan={2}>Terr. n.º</th>
+                                                <th className="border border-black py-1 px-1 w-40" rowSpan={2}>Última data concluída*</th>
+                                                {[1, 2, 3, 4].map(i => (
+                                                    <th key={i} className="border border-black py-0.5 px-1" colSpan={2}>Designado para</th>
+                                                ))}
+                                            </tr>
+                                            <tr className="bg-gray-100 print:bg-gray-100">
+                                                {[1, 2, 3, 4].map(i => (
+                                                    <React.Fragment key={i}>
+                                                        <th className="border border-black py-0.5 px-1 w-16 text-[9px]">Data da designação</th>
+                                                        <th className="border border-black py-0.5 px-1 w-16 text-[9px]">Data da conclusão</th>
+                                                    </React.Fragment>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {pageData.map((t) => {
+                                                const { number, name } = (() => {
+                                                    // Try to split by " - " first (Standard format: "01 - Name")
+                                                    const parts = t.nome.split(' - ')
+                                                    if (parts.length > 1 && /^\d+$/.test(parts[0])) {
+                                                        return {
+                                                            number: parts[0],
+                                                            name: parts.slice(1).join(' - ')
+                                                        }
+                                                    }
+                                                    // Fallback: Regex for "Number - Name"
+                                                    const match = t.nome.match(/^(\d+)\s*[-–]\s*(.*)/)
+                                                    if (match) {
+                                                        return { number: match[1], name: match[2] }
+                                                    }
+                                                    // Fallback: Use full name if no pattern matches
+                                                    return {
+                                                        number: t.nome.replace(/\D/g, ''), // Keep old behavior as last resort but be careful
+                                                        name: t.nome
+                                                    }
+                                                })()
 
-                                        {/* Slots - Names */}
-                                        {t.slots.map((slot: any, i: number) => (
-                                            <td key={`name-${i}`} className="border border-black px-0.5 font-semibold text-[9px] h-4 align-bottom bg-gray-50 print:bg-transparent" colSpan={2}>
-                                                {slot ? slot.responsavel : ''}
-                                            </td>
-                                        ))}
-                                    </tr>
-                                    <tr className="h-4">
-                                        {/* Slots - Dates */}
-                                        {t.slots.map((slot: any, i: number) => (
-                                            <React.Fragment key={`dates-${i}`}>
-                                                <td className="border border-black px-0.5 text-[9px] h-4 align-top w-16">
-                                                    {slot ? slot.data_designacao : ''}
-                                                </td>
-                                                <td className="border border-black px-0.5 text-[9px] h-4 align-top w-16">
-                                                    {slot ? slot.data_conclusao : ''}
-                                                </td>
-                                            </React.Fragment>
-                                        ))}
-                                    </tr>
-                                </tbody>
-                            ))}
-                        </table>
+                                                return (
+                                                    <React.Fragment key={t.id}>
+                                                        <tr className="h-4 border-b border-black">
+                                                            {/* Territory Number */}
+                                                            <td className="border border-black px-1 font-bold" rowSpan={2}>{number}</td>
+
+                                                            {/* Territory Name */}
+                                                            <td className="border border-black px-1 text-left" rowSpan={2}>
+                                                                <div className="font-semibold truncate max-w-[150px]">{name}</div>
+                                                                {t.referencia && <div className="text-[9px] truncate max-w-[150px]">{t.referencia}</div>}
+                                                            </td>
+
+                                                            {/* Slots - Names */}
+                                                            {t.slots.map((slot: any, i: number) => (
+                                                                <td key={`name-${i}`} className="border border-black px-0.5 font-semibold text-[9px] h-4 align-bottom bg-gray-50 print:bg-transparent" colSpan={2}>
+                                                                    {slot ? slot.responsavel : ''}
+                                                                </td>
+                                                            ))}
+                                                        </tr>
+                                                        <tr className="h-4 border-b border-black">
+                                                            {/* Slots - Dates */}
+                                                            {t.slots.map((slot: any, i: number) => (
+                                                                <React.Fragment key={`dates-${i}`}>
+                                                                    <td className="border border-black px-0.5 text-[9px] h-4 align-top w-16">
+                                                                        {slot ? slot.data_designacao : ''}
+                                                                    </td>
+                                                                    <td className="border border-black px-0.5 text-[9px] h-4 align-top w-16">
+                                                                        {slot ? slot.data_conclusao : ''}
+                                                                    </td>
+                                                                </React.Fragment>
+                                                            ))}
+                                                        </tr>
+                                                    </React.Fragment>
+                                                )
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Page Number Footer */}
+                                <div className="text-right text-[8px] text-gray-500 mt-2">
+                                    Página {pageIndex + 1} de {pages.length}
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 )}
             </div>

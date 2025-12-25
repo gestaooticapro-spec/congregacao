@@ -50,10 +50,19 @@ body {
 }
 
 .thin-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0.5); /* gray-400 with opacity */
+  background-color: rgba(156, 163, 175, 0.5);
+  /* gray-400 with opacity */
   border-radius: 20px;
 }
 
 .thin-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(107, 114, 128, 0.8); /* gray-500 with opacity */
+  background-color: rgba(107, 114, 128, 0.8);
+  /* gray-500 with opacity */
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 25mm 10mm;
+  }
 }

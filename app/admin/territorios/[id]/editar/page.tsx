@@ -113,7 +113,7 @@ export default function EditarTerritorioPage({ params }: { params: Promise<{ id:
             <div className="space-y-6">
                 {/* Nome */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-900 mb-1">
                         Nome do Território
                     </label>
                     <input
@@ -193,7 +193,7 @@ export default function EditarTerritorioPage({ params }: { params: Promise<{ id:
                 <div className="flex justify-end pt-4 space-x-3">
                     <button
                         onClick={() => router.push('/admin/territorios')}
-                        className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                        className="px-6 py-2 bg-white border border-gray-300 text-gray-900 rounded-md hover:bg-gray-200"
                     >
                         Cancelar
                     </button>

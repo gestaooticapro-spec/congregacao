@@ -60,7 +60,7 @@ export default function NovoTerritorioPage() {
                 alert(result.error)
             } else {
                 alert('Território criado com sucesso!')
-                router.push('/territorios')
+                router.push('/admin/territorios')
             }
         } catch (error: any) {
             console.error('Error:', error)
@@ -156,8 +156,8 @@ export default function NovoTerritorioPage() {
                 {/* Actions */}
                 <div className="flex justify-end pt-4 space-x-3">
                     <button
-                        onClick={() => router.push('/territorios')}
-                        className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                        onClick={() => router.push('/admin/territorios')}
+                        className="px-6 py-2 bg-white border border-gray-300 text-gray-900 rounded-md hover:bg-gray-200"
                     >
                         Voltar
                     </button>

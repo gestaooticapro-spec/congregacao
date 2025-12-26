@@ -9,7 +9,12 @@ import { useRouter } from 'next/navigation'
 type Membro = Database['public']['Tables']['membros']['Row']
 
 export default function MembrosPage() {
-    const [membros, setMembros] = useState<Membro[]>([])
+    // Extend the Membro type to include the joined group name
+    type MembroWithGroup = Membro & {
+        grupos_servico: { nome: string } | null
+    }
+
+    const [membros, setMembros] = useState<MembroWithGroup[]>([])
     const [loading, setLoading] = useState(true)
     const router = useRouter()
 
@@ -24,11 +29,11 @@ export default function MembrosPage() {
         try {
             const { data, error } = await supabase
                 .from('membros')
-                .select('*')
+                .select('*, grupos_servico(nome)')
                 .order('nome_completo')
 
             if (error) throw error
-            setMembros(data || [])
+            setMembros(data as MembroWithGroup[] || [])
         } catch (error) {
             console.error('Erro ao buscar membros:', error)
             alert('Erro ao carregar membros')
@@ -65,16 +70,64 @@ export default function MembrosPage() {
         return true
     })
 
+    const handlePrint = () => {
+        window.print()
+    }
+
     if (loading) return <div className="p-8">Carregando...</div>
 
     return (
-        <div className="max-w-6xl mx-auto p-8">
-            <div className="text-center mb-12">
+        <div className="max-w-6xl mx-auto p-8 print:p-0 print:max-w-none">
+            <style jsx global>{`
+                @media print {
+                    @page {
+                        size: A4 landscape;
+                        margin: 15mm;
+                    }
+                    
+                    /* Reset global styles that might interfere */
+                    body {
+                        background: white;
+                    }
+
+                    /* Hide standard layout elements */
+                    nav, aside, header, footer, .no-print {
+                        display: none !important;
+                    }
+
+                    /* Remove padding from layout containers to let @page handle margins */
+                    body > main, 
+                    body > main > div {
+                        padding: 0 !important;
+                        margin: 0 !important;
+                        max-width: none !important;
+                    }
+
+                    /* Ensure print content is visible and flows naturally */
+                    .print-content {
+                        display: block !important;
+                        width: 100%;
+                        position: static; /* Essential for pagination */
+                        padding: 0 15mm; /* Force lateral margins */
+                    }
+
+                    /* Ensure table headers repeat on new pages */
+                    thead {
+                        display: table-header-group;
+                    }
+                    
+                    tr {
+                        break-inside: avoid;
+                    }
+                }
+            `}</style>
+
+            <div className="text-center mb-12 no-print">
                 <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Gerenciamento de Membros</h1>
                 <div className="h-1 w-20 bg-primary mx-auto rounded-full"></div>
             </div>
 
-            <div className="bg-slate-100 dark:bg-slate-800/50 p-4 md:p-6 rounded-xl border border-slate-200 dark:border-slate-700 mb-8">
+            <div className="bg-slate-100 dark:bg-slate-800/50 p-4 md:p-6 rounded-xl border border-slate-200 dark:border-slate-700 mb-8 no-print">
                 <div className="flex flex-col md:flex-row gap-4">
                     <div className="flex-1">
                         <div className="relative">
@@ -110,7 +163,13 @@ export default function MembrosPage() {
                 </div>
             </div>
 
-            <div className="flex justify-end mb-6">
+            <div className="flex justify-end mb-6 gap-3 no-print">
+                <button
+                    onClick={handlePrint}
+                    className="px-6 py-2 bg-slate-700 text-white rounded-lg font-semibold hover:bg-slate-800 transition-colors shadow-md flex items-center gap-2"
+                >
+                    <span>🖨️</span> Imprimir Lista
+                </button>
                 <Link
                     href="/admin/membros/novo"
                     className="px-6 py-2 bg-primary text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-md flex items-center gap-2"
@@ -119,7 +178,8 @@ export default function MembrosPage() {
                 </Link>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/50 dark:shadow-none rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+            {/* Screen View Table */}
+            <div className="bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/50 dark:shadow-none rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden no-print">
                 <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
                     <thead className="bg-slate-50 dark:bg-slate-800/50">
                         <tr>
@@ -157,6 +217,39 @@ export default function MembrosPage() {
                                 </td>
                             </tr>
                         )}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Print View Table */}
+            <div className="hidden print:block print-content">
+                <h2 className="text-2xl font-bold mb-4 text-center">Lista de Membros</h2>
+                <table className="w-full text-sm border-collapse border border-slate-300">
+                    <thead>
+                        <tr className="bg-slate-100">
+                            <th className="border border-slate-300 p-2 text-left">Nome Completo</th>
+                            <th className="border border-slate-300 p-2 text-left">Nascimento</th>
+                            <th className="border border-slate-300 p-2 text-left">Batismo</th>
+                            <th className="border border-slate-300 p-2 text-left">Contato</th>
+                            <th className="border border-slate-300 p-2 text-left">Emergência</th>
+                            <th className="border border-slate-300 p-2 text-left">Endereço</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filteredMembros.map((membro) => (
+                            <tr key={membro.id} className="break-inside-avoid">
+                                <td className="border border-slate-300 p-2 font-medium">{membro.nome_completo}</td>
+                                <td className="border border-slate-300 p-2">
+                                    {membro.data_nascimento ? new Date(membro.data_nascimento).toLocaleDateString('pt-BR') : '-'}
+                                </td>
+                                <td className="border border-slate-300 p-2">
+                                    {membro.data_batismo ? new Date(membro.data_batismo).toLocaleDateString('pt-BR') : '-'}
+                                </td>
+                                <td className="border border-slate-300 p-2">{membro.contato || '-'}</td>
+                                <td className="border border-slate-300 p-2">{membro.contato_emergencia || '-'}</td>
+                                <td className="border border-slate-300 p-2">{membro.endereco || '-'}</td>
+                            </tr>
+                        ))}
                     </tbody>
                 </table>
             </div>

@@ -132,16 +132,80 @@ export default function GruposPage() {
         }
     }
 
+    const handlePrint = () => {
+        window.print()
+    }
+
     if (loading) return <div className="p-8">Carregando...</div>
 
     return (
-        <div className="max-w-6xl mx-auto p-8">
-            <div className="text-center mb-12">
+        <div className="max-w-6xl mx-auto p-8 print:p-0 print:max-w-none">
+            <style jsx global>{`
+                @media print {
+                    @page {
+                        size: A4 landscape;
+                        margin: 15mm;
+                    }
+                    
+                    /* Reset global styles that might interfere */
+                    body {
+                        background: white;
+                    }
+
+                    /* Hide standard layout elements */
+                    nav, aside, header, footer, .no-print {
+                        display: none !important;
+                    }
+
+                    /* Remove padding from layout containers to let @page handle margins */
+                    body > main, 
+                    body > main > div {
+                        padding: 0 !important;
+                        margin: 0 !important;
+                        max-width: none !important;
+                    }
+
+                    /* Ensure print content is visible and flows naturally */
+                    .print-content {
+                        display: block !important;
+                        width: 100%;
+                        position: static; /* Essential for pagination */
+                        padding: 0 15mm; /* Force lateral margins only, top/bottom via table spacers */
+                        box-sizing: border-box;
+                    }
+
+                    /* Ensure table headers repeat on new pages */
+                    thead {
+                        display: table-header-group;
+                    }
+                    
+                    tfoot {
+                        display: table-footer-group;
+                    }
+
+                    tr {
+                        break-inside: avoid;
+                    }
+
+                    .group-container {
+                        break-inside: avoid;
+                        margin-bottom: 2rem;
+                    }
+                }
+            `}</style>
+
+            <div className="text-center mb-12 no-print">
                 <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Grupos de Serviço</h1>
                 <div className="h-1 w-20 bg-primary mx-auto rounded-full"></div>
             </div>
 
-            <div className="flex justify-end mb-8">
+            <div className="flex justify-end mb-8 gap-3 no-print">
+                <button
+                    onClick={handlePrint}
+                    className="px-6 py-2 bg-slate-700 text-white rounded-lg font-semibold hover:bg-slate-800 transition-colors shadow-md flex items-center gap-2"
+                >
+                    <span>🖨️</span> Imprimir Grupos
+                </button>
                 <button
                     onClick={handleNew}
                     className="px-6 py-2 bg-primary text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-md flex items-center gap-2"
@@ -150,7 +214,7 @@ export default function GruposPage() {
                 </button>
             </div>
 
-            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 no-print">
                 {grupos.map(grupo => (
                     <div key={grupo.id} className="bg-white dark:bg-slate-900 rounded-xl shadow-xl shadow-slate-200/50 dark:shadow-none p-6 border border-slate-200 dark:border-slate-800 flex flex-col transition-all hover:scale-[1.02]">
                         <div className="flex justify-between items-start mb-6">
@@ -192,9 +256,92 @@ export default function GruposPage() {
                 ))}
             </div>
 
+            {/* Print View */}
+            <div className="hidden print:block print-content">
+                <table className="w-full">
+                    <thead>
+                        <tr>
+                            <td>
+                                {/* Spacer for top margin on every page */}
+                                <div className="h-[15mm]"></div>
+                            </td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <h1 className="text-3xl font-bold text-center mb-8">Relatório de Grupos de Serviço</h1>
+
+                                {grupos.map(grupo => {
+                                    const groupMembers = membros
+                                        .filter(m => m.grupo_id === grupo.id && m.nome_completo !== 'Admin do Sistema')
+                                        .sort((a, b) => a.nome_completo.localeCompare(b.nome_completo))
+
+                                    return (
+                                        <div key={grupo.id} className="group-container mb-8 border-b border-slate-300 pb-8 last:border-0">
+                                            <div className="flex justify-between items-end mb-4 border-b-2 border-slate-800 pb-2">
+                                                <h2 className="text-2xl font-bold">{grupo.nome}</h2>
+                                                <div className="text-right text-sm">
+                                                    <div><span className="font-bold">Superintendente:</span> {getMembroName(grupo.superintendente_id)}</div>
+                                                    <div><span className="font-bold">Ajudante:</span> {getMembroName(grupo.ajudante_id)}</div>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+                                                {groupMembers.map((membro, index) => (
+                                                    <div key={membro.id} className="flex justify-between border-b border-slate-100 py-1">
+                                                        <span>{index + 1}. {membro.nome_completo}</span>
+                                                        <span className="text-xs text-slate-500">
+                                                            {membro.id === grupo.superintendente_id ? '(Sup)' :
+                                                                membro.id === grupo.ajudante_id ? '(Ajud)' : ''}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                                {groupMembers.length === 0 && (
+                                                    <div className="col-span-2 text-center text-slate-500 italic py-2">Nenhum membro neste grupo</div>
+                                                )}
+                                            </div>
+                                            <div className="mt-2 text-right text-xs font-bold text-slate-500">
+                                                Total: {groupMembers.length} membros
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+
+                                {/* Members without group */}
+                                {membros.filter(m => !m.grupo_id && m.nome_completo !== 'Admin do Sistema').length > 0 && (
+                                    <div className="group-container mt-8 pt-8 border-t-4 border-slate-800">
+                                        <h2 className="text-2xl font-bold mb-4">Sem Grupo Definido</h2>
+                                        <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+                                            {membros
+                                                .filter(m => !m.grupo_id && m.nome_completo !== 'Admin do Sistema')
+                                                .sort((a, b) => a.nome_completo.localeCompare(b.nome_completo))
+                                                .map((membro, index) => (
+                                                    <div key={membro.id} className="border-b border-slate-100 py-1">
+                                                        {index + 1}. {membro.nome_completo}
+                                                    </div>
+                                                ))
+                                            }
+                                        </div>
+                                    </div>
+                                )}
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td>
+                                {/* Spacer for bottom margin on every page */}
+                                <div className="h-[15mm]"></div>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
             {/* Edit/Create Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 no-print">
                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
                         <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
                             {editingGrupo?.id ? 'Editar Grupo' : 'Novo Grupo'}
@@ -261,7 +408,7 @@ export default function GruposPage() {
 
             {/* View Members Modal */}
             {viewingMembersGrupo && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 no-print">
                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-xl font-bold text-gray-900 dark:text-white">

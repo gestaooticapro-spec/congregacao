@@ -9,12 +9,7 @@ import { useRouter } from 'next/navigation'
 type Membro = Database['public']['Tables']['membros']['Row']
 
 export default function MembrosPage() {
-    // Extend the Membro type to include the joined group name
-    type MembroWithGroup = Membro & {
-        grupos_servico: { nome: string } | null
-    }
-
-    const [membros, setMembros] = useState<MembroWithGroup[]>([])
+    const [membros, setMembros] = useState<Membro[]>([])
     const [loading, setLoading] = useState(true)
     const router = useRouter()
 
@@ -29,11 +24,11 @@ export default function MembrosPage() {
         try {
             const { data, error } = await supabase
                 .from('membros')
-                .select('*, grupos_servico(nome)')
+                .select('*')
                 .order('nome_completo')
 
             if (error) throw error
-            setMembros(data as MembroWithGroup[] || [])
+            setMembros(data || [])
         } catch (error) {
             console.error('Erro ao buscar membros:', error)
             alert('Erro ao carregar membros')

@@ -50,6 +50,7 @@ export default function Sidebar() {
 
     const menuItems: MenuItem[] = [
         { type: 'link', href: '/', label: 'Home', icon: '🏠' },
+        { type: 'link', href: '/quadro-de-anuncios', label: 'Quadro de Anúncios', icon: '📌' },
         { type: 'link', href: '/territorios', label: 'Territórios', icon: '🗺️' },
         { type: 'separator' },
         // Restricted Items
@@ -65,6 +66,7 @@ export default function Sidebar() {
         { type: 'link', href: '/admin/membros', label: 'Membros', icon: '👥', restricted: true },
         { type: 'link', href: '/admin/territorios', label: 'Gerenciar Territórios', icon: '⚙️', restricted: true },
         { type: 'separator', restricted: true },
+        { type: 'link', href: '/admin/relatorios', label: 'Relatórios', icon: '📊', restricted: true },
         { type: 'link', href: '/admin/permissoes', label: 'Permissões', icon: '🔒', restricted: true },
     ];
 

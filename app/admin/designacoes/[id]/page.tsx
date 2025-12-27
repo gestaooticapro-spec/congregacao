@@ -397,37 +397,24 @@ export default function EditarDesignacoesPage() {
             </div>
 
             {/* Print View */}
-            <div className="hidden print:block fixed inset-0 bg-white z-[9999] p-8 overflow-y-auto text-black">
-                <div className="text-center mb-8">
-                    <h1 className="text-xl font-bold mb-1 uppercase">Programação da Reunião</h1>
-                    <p className="text-sm font-medium">
-                        {(() => {
-                            if (!programacao) return '';
-                            const date = new Date(programacao.data_reuniao);
+            <div className="hidden print:block fixed inset-0 bg-white z-[9999] p-0 overflow-y-auto text-slate-900">
+                <div className="max-w-[210mm] mx-auto p-[15mm]">
+                    <div className="text-center mb-8 border-b border-slate-300 pb-4">
+                        <h2 className="text-2xl font-bold uppercase mb-1">Nossa Vida e Ministério Cristão</h2>
+                        <p className="text-lg font-medium text-slate-600">
+                            {programacao?.semana_descricao}
+                        </p>
+                    </div>
 
-                            const day = date.getDay();
-                            const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-                            const monday = new Date(date);
-                            monday.setDate(diff);
-
-                            const sunday = new Date(monday);
-                            sunday.setDate(monday.getDate() + 6);
-
-                            return `Semana de ${monday.toLocaleDateString('pt-BR')} a ${sunday.toLocaleDateString('pt-BR')}`;
-                        })()}
-                    </p>
-                </div>
-
-                <div className="max-w-4xl mx-auto space-y-4">
                     {/* Top Roles */}
-                    <div className="space-y-1 mb-4">
-                        <div className="flex items-center gap-2">
-                            <span className="font-bold uppercase text-sm w-32">Presidente:</span>
-                            <span className="text-sm">{membros.find(m => m.id === presidenteId)?.nome_completo || '-'}</span>
+                    <div className="grid grid-cols-2 gap-8 mb-8">
+                        <div>
+                            <span className="block text-xs font-bold uppercase text-slate-500 mb-1">Presidente</span>
+                            <span className="text-lg font-bold text-slate-900">{membros.find(m => m.id === presidenteId)?.nome_completo || '______________________'}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <span className="font-bold uppercase text-sm w-32">Oração Inicial:</span>
-                            <span className="text-sm">{membros.find(m => m.id === oracaoInicialId)?.nome_completo || '-'}</span>
+                        <div className="text-right">
+                            <span className="block text-xs font-bold uppercase text-slate-500 mb-1">Oração Inicial</span>
+                            <span className="text-lg font-bold text-slate-900">{membros.find(m => m.id === oracaoInicialId)?.nome_completo || '______________________'}</span>
                         </div>
                     </div>
 
@@ -453,29 +440,37 @@ export default function EditarDesignacoesPage() {
                             'VIDA_CRISTA': 'Nossa Vida Cristã'
                         }
 
-                        return (
-                            <div key={tipo} className="mb-4">
-                                <div className="border-t border-dashed border-black my-1"></div>
-                                <h3 className="text-sm font-bold uppercase my-1">{titles[tipo]}</h3>
-                                <div className="border-b border-dashed border-black my-1 mb-2"></div>
+                        const colors: Record<string, string> = {
+                            'TESOUROS': 'text-slate-700',
+                            'MINISTERIO': 'text-yellow-700',
+                            'VIDA_CRISTA': 'text-red-700'
+                        }
 
-                                <div className="space-y-2">
+                        const colorClass = colors[tipo]
+
+                        return (
+                            <div key={tipo} className="mb-6 break-inside-avoid">
+                                <h3 className={`text-lg font-bold uppercase mb-2 border-b-2 ${colorClass.replace('text-', 'border-')} pb-1 ${colorClass}`}>
+                                    {titles[tipo]}
+                                </h3>
+                                <div className="space-y-3">
                                     {sectionParts.map((parte) => (
-                                        <div key={parte.originalIndex} className="grid grid-cols-12 gap-2 items-start">
-                                            <div className="col-span-7">
-                                                <p className="font-medium text-sm">
-                                                    {parte.nome} - {parte.tempo} min
-                                                </p>
+                                        <div key={parte.originalIndex} className="grid grid-cols-12 gap-2 items-start text-sm">
+                                            <div className="col-span-2 font-bold text-slate-500">
+                                                {parte.tempo} min
                                             </div>
-                                            <div className="col-span-5 text-right">
-                                                <p className="font-medium text-sm">
-                                                    {membros.find(m => m.id === parte.membro_id)?.nome_completo || '-'}
-                                                </p>
+                                            <div className="col-span-6 font-medium">
+                                                {parte.nome}
+                                            </div>
+                                            <div className="col-span-4 text-right">
+                                                <div className="font-bold text-slate-900">
+                                                    {membros.find(m => m.id === parte.membro_id)?.nome_completo || '______________________'}
+                                                </div>
                                                 {(parte.ajudante_id || (parte.tipo === 'VIDA_CRISTA' && parte.nome.includes('Estudo Bíblico') && parte.ajudante_id)) && (
-                                                    <p className="text-xs italic">
+                                                    <div className="text-xs text-slate-500 italic">
                                                         {parte.nome.includes('Estudo Bíblico') ? 'Leitor: ' : 'Ajudante: '}
                                                         {membros.find(m => m.id === parte.ajudante_id)?.nome_completo}
-                                                    </p>
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>
@@ -485,14 +480,33 @@ export default function EditarDesignacoesPage() {
                         )
                     })}
 
-                    {/* Closing Prayer - At the bottom */}
-                    <div className="mt-4 pt-2">
-                        <div className="flex items-center gap-2">
-                            <span className="font-bold uppercase text-sm w-32">Oração Final:</span>
-                            <span className="text-sm">{membros.find(m => m.id === oracaoFinalId)?.nome_completo || '-'}</span>
-                        </div>
+                    {/* Closing Prayer */}
+                    <div className="mt-8 pt-4 border-t border-slate-300 flex justify-between items-center">
+                        <span className="font-bold uppercase text-sm text-slate-500">Oração Final</span>
+                        <span className="text-lg font-bold text-slate-900">{membros.find(m => m.id === oracaoFinalId)?.nome_completo || '______________________'}</span>
+                    </div>
+
+                    <div className="mt-12 text-sm text-slate-500 text-center italic">
+                        "A tua palavra é lâmpada para o meu pé, e luz para o meu caminho." - Salmo 119:105
                     </div>
                 </div>
+
+                <style jsx global>{`
+                    @media print {
+                        @page {
+                            size: A4 portrait;
+                            margin: 0;
+                        }
+                        body {
+                            background: white;
+                            -webkit-print-color-adjust: exact;
+                        }
+                        /* Hide scrollbars in print */
+                        ::-webkit-scrollbar {
+                            display: none;
+                        }
+                    }
+                `}</style>
             </div>
 
             {/* Editor View (Hidden on Print) */}

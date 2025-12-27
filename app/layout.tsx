@@ -32,6 +32,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        suppressHydrationWarning
       >
         <Sidebar />
         <main className="md:pl-64 pt-16 md:pt-0 min-h-screen transition-all duration-300 print:pl-0">

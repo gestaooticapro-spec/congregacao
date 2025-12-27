@@ -10,6 +10,7 @@ type Membro = Database['public']['Tables']['membros']['Row']
 
 export default function MembrosPage() {
     const [membros, setMembros] = useState<Membro[]>([])
+    const [colaboradores, setColaboradores] = useState<Database['public']['Tables']['colaboradores_externos']['Row'][]>([])
     const [loading, setLoading] = useState(true)
     const router = useRouter()
 
@@ -17,21 +18,24 @@ export default function MembrosPage() {
     const [search, setSearch] = useState('')
 
     useEffect(() => {
-        fetchMembros()
+        fetchData()
     }, [])
 
-    const fetchMembros = async () => {
+    const fetchData = async () => {
         try {
-            const { data, error } = await supabase
-                .from('membros')
-                .select('*')
-                .order('nome_completo')
+            const [membrosResponse, colaboradoresResponse] = await Promise.all([
+                supabase.from('membros').select('*').order('nome_civil'),
+                supabase.from('colaboradores_externos').select('*')
+            ])
 
-            if (error) throw error
-            setMembros(data || [])
+            if (membrosResponse.error) throw membrosResponse.error
+            if (colaboradoresResponse.error) throw colaboradoresResponse.error
+
+            setMembros(membrosResponse.data || [])
+            setColaboradores(colaboradoresResponse.data || [])
         } catch (error) {
-            console.error('Erro ao buscar membros:', error)
-            alert('Erro ao carregar membros')
+            console.error('Erro ao buscar dados:', error)
+            alert('Erro ao carregar dados')
         } finally {
             setLoading(false)
         }
@@ -46,7 +50,11 @@ export default function MembrosPage() {
     }
 
     const filteredMembros = membros.filter(membro => {
-        const matchesSearch = membro.nome_completo.toLowerCase().includes(search.toLowerCase())
+        // Exclude Admin
+        if (membro.nome_completo === 'Admin do Sistema') return false
+
+        const nomeDisplay = membro.nome_civil || membro.nome_completo
+        const matchesSearch = nomeDisplay.toLowerCase().includes(search.toLowerCase())
 
         if (!matchesSearch) return false
 
@@ -65,6 +73,11 @@ export default function MembrosPage() {
         return true
     })
 
+    const superintendente = colaboradores.find(c =>
+        c.funcao.toLowerCase().includes('superintendente') ||
+        c.funcao.toLowerCase().includes('circuito')
+    )
+
     const handlePrint = () => {
         window.print()
     }
@@ -77,20 +90,18 @@ export default function MembrosPage() {
                 @media print {
                     @page {
                         size: A4 landscape;
-                        margin: 15mm;
+                        margin: 0;
                     }
                     
-                    /* Reset global styles that might interfere */
                     body {
                         background: white;
+                        -webkit-print-color-adjust: exact;
                     }
 
-                    /* Hide standard layout elements */
                     nav, aside, header, footer, .no-print {
                         display: none !important;
                     }
 
-                    /* Remove padding from layout containers to let @page handle margins */
                     body > main, 
                     body > main > div {
                         padding: 0 !important;
@@ -98,21 +109,32 @@ export default function MembrosPage() {
                         max-width: none !important;
                     }
 
-                    /* Ensure print content is visible and flows naturally */
                     .print-content {
                         display: block !important;
                         width: 100%;
-                        position: static; /* Essential for pagination */
-                        padding: 0 15mm; /* Force lateral margins */
+                        padding: 20mm !important; /* Restores Top (Page 1), Side, and Bottom (Last Page) margins */
                     }
 
-                    /* Ensure table headers repeat on new pages */
                     thead {
                         display: table-header-group;
                     }
                     
+                    tfoot {
+                        display: table-footer-group;
+                    }
+
                     tr {
                         break-inside: avoid;
+                    }
+
+                    /* Spacer strategy for "No Margin" printers */
+                    .print-spacer {
+                        height: 20mm;
+                        border: none !important;
+                    }
+                    .print-spacer td {
+                        border: none !important;
+                        padding: 0 !important;
                     }
                 }
             `}</style>
@@ -197,7 +219,7 @@ export default function MembrosPage() {
                                                 </span>
                                             ))}
                                         </div>
-                                        <span>{membro.nome_completo}</span>
+                                        <span>{membro.nome_civil || membro.nome_completo}</span>
                                     </div>
                                 </td>
                             </tr>
@@ -221,6 +243,8 @@ export default function MembrosPage() {
                 <h2 className="text-2xl font-bold mb-4 text-center">Lista de Membros</h2>
                 <table className="w-full text-sm border-collapse border border-slate-300">
                     <thead>
+                        {/* Spacer for Top Margin on every page */}
+                        <tr className="print-spacer"><td colSpan={6}></td></tr>
                         <tr className="bg-slate-100">
                             <th className="border border-slate-300 p-2 text-left">Nome Completo</th>
                             <th className="border border-slate-300 p-2 text-left">Nascimento</th>
@@ -230,10 +254,24 @@ export default function MembrosPage() {
                             <th className="border border-slate-300 p-2 text-left">Endereço</th>
                         </tr>
                     </thead>
+                    {/* Spacer for Bottom Margin on every page */}
+                    <tfoot>
+                        <tr className="print-spacer"><td colSpan={6}></td></tr>
+                    </tfoot>
                     <tbody>
+                        {superintendente && (
+                            <tr className="break-inside-avoid bg-slate-50 font-bold">
+                                <td className="border border-slate-300 p-2">{superintendente.nome} ({superintendente.funcao})</td>
+                                <td className="border border-slate-300 p-2 text-center">-</td>
+                                <td className="border border-slate-300 p-2 text-center">-</td>
+                                <td className="border border-slate-300 p-2">{superintendente.contato || '-'}</td>
+                                <td className="border border-slate-300 p-2 text-center">-</td>
+                                <td className="border border-slate-300 p-2 text-center">-</td>
+                            </tr>
+                        )}
                         {filteredMembros.map((membro) => (
                             <tr key={membro.id} className="break-inside-avoid">
-                                <td className="border border-slate-300 p-2 font-medium">{membro.nome_completo}</td>
+                                <td className="border border-slate-300 p-2 font-medium">{membro.nome_civil || membro.nome_completo}</td>
                                 <td className="border border-slate-300 p-2">
                                     {membro.data_nascimento ? new Date(membro.data_nascimento).toLocaleDateString('pt-BR') : '-'}
                                 </td>

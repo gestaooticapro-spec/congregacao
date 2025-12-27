@@ -90,6 +90,7 @@ export interface Database {
           id: string
           user_id: string | null
           nome_completo: string
+          nome_civil: string | null
           grupo_id: string | null
           is_anciao: boolean
           is_servo_ministerial: boolean
@@ -130,6 +131,7 @@ export interface Database {
           id?: string
           user_id?: string | null
           nome_completo: string
+          nome_civil?: string | null
           grupo_id?: string | null
           is_anciao?: boolean
           is_servo_ministerial?: boolean
@@ -170,6 +172,7 @@ export interface Database {
           id?: string
           user_id?: string | null
           nome_completo?: string
+          nome_civil?: string | null
           grupo_id?: string | null
           is_anciao?: boolean
           is_servo_ministerial?: boolean
@@ -284,62 +287,6 @@ export interface Database {
           presidente_id?: string | null
           oracao_inicial_id?: string | null
           oracao_final_id?: string | null
-          created_at?: string
-        }
-        Relationships: []
-      }
-      partes_reuniao: {
-        Row: {
-          id: string
-          nome_parte: string
-          tipo_reuniao: TipoReuniao
-          requisitos: Json | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          nome_parte: string
-          tipo_reuniao: TipoReuniao
-          requisitos?: Json | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          nome_parte?: string
-          tipo_reuniao?: TipoReuniao
-          requisitos?: Json | null
-          created_at?: string
-        }
-        Relationships: []
-      }
-      designacoes: {
-        Row: {
-          id: string
-          programacao_id: string
-          parte_id: string
-          membro_id: string
-          ajudante_id: string | null
-          data: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          programacao_id: string
-          parte_id: string
-          membro_id: string
-          ajudante_id?: string | null
-          data: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          programacao_id?: string
-          parte_id?: string
-          membro_id?: string
-          ajudante_id?: string | null
-          data?: string
           created_at?: string
           updated_at?: string
         }
@@ -495,6 +442,30 @@ export interface Database {
           id?: string
           numero?: number
           titulo?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      colaboradores_externos: {
+        Row: {
+          id: string
+          nome: string
+          contato: string | null
+          funcao: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          nome: string
+          contato?: string | null
+          funcao: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          nome?: string
+          contato?: string | null
+          funcao?: string
           created_at?: string
         }
         Relationships: []

@@ -6,7 +6,7 @@ import { Database } from '@/types/database.types'
 import { format, isAfter, parseISO, startOfDay, startOfWeek, endOfWeek, isSameMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
-type Membro = Pick<Database['public']['Tables']['membros']['Row'], 'id' | 'nome_completo' | 'grupo_id'>
+type Membro = Pick<Database['public']['Tables']['membros']['Row'], 'id' | 'nome_completo' | 'nome_civil' | 'grupo_id'>
 
 type Designacao = {
     tipo: 'REUNIAO' | 'SUPORTE' | 'LIMPEZA' | 'CAMPO'
@@ -30,7 +30,7 @@ export default function HomeMemberSearch() {
     const fetchMembros = async () => {
         const { data } = await supabase
             .from('membros')
-            .select('id, nome_completo, grupo_id')
+            .select('id, nome_completo, nome_civil, grupo_id')
             .order('nome_completo')
 
         if (data) setMembros(data)
@@ -100,11 +100,30 @@ export default function HomeMemberSearch() {
                     // Partes (JSON)
                     if (prog.partes && Array.isArray(prog.partes)) {
                         prog.partes.forEach((parte: any) => {
-                            if (parte.membro_id === membro.id || parte.ajudante_id === membro.id) {
+                            if (parte.membro_id === membro.id) {
+                                let descricao = parte.nome
+                                if (parte.ajudante_id) {
+                                    const ajudante = membros.find(m => m.id === parte.ajudante_id)
+                                    if (ajudante) {
+                                        descricao += ` (com ${ajudante.nome_completo})`
+                                    }
+                                }
                                 novasDesignacoes.push({
                                     tipo: 'REUNIAO',
                                     data: prog.data_reuniao,
-                                    descricao: parte.nome,
+                                    descricao: descricao,
+                                    detalhe: weekRange
+                                })
+                            } else if (parte.ajudante_id === membro.id) {
+                                let descricao = parte.nome
+                                const estudante = membros.find(m => m.id === parte.membro_id)
+                                if (estudante) {
+                                    descricao += ` (Ajudante de ${estudante.nome_completo})`
+                                }
+                                novasDesignacoes.push({
+                                    tipo: 'REUNIAO',
+                                    data: prog.data_reuniao,
+                                    descricao: descricao,
                                     detalhe: weekRange
                                 })
                             }
@@ -143,10 +162,29 @@ export default function HomeMemberSearch() {
 
                 if (limpeza) {
                     limpeza.forEach(esc => {
+                        const dataInicio = parseISO(esc.data_inicio)
+
+                        // Quinta-feira (Monday + 3 days)
+                        const quinta = new Date(dataInicio)
+                        quinta.setDate(dataInicio.getDate() + 3)
+
+                        // Sábado (Monday + 5 days)
+                        const sabado = new Date(dataInicio)
+                        sabado.setDate(dataInicio.getDate() + 5)
+
+                        // Add Thursday
                         novasDesignacoes.push({
                             tipo: 'LIMPEZA',
-                            data: esc.data_inicio,
-                            descricao: 'Limpeza do Salão',
+                            data: quinta.toISOString().split('T')[0],
+                            descricao: 'Limpeza do Salão (Quinta)',
+                            detalhe: formatWeekRange(esc.data_inicio)
+                        })
+
+                        // Add Saturday
+                        novasDesignacoes.push({
+                            tipo: 'LIMPEZA',
+                            data: sabado.toISOString().split('T')[0],
+                            descricao: 'Limpeza do Salão (Sábado)',
                             detalhe: formatWeekRange(esc.data_inicio)
                         })
                     })
@@ -218,7 +256,8 @@ export default function HomeMemberSearch() {
     const filteredMembros = searchTerm === ''
         ? []
         : membros.filter(m =>
-            m.nome_completo.toLowerCase().includes(searchTerm.toLowerCase())
+            m.nome_completo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (m.nome_civil && m.nome_civil.toLowerCase().includes(searchTerm.toLowerCase()))
         )
 
     return (
@@ -246,7 +285,12 @@ export default function HomeMemberSearch() {
                                     onClick={() => handleSearch(membro)}
                                     className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border-b border-slate-50 dark:border-slate-700 last:border-0"
                                 >
-                                    <span className="font-medium text-slate-700 dark:text-slate-200">{membro.nome_completo}</span>
+                                    <div className="flex flex-col">
+                                        <span className="font-medium text-slate-700 dark:text-slate-200">{membro.nome_completo}</span>
+                                        {membro.nome_civil && membro.nome_civil !== membro.nome_completo && (
+                                            <span className="text-xs text-slate-500 dark:text-slate-400">{membro.nome_civil}</span>
+                                        )}
+                                    </div>
                                 </button>
                             ))
                         ) : (

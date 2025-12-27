@@ -50,12 +50,14 @@ export default function Sidebar() {
 
     const menuItems: MenuItem[] = [
         { type: 'link', href: '/', label: 'Home', icon: '🏠' },
-        { type: 'link', href: '/quadro-de-anuncios', label: 'Quadro de Anúncios', icon: '📌' },
+        { type: 'link', href: '/quadro-de-anuncios', label: 'Quadro de Anúncios', icon: '📢' },
+        { type: 'link', href: '/calendario', label: 'Próximos Eventos', icon: '📅' },
         { type: 'link', href: '/territorios', label: 'Territórios', icon: '🗺️' },
         { type: 'separator' },
         // Restricted Items
-        { type: 'link', href: '/programacao', label: 'Reunião de Quinta', icon: '📅', restricted: true },
+        { type: 'link', href: '/programacao', label: 'Reunião de Quinta', icon: '📖', restricted: true },
         { type: 'link', href: '/admin/discursos', label: 'Discursos', icon: '🎤', restricted: true },
+        { type: 'link', href: '/admin/eventos', label: 'Gerenciar Eventos', icon: '🗓️', restricted: true },
         { type: 'separator', restricted: true },
         { type: 'link', href: '/admin/escalas', label: 'Outras Designações', icon: '📋', restricted: true },
         { type: 'link', href: '/admin/campo', label: 'Campo', icon: '👜', restricted: true },

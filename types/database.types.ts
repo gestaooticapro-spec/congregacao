@@ -20,6 +20,36 @@ export type TipoReuniao = 'QUINTA' | 'SABADO'
 export interface Database {
   public: {
     Tables: {
+      eventos: {
+        Row: {
+          id: string
+          titulo: string
+          tipo: 'assembleia' | 'congresso' | 'especial' | 'limpeza' | 'visita'
+          data_inicio: string
+          data_fim: string
+          descricao: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          titulo: string
+          tipo: 'assembleia' | 'congresso' | 'especial' | 'limpeza' | 'visita'
+          data_inicio: string
+          data_fim: string
+          descricao?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          titulo?: string
+          tipo?: 'assembleia' | 'congresso' | 'especial' | 'limpeza' | 'visita'
+          data_inicio?: string
+          data_fim?: string
+          descricao?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       escalas_campo: {
         Row: {
           id: string

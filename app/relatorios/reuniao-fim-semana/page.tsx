@@ -27,10 +27,6 @@ export default function ReuniaoFimSemanaPage() {
     const loadData = async () => {
         setLoading(true)
         try {
-            // We need to check both Saturday and Sunday of the current weekend
-            // If currentDate is Saturday, check Saturday and Sunday
-            // If currentDate is Sunday, check Saturday (prev) and Sunday
-
             let saturdayDate: Date
             let sundayDate: Date
 
@@ -44,36 +40,46 @@ export default function ReuniaoFimSemanaPage() {
 
             const saturdayStr = format(saturdayDate, 'yyyy-MM-dd')
             const sundayStr = format(sundayDate, 'yyyy-MM-dd')
+            const dates = [saturdayStr, sundayStr]
 
-            // 1. Fetch Schedule (Programacao Semanal) for both days to see which one exists
-            const { data: schedules, error: scheduleError } = await supabase
-                .from('programacao_semanal')
-                .select(`
-                    id,
-                    data_reuniao,
-                    designacoes_suporte(
-                        funcao,
-                        membro:membro_id(nome_completo)
-                    )
-                `)
-                .in('data_reuniao', [saturdayStr, sundayStr])
+            // Fetch everything for both days in parallel
+            const [schedulesRes, talksRes, assignmentsRes] = await Promise.all([
+                supabase.from('programacao_semanal').select('data_reuniao').in('data_reuniao', dates),
+                supabase.from('agenda_discursos_locais').select('data').in('data', dates),
+                supabase.from('designacoes_suporte').select('data').in('data', dates)
+            ])
 
-            // Find the active schedule (prefer the one that matches currentDate, or the first one found)
-            let activeSchedule = schedules?.find(s => s.data_reuniao === format(currentDate, 'yyyy-MM-dd'))
+            // Determine which date has data
+            const hasDataOnSaturday =
+                schedulesRes.data?.some(s => s.data_reuniao === saturdayStr) ||
+                talksRes.data?.some(t => t.data === saturdayStr) ||
+                assignmentsRes.data?.some(a => a.data === saturdayStr)
 
-            // If no schedule for current date, try the other day of the weekend
-            if (!activeSchedule && schedules && schedules.length > 0) {
-                activeSchedule = schedules[0]
-                // Update current date to match the found schedule so the UI shows the correct date
-                if (activeSchedule.data_reuniao !== format(currentDate, 'yyyy-MM-dd')) {
-                    // We don't update state here to avoid infinite loop, but we use this date for fetching talk
-                }
+            const hasDataOnSunday =
+                schedulesRes.data?.some(s => s.data_reuniao === sundayStr) ||
+                talksRes.data?.some(t => t.data === sundayStr) ||
+                assignmentsRes.data?.some(a => a.data === sundayStr)
+
+            // Decide active date
+            // Priority: 
+            // 1. If currentDate matches a day with data, use it.
+            // 2. If only one day has data, use it.
+            // 3. Default to currentDate (or Saturday if preferred)
+
+            let activeDateStr = format(currentDate, 'yyyy-MM-dd')
+
+            if (format(currentDate, 'yyyy-MM-dd') === saturdayStr && hasDataOnSaturday) {
+                activeDateStr = saturdayStr
+            } else if (format(currentDate, 'yyyy-MM-dd') === sundayStr && hasDataOnSunday) {
+                activeDateStr = sundayStr
+            } else if (hasDataOnSunday && !hasDataOnSaturday) {
+                activeDateStr = sundayStr
+            } else if (hasDataOnSaturday && !hasDataOnSunday) {
+                activeDateStr = saturdayStr
             }
 
-            const activeDateStr = activeSchedule ? activeSchedule.data_reuniao : format(currentDate, 'yyyy-MM-dd')
-
-            // 2. Fetch Public Talk for the active date
-            const { data: talkData, error: talkError } = await supabase
+            // Now fetch full data for the determined active date
+            const { data: talkData } = await supabase
                 .from('agenda_discursos_locais')
                 .select(`
                     *,
@@ -84,8 +90,7 @@ export default function ReuniaoFimSemanaPage() {
                 .eq('data', activeDateStr)
                 .single()
 
-            // 3. Fetch Assignments directly by date (since programacao_id might be null)
-            const { data: assignmentsData, error: assignmentsError } = await supabase
+            const { data: assignmentsData } = await supabase
                 .from('designacoes_suporte')
                 .select(`
                     funcao,
@@ -96,7 +101,7 @@ export default function ReuniaoFimSemanaPage() {
             setData({
                 talk: talkData,
                 assignments: assignmentsData || [],
-                displayDate: activeDateStr // Store the actual date of the meeting
+                displayDate: activeDateStr
             })
 
         } catch (error) {

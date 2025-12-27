@@ -9,7 +9,7 @@ import { ptBR } from 'date-fns/locale'
 type Membro = Pick<Database['public']['Tables']['membros']['Row'], 'id' | 'nome_completo' | 'nome_civil' | 'grupo_id'>
 
 type Designacao = {
-    tipo: 'REUNIAO' | 'SUPORTE' | 'LIMPEZA' | 'CAMPO'
+    tipo: 'REUNIAO' | 'SUPORTE' | 'LIMPEZA' | 'CAMPO' | 'DISCURSO'
     data: string
     descricao: string
     detalhe?: string
@@ -229,6 +229,44 @@ export default function HomeMemberSearch() {
                 })
             }
 
+            // 6. Buscar Discursos Locais
+            const { data: discursosLocais } = await supabase
+                .from('agenda_discursos_locais')
+                .select('data, tema:temas(titulo)')
+                .eq('orador_local_id', membro.id)
+                .gte('data', hoje)
+                .order('data')
+
+            if (discursosLocais) {
+                discursosLocais.forEach((d: any) => {
+                    novasDesignacoes.push({
+                        tipo: 'DISCURSO',
+                        data: d.data,
+                        descricao: `Discurso Público: ${d.tema?.titulo || 'Tema a definir'}`,
+                        detalhe: 'Na Congregação Local'
+                    })
+                })
+            }
+
+            // 7. Buscar Discursos Fora
+            const { data: discursosFora } = await supabase
+                .from('agenda_discursos_fora')
+                .select('data, congregacao_destino, tema:temas(titulo)')
+                .eq('orador_id', membro.id)
+                .gte('data', hoje)
+                .order('data')
+
+            if (discursosFora) {
+                discursosFora.forEach((d: any) => {
+                    novasDesignacoes.push({
+                        tipo: 'DISCURSO',
+                        data: d.data,
+                        descricao: `Discurso Fora: ${d.tema?.titulo || 'Tema a definir'}`,
+                        detalhe: `Na Congregação ${d.congregacao_destino}`
+                    })
+                })
+            }
+
             // Ordenar todas por data
             novasDesignacoes.sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime())
             setDesignacoes(novasDesignacoes)
@@ -315,7 +353,8 @@ export default function HomeMemberSearch() {
                                 key={idx}
                                 className={`p-4 rounded-xl border-l-4 shadow-sm bg-white dark:bg-slate-800 transition-transform hover:scale-[1.01] ${desig.tipo === 'LIMPEZA' ? 'border-green-500' :
                                     desig.tipo === 'SUPORTE' ? 'border-orange-500' :
-                                        desig.tipo === 'CAMPO' ? 'border-purple-500' : 'border-blue-500'
+                                        desig.tipo === 'CAMPO' ? 'border-purple-500' :
+                                            desig.tipo === 'DISCURSO' ? 'border-teal-500' : 'border-blue-500'
                                     }`}
                             >
                                 <div className="flex justify-between items-start">

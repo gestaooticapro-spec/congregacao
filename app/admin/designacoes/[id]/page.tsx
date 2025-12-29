@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabaseClient'
 import { useParams, useRouter } from 'next/navigation'
 import { Database } from '@/types/database.types'
 import { checkConflicts } from '@/lib/conflictCheck'
+import { format, parseISO, startOfWeek, endOfWeek } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
 type Programacao = Database['public']['Tables']['programacao_semanal']['Row']
 type Membro = Database['public']['Tables']['membros']['Row']
@@ -283,6 +285,18 @@ export default function EditarDesignacoesPage() {
         }
     }
 
+    const getWeekRange = (dateString: string) => {
+        if (!dateString) return ''
+        const date = parseISO(dateString)
+        const start = startOfWeek(date, { weekStartsOn: 1 }) // Monday
+        const end = endOfWeek(date, { weekStartsOn: 1 }) // Sunday
+
+        const startStr = format(start, "d 'de' MMMM", { locale: ptBR })
+        const endStr = format(end, "d 'de' MMMM", { locale: ptBR })
+
+        return `Semana de ${startStr} a ${endStr}`
+    }
+
     const renderPartSection = (title: string, tipo: string, colorClass: string) => {
         const sectionParts = partes.map((p, i) => ({ ...p, originalIndex: i })).filter(p => p.tipo === tipo)
 
@@ -401,6 +415,17 @@ export default function EditarDesignacoesPage() {
                 <div className="max-w-[210mm] mx-auto p-[15mm]">
                     <div className="text-center mb-8 border-b border-slate-300 pb-4">
                         <h2 className="text-2xl font-bold uppercase mb-1">Nossa Vida e Ministério Cristão</h2>
+
+                        {/* Print Only Header Info */}
+                        <div className="hidden print:block mb-2">
+                            <p className="text-xl font-bold text-slate-800 capitalize">
+                                {programacao?.data_reuniao ? format(parseISO(programacao.data_reuniao), "d 'de' MMMM 'de' yyyy", { locale: ptBR }) : ''}
+                            </p>
+                            <p className="text-md text-slate-600 capitalize">
+                                {programacao?.data_reuniao ? getWeekRange(programacao.data_reuniao) : ''}
+                            </p>
+                        </div>
+
                         <p className="text-lg font-medium text-slate-600">
                             {programacao?.semana_descricao}
                         </p>

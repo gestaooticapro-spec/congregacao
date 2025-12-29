@@ -23,7 +23,7 @@ export default function EscalasSuportePage() {
     const [detailedAssignments, setDetailedAssignments] = useState<SupportAssignment[]>([])
 
     // Filter State
-    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
+    const [selectedBimester, setSelectedBimester] = useState(Math.floor(new Date().getMonth() / 2))
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
 
     useEffect(() => {
@@ -32,7 +32,7 @@ export default function EscalasSuportePage() {
 
     useEffect(() => {
         fetchDetailedAssignments()
-    }, [selectedMonth, selectedYear])
+    }, [selectedBimester, selectedYear])
 
     const fetchSummaries = async () => {
         setLoading(true)
@@ -40,7 +40,7 @@ export default function EscalasSuportePage() {
             const { data, error } = await supabase
                 .from('designacoes_suporte')
                 .select('data')
-                .order('data', { ascending: false })
+                .order('data', { ascending: true })
 
             if (error) throw error
 
@@ -61,9 +61,10 @@ export default function EscalasSuportePage() {
     }
 
     const fetchDetailedAssignments = async () => {
-        // Calculate start and end date for the selected month
-        const startDate = new Date(selectedYear, selectedMonth, 1).toISOString().split('T')[0]
-        const endDate = new Date(selectedYear, selectedMonth + 1, 0).toISOString().split('T')[0]
+        // Calculate start and end date for the selected bimester
+        const startMonth = selectedBimester * 2
+        const startDate = new Date(selectedYear, startMonth, 1).toISOString().split('T')[0]
+        const endDate = new Date(selectedYear, startMonth + 2, 0).toISOString().split('T')[0]
 
         try {
             const { data, error } = await supabase
@@ -92,9 +93,13 @@ export default function EscalasSuportePage() {
         window.print()
     }
 
-    const months = [
-        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    const bimesters = [
+        'Janeiro e Fevereiro',
+        'Março e Abril',
+        'Maio e Junho',
+        'Julho e Agosto',
+        'Setembro e Outubro',
+        'Novembro e Dezembro'
     ]
 
     const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 1 + i)
@@ -111,7 +116,9 @@ export default function EscalasSuportePage() {
     // Filter summaries for screen view
     const filteredSummaries = summaries.filter(s => {
         const date = new Date(s.data + 'T00:00:00')
-        return date.getMonth() === selectedMonth && date.getFullYear() === selectedYear
+        const month = date.getMonth()
+        const bimester = Math.floor(month / 2)
+        return bimester === selectedBimester && date.getFullYear() === selectedYear
     })
 
     const getRoleLabel = (role: string) => {
@@ -135,6 +142,30 @@ export default function EscalasSuportePage() {
         return dayOfWeek === 0 || dayOfWeek === 6
     }
 
+    const handleDelete = async (e: React.MouseEvent, date: string) => {
+        e.stopPropagation() // Prevent card click
+        if (!confirm('Tem certeza que deseja excluir esta escala? Todas as designações desta data serão removidas.')) return
+
+        try {
+            const { error } = await supabase
+                .from('designacoes_suporte')
+                .delete()
+                .eq('data', date)
+
+            if (error) throw error
+
+            // Update local state immediately
+            setSummaries(prev => prev.filter(s => s.data !== date))
+            setDetailedAssignments(prev => prev.filter(a => a.data !== date))
+
+            // Refresh data to be sure
+            fetchSummaries()
+        } catch (error) {
+            console.error('Erro ao excluir:', error)
+            alert('Erro ao excluir escala.')
+        }
+    }
+
     if (loading) return <div className="p-8">Carregando...</div>
 
     return (
@@ -148,22 +179,24 @@ export default function EscalasSuportePage() {
                 <div className="flex flex-wrap justify-center items-center gap-4">
                     <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
                         <select
-                            value={selectedMonth}
-                            onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                            className="bg-transparent border-none focus:ring-0 text-slate-700 dark:text-slate-300 font-medium px-4 py-2"
+                            value={selectedBimester}
+                            onChange={(e) => setSelectedBimester(Number(e.target.value))}
+                            className="bg-transparent border-none focus:ring-0 text-slate-900 dark:text-white font-bold px-4 py-2 cursor-pointer"
                         >
-                            {months.map((month, index) => (
-                                <option key={month} value={index}>{month}</option>
+                            {bimesters.map((bimester, index) => (
+                                <option key={bimester} value={index} className="text-slate-900 bg-white dark:bg-slate-800 dark:text-white">
+                                    {bimester}
+                                </option>
                             ))}
                         </select>
                         <div className="w-px bg-slate-200 dark:bg-slate-700 my-2"></div>
                         <select
                             value={selectedYear}
                             onChange={(e) => setSelectedYear(Number(e.target.value))}
-                            className="bg-transparent border-none focus:ring-0 text-slate-700 dark:text-slate-300 font-medium px-4 py-2"
+                            className="bg-transparent border-none focus:ring-0 text-slate-900 dark:text-white font-bold px-4 py-2 cursor-pointer"
                         >
                             {years.map(year => (
-                                <option key={year} value={year}>{year}</option>
+                                <option key={year} value={year} className="text-slate-900 bg-white dark:bg-slate-800 dark:text-white">{year}</option>
                             ))}
                         </select>
                     </div>
@@ -193,7 +226,7 @@ export default function EscalasSuportePage() {
             {/* Print Header */}
             <div className="hidden print:block mb-4 text-center">
                 <h1 className="text-xl font-bold text-slate-900 mb-1">Designação Mecânica</h1>
-                <p className="text-sm text-slate-600 font-medium">{months[selectedMonth]} de {selectedYear}</p>
+                <p className="text-sm text-slate-600 font-medium">{bimesters[selectedBimester]} de {selectedYear}</p>
                 <div className="h-0.5 w-16 bg-primary mx-auto mt-2 rounded-full"></div>
             </div>
 
@@ -203,7 +236,7 @@ export default function EscalasSuportePage() {
                     <div
                         key={summary.data}
                         onClick={() => router.push(`/admin/escalas/${summary.data}`)}
-                        className="group bg-white dark:bg-slate-900 rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200 dark:border-slate-800 p-6 cursor-pointer hover:border-primary/50 hover:-translate-y-1 transition-all"
+                        className="group relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200 dark:border-slate-800 p-6 cursor-pointer hover:border-primary/50 hover:-translate-y-1 transition-all"
                     >
                         <div className="flex justify-between items-start mb-6">
                             <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl group-hover:bg-primary/5 transition-colors">
@@ -219,7 +252,17 @@ export default function EscalasSuportePage() {
                             </span>
                         </div>
 
-                        <div className="mt-6 pt-4 border-t border-slate-50 dark:border-slate-800 flex justify-end">
+                        <div className="mt-6 pt-4 border-t border-slate-50 dark:border-slate-800 flex justify-between items-center">
+                            <button
+                                onClick={(e) => handleDelete(e, summary.data)}
+                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                title="Excluir escala"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+
                             <span className="text-primary text-sm font-bold group-hover:translate-x-1 transition-transform flex items-center gap-1">
                                 Gerenciar <span>→</span>
                             </span>
@@ -315,7 +358,7 @@ export default function EscalasSuportePage() {
 
                 {detailedAssignments.length === 0 && (
                     <div className="col-span-2 text-center py-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
-                        <p className="text-slate-500 font-medium">Nenhuma designação encontrada para este mês.</p>
+                        <p className="text-slate-500 font-medium">Nenhuma designação encontrada para este bimestre.</p>
                     </div>
                 )}
             </div>

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Database } from '@/types/database.types'
 import { useRouter } from 'next/navigation'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, startOfWeek, endOfWeek } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 type Programacao = Database['public']['Tables']['programacao_semanal']['Row']
@@ -125,6 +125,18 @@ export default function RelatorioReuniaoMeioSemanaPage() {
         return membro ? membro.nome_completo : 'Membro não encontrado'
     }
 
+    const getWeekRange = (dateString: string) => {
+        if (!dateString) return ''
+        const date = parseISO(dateString)
+        const start = startOfWeek(date, { weekStartsOn: 1 }) // Monday
+        const end = endOfWeek(date, { weekStartsOn: 1 }) // Sunday
+
+        const startStr = format(start, "d 'de' MMMM", { locale: ptBR })
+        const endStr = format(end, "d 'de' MMMM", { locale: ptBR })
+
+        return `Semana de ${startStr} a ${endStr}`
+    }
+
     const renderPartSection = (title: string, tipo: string, colorClass: string) => {
         const partes = (programacao?.partes as any as Parte[]) || []
         const sectionParts = partes.filter(p => p.tipo === tipo)
@@ -225,6 +237,17 @@ export default function RelatorioReuniaoMeioSemanaPage() {
             <div className="print-content">
                 <div className="text-center mb-8 border-b border-slate-300 pb-4">
                     <h2 className="text-2xl font-bold uppercase mb-1">Nossa Vida e Ministério Cristão</h2>
+
+                    {/* Print Only Header Info */}
+                    <div className="hidden print:block mb-2">
+                        <p className="text-xl font-bold text-slate-800 capitalize">
+                            {currentDate ? format(parseISO(currentDate), "d 'de' MMMM 'de' yyyy", { locale: ptBR }) : ''}
+                        </p>
+                        <p className="text-md text-slate-600 capitalize">
+                            {currentDate ? getWeekRange(currentDate) : ''}
+                        </p>
+                    </div>
+
                     <p className="text-lg font-medium text-slate-600">
                         {programacao?.semana_descricao}
                     </p>

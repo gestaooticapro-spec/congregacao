@@ -261,7 +261,7 @@ export default function HomeMemberSearch() {
             // 7. Buscar Discursos Fora
             const { data: discursosFora } = await supabase
                 .from('agenda_discursos_fora')
-                .select('data, congregacao_destino, tema:temas(titulo)')
+                .select('data, destino_congregacao, tema:temas(titulo)')
                 .eq('orador_id', membro.id)
                 .gte('data', hoje)
                 .order('data')
@@ -272,7 +272,7 @@ export default function HomeMemberSearch() {
                         tipo: 'DISCURSO',
                         data: d.data,
                         descricao: `Discurso Fora: ${d.tema?.titulo || 'Tema a definir'}`,
-                        detalhe: `Na Congregação ${d.congregacao_destino}`
+                        detalhe: `Na Congregação ${d.destino_congregacao}`
                     })
                 })
             }

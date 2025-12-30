@@ -153,11 +153,14 @@ export default function HomeMemberSearch() {
 
             // 3. Buscar Escala de Limpeza
             if (membro.grupo_id) {
+                // Calculate start of current week to ensure we don't miss this week's cleaning
+                const startOfCurrentWeek = startOfWeek(new Date(), { weekStartsOn: 1 }).toISOString().split('T')[0]
+
                 const { data: limpeza } = await supabase
                     .from('escala_limpeza')
                     .select('*')
                     .eq('grupo_id', membro.grupo_id)
-                    .gte('data_inicio', hoje)
+                    .gte('data_inicio', startOfCurrentWeek)
                     .order('data_inicio')
 
                 if (limpeza) {
@@ -172,21 +175,28 @@ export default function HomeMemberSearch() {
                         const sabado = new Date(dataInicio)
                         sabado.setDate(dataInicio.getDate() + 5)
 
-                        // Add Thursday
-                        novasDesignacoes.push({
-                            tipo: 'LIMPEZA',
-                            data: quinta.toISOString().split('T')[0],
-                            descricao: 'Limpeza do Salão (Quinta)',
-                            detalhe: formatWeekRange(esc.data_inicio)
-                        })
+                        const quintaStr = quinta.toISOString().split('T')[0]
+                        const sabadoStr = sabado.toISOString().split('T')[0]
 
-                        // Add Saturday
-                        novasDesignacoes.push({
-                            tipo: 'LIMPEZA',
-                            data: sabado.toISOString().split('T')[0],
-                            descricao: 'Limpeza do Salão (Sábado)',
-                            detalhe: formatWeekRange(esc.data_inicio)
-                        })
+                        // Add Thursday if it's today or future
+                        if (quintaStr >= hoje) {
+                            novasDesignacoes.push({
+                                tipo: 'LIMPEZA',
+                                data: quintaStr,
+                                descricao: 'Limpeza do Salão (Quinta)',
+                                detalhe: formatWeekRange(esc.data_inicio)
+                            })
+                        }
+
+                        // Add Saturday if it's today or future
+                        if (sabadoStr >= hoje) {
+                            novasDesignacoes.push({
+                                tipo: 'LIMPEZA',
+                                data: sabadoStr,
+                                descricao: 'Limpeza do Salão (Sábado)',
+                                detalhe: formatWeekRange(esc.data_inicio)
+                            })
+                        }
                     })
                 }
             }

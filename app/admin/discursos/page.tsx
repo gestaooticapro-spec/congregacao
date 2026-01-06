@@ -121,6 +121,7 @@ export default function DiscursosPage() {
 function DiscursosLocaisList({ discursos, onUpdate }: { discursos: DiscursoLocal[], onUpdate: () => void }) {
     const [showModal, setShowModal] = useState(false)
     const [saving, setSaving] = useState(false)
+    const [editingId, setEditingId] = useState<string | null>(null)
 
     // Form Data
     const [data, setData] = useState('')
@@ -163,7 +164,6 @@ function DiscursosLocaisList({ discursos, onUpdate }: { discursos: DiscursoLocal
             .from('membros')
             .select('id, nome_completo')
             .or('is_anciao.eq.true,is_servo_ministerial.eq.true')
-            .order('nome_completo')
             .order('nome_completo')
         setMembros(m || [])
 
@@ -230,7 +230,7 @@ function DiscursosLocaisList({ discursos, onUpdate }: { discursos: DiscursoLocal
         setSaving(true)
         try {
             // Save Talk
-            const { error } = await supabase.from('agenda_discursos_locais').insert({
+            const payload = {
                 data,
                 orador_local_id: tipoOrador === 'LOCAL' ? oradorLocalId : null,
                 orador_visitante_id: tipoOrador === 'VISITANTE' ? oradorVisitanteId : null,
@@ -238,14 +238,20 @@ function DiscursosLocaisList({ discursos, onUpdate }: { discursos: DiscursoLocal
                 cantico: cantico ? parseInt(cantico) : null,
                 tem_midia: temMidia,
                 hospitalidade_id: tipoOrador === 'VISITANTE' && hospitalidadeId ? hospitalidadeId : null
-            })
+            }
 
-            if (error) throw error
+            if (editingId) {
+                const { error } = await supabase.from('agenda_discursos_locais').update(payload).eq('id', editingId)
+                if (error) throw error
+            } else {
+                const { error } = await supabase.from('agenda_discursos_locais').insert(payload)
+                if (error) throw error
+            }
 
             setShowModal(false)
             resetForm()
             onUpdate()
-            alert('Agendamento criado!')
+            alert('Agendamento salvo!')
 
         } catch (error: any) {
             console.error(error)
@@ -253,6 +259,32 @@ function DiscursosLocaisList({ discursos, onUpdate }: { discursos: DiscursoLocal
         } finally {
             setSaving(false)
         }
+    }
+
+    const startEditing = (discurso: DiscursoLocal) => {
+        console.log('Editing discourse:', discurso)
+        setEditingId(discurso.id)
+        setData(discurso.data)
+        setCantico(discurso.cantico?.toString() || '')
+        setTemMidia(discurso.tem_midia || false)
+
+        if (discurso.orador_local_id) {
+            setTipoOrador('LOCAL')
+            setOradorLocalId(discurso.orador_local_id)
+            setTemaId(discurso.tema_id)
+            setTemaSearch(`#${discurso.tema.numero} - ${discurso.tema.titulo}`)
+        } else {
+            setTipoOrador('VISITANTE')
+            setOradorVisitanteId(discurso.orador_visitante_id || '')
+            setTemaId(discurso.tema_id)
+            setTemaSearch(`#${discurso.tema.numero} - ${discurso.tema.titulo}`)
+            if (discurso.hospitalidade_id) {
+                setHospitalidadeId(discurso.hospitalidade_id)
+                setHospitalidadeSearch(discurso.hospitalidade?.nome_completo || '')
+            }
+        }
+
+        setShowModal(true)
     }
 
     const handleDelete = async (id: string) => {
@@ -331,13 +363,13 @@ ${midiaTexto}`
     }
 
     const resetForm = () => {
+        setEditingId(null)
         setData('')
         setOradorLocalId('')
         setOradorVisitanteId('')
         setTemaNumero('')
         setTemaId('')
         setCantico('')
-        setTemaSearch('')
         setTemaSearch('')
         setTemMidia(false)
         setHospitalidadeId('')
@@ -348,11 +380,6 @@ ${midiaTexto}`
         if (!membroId) return ''
         const date = new Date(data).toLocaleDateString('pt-BR')
         let message = `Olá ${nome}!\nVocê foi designado(a) para cuidar da hospedagem/lanche do orador visitante no dia: ${date}`
-
-        // Add confirmation link
-        // We need the ID of the discourse assignment. 
-        // If it's a new assignment (not saved yet), we can't generate the link properly without saving first.
-        // But for existing ones in the list, we can.
 
         if (id) {
             const link = `${window.location.origin}/confirmar?id=${id}&membro=${membroId}&type=hospitalidade`
@@ -377,7 +404,7 @@ ${midiaTexto}`
             {showModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-lg shadow-2xl overflow-y-auto max-h-[90vh]">
-                        <h3 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">Novo Discurso (Local)</h3>
+                        <h3 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">{editingId ? 'Editar Discurso' : 'Novo Discurso (Local)'}</h3>
 
                         <div className="space-y-4">
                             <div>
@@ -644,6 +671,13 @@ ${midiaTexto}`
                                             <path fillRule="evenodd" clipRule="evenodd" d="M18.403 5.633A8.919 8.919 0 0 0 12.053 3c-4.948 0-8.976 4.027-8.978 8.977 0 1.582.413 3.126 1.198 4.488L3 21.116l4.759-1.249a8.981 8.981 0 0 0 4.29 1.093h.004c4.947 0 8.975-4.027 8.977-8.977a8.926 8.926 0 0 0-2.627-6.35m-6.35 13.812h-.003a7.446 7.446 0 0 1-3.798-1.041l-.272-.162-2.824.741.753-2.753-.177-.282a7.448 7.448 0 0 1-1.141-3.971c.002-4.114 3.349-7.461 7.465-7.461a7.413 7.413 0 0 1 5.275 2.188 7.42 7.42 0 0 1 2.183 5.279c-.002 4.114-3.349 7.462-7.461 7.462m4.093-5.589c-.225-.113-1.327-.655-1.533-.73-.205-.075-.354-.112-.504.112-.15.224-.579.73-.71.88-.131.149-.262.168-.486.056-.224-.112-.954-.352-1.817-1.122-.673-.6-1.125-1.34-1.257-1.565-.132-.224-.014-.345.098-.458.101-.101.224-.263.336-.395.112-.131.149-.224.224-.374.075-.149.038-.281-.019-.393-.056-.113-.505-1.217-.692-1.666-.181-.435-.366-.377-.504-.383-.13-.006-.28-.006-.429-.006-.15 0-.393.056-.6.28-.206.225-.787.769-.787 1.876 0 1.106.805 2.174.917 2.323.112.15 1.582 2.415 3.832 3.387.536.231.954.369 1.279.473.537.171 1.026.146 1.413.089.431-.064 1.327-.542 1.514-1.066.187-.524.187-.973.131-1.066-.056-.094-.206-.15-.43-.263" />
                                         </svg>
                                     </button>
+                                    <button
+                                        onClick={() => startEditing(d)}
+                                        className="text-blue-500 hover:text-blue-700 p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                                        title="Editar"
+                                    >
+                                        ✏️
+                                    </button>
                                     <button onClick={() => handleDelete(d.id)} className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition-colors">🗑️</button>
                                 </td>
                             </tr>
@@ -663,6 +697,7 @@ ${midiaTexto}`
 function DiscursosForaList({ discursos, onUpdate }: { discursos: DiscursoFora[], onUpdate: () => void }) {
     const [showModal, setShowModal] = useState(false)
     const [saving, setSaving] = useState(false)
+    const [editingId, setEditingId] = useState<string | null>(null)
 
     // Form Data
     const [data, setData] = useState('')
@@ -719,21 +754,27 @@ function DiscursosForaList({ discursos, onUpdate }: { discursos: DiscursoFora[],
 
         setSaving(true)
         try {
-            const { error } = await supabase.from('agenda_discursos_fora').insert({
+            const payload = {
                 data,
                 horario,
                 orador_id: oradorId,
                 tema_id: temaId,
                 destino_cidade: cidade,
                 destino_congregacao: congregacao
-            })
+            }
 
-            if (error) throw error
+            if (editingId) {
+                const { error } = await supabase.from('agenda_discursos_fora').update(payload).eq('id', editingId)
+                if (error) throw error
+            } else {
+                const { error } = await supabase.from('agenda_discursos_fora').insert(payload)
+                if (error) throw error
+            }
 
             setShowModal(false)
             resetForm()
             onUpdate()
-            alert('Agendamento criado!')
+            alert('Agendamento salvo!')
 
         } catch (error: any) {
             console.error(error)
@@ -741,6 +782,17 @@ function DiscursosForaList({ discursos, onUpdate }: { discursos: DiscursoFora[],
         } finally {
             setSaving(false)
         }
+    }
+
+    const startEditing = (discurso: DiscursoFora) => {
+        setEditingId(discurso.id)
+        setData(discurso.data)
+        setHorario(discurso.horario)
+        setOradorId(discurso.orador_id)
+        setTemaId(discurso.tema_id)
+        setCidade(discurso.destino_cidade)
+        setCongregacao(discurso.destino_congregacao)
+        setShowModal(true)
     }
 
     const handleDelete = async (id: string) => {
@@ -757,6 +809,7 @@ function DiscursosForaList({ discursos, onUpdate }: { discursos: DiscursoFora[],
     }
 
     const resetForm = () => {
+        setEditingId(null)
         setData('')
         setHorario('')
         setOradorId('')
@@ -780,7 +833,7 @@ function DiscursosForaList({ discursos, onUpdate }: { discursos: DiscursoFora[],
             {showModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-lg shadow-2xl">
-                        <h3 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">Novo Discurso (Fora)</h3>
+                        <h3 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">{editingId ? 'Editar Discurso (Fora)' : 'Novo Discurso (Fora)'}</h3>
 
                         <div className="space-y-4">
                             <div className="flex gap-4">
@@ -864,8 +917,15 @@ function DiscursosForaList({ discursos, onUpdate }: { discursos: DiscursoFora[],
                                         <span className="text-sm text-slate-600 dark:text-slate-400 truncate max-w-[200px]" title={d.tema.titulo}>{d.tema.titulo}</span>
                                     </div>
                                 </td>
-                                <td className="py-3 px-4 text-right">
-                                    <button onClick={() => handleDelete(d.id)} className="text-red-500 hover:text-red-700 p-2">🗑️</button>
+                                <td className="py-3 px-4 text-right flex justify-end gap-2">
+                                    <button
+                                        onClick={() => startEditing(d)}
+                                        className="text-blue-500 hover:text-blue-700 p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                                        title="Editar"
+                                    >
+                                        ✏️
+                                    </button>
+                                    <button onClick={() => handleDelete(d.id)} className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition-colors">🗑️</button>
                                 </td>
                             </tr>
                         ))}

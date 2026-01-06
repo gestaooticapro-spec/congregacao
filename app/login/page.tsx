@@ -1,15 +1,57 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
+import { useBiometricAuth } from '@/hooks/useBiometricAuth'
+import BiometricSetupPrompt from '@/components/BiometricSetupPrompt'
+import { Fingerprint } from 'lucide-react'
 
 export default function LoginPage() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [showBiometricPrompt, setShowBiometricPrompt] = useState(false)
+
     const router = useRouter()
+    const { isSupported, isEnrolled, registerBiometric, authenticateBiometric, updateBiometricToken } = useBiometricAuth()
+
+    useEffect(() => {
+        // Auto-check for biometric login availability
+        if (isEnrolled) {
+            handleBiometricLogin()
+        }
+    }, [isEnrolled])
+
+    const handleBiometricLogin = async () => {
+        setLoading(true)
+        setError(null)
+        try {
+            const result = await authenticateBiometric()
+            if (!result) throw new Error('Falha na autenticação')
+            const { refreshToken } = result
+
+            const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken })
+
+            if (error || !data.session) {
+                throw new Error('Sessão expirada')
+            }
+
+            // Success! Update token and redirect
+            updateBiometricToken(data.session.refresh_token)
+            router.push('/')
+            router.refresh()
+        } catch (err) {
+            console.error(err)
+            // Silent fail or show specific error? 
+            // For auto-login, maybe just let user use password.
+            // But if triggered manually, show error.
+            if (loading) setLoading(false) // Only stop loading if we were loading
+        } finally {
+            setLoading(false)
+        }
+    }
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -17,7 +59,7 @@ export default function LoginPage() {
         setError(null)
 
         try {
-            const { error } = await supabase.auth.signInWithPassword({
+            const { data, error } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             })
@@ -25,18 +67,54 @@ export default function LoginPage() {
             if (error) {
                 setError('Credenciais inválidas. Verifique seu e-mail e senha.')
             } else {
-                router.push('/')
-                router.refresh()
+                // Login success
+                if (data.session?.refresh_token) {
+                    updateBiometricToken(data.session.refresh_token)
+                }
+
+                // Check if we should offer biometric setup
+                if (isSupported && !isEnrolled) {
+                    setShowBiometricPrompt(true)
+                    // Don't redirect yet
+                } else {
+                    router.push('/')
+                    router.refresh()
+                }
             }
         } catch (err) {
             setError('Ocorreu um erro ao tentar fazer login.')
         } finally {
-            setLoading(false)
+            if (!showBiometricPrompt) setLoading(false)
         }
+    }
+
+    const handleEnableBiometric = async () => {
+        if (!email) return // Should have email from state if just logged in
+        // Wait, if we just logged in, 'email' state variable might be empty if user used autofill? 
+        // No, 'email' state is bound to input.
+        // But to be safe, let's use the session user email if available.
+        const { data: { user } } = await supabase.auth.getUser()
+        const userEmail = user?.email || email
+
+        await registerBiometric(userEmail)
+        setShowBiometricPrompt(false)
+        router.push('/')
+        router.refresh()
     }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+            {showBiometricPrompt && (
+                <BiometricSetupPrompt
+                    onEnable={handleEnableBiometric}
+                    onSkip={() => {
+                        setShowBiometricPrompt(false)
+                        router.push('/')
+                        router.refresh()
+                    }}
+                />
+            )}
+
             <div className="max-w-md w-full space-y-8">
                 <div>
                     <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
@@ -88,7 +166,7 @@ export default function LoginPage() {
                         </div>
                     )}
 
-                    <div>
+                    <div className="space-y-3">
                         <button
                             type="submit"
                             disabled={loading}
@@ -97,6 +175,17 @@ export default function LoginPage() {
                         >
                             {loading ? 'Entrando...' : 'Entrar'}
                         </button>
+
+                        {isEnrolled && !loading && (
+                            <button
+                                type="button"
+                                onClick={handleBiometricLogin}
+                                className="w-full flex justify-center items-center gap-2 py-2 px-4 border border-blue-600 text-sm font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            >
+                                <Fingerprint size={18} />
+                                Entrar com Biometria
+                            </button>
+                        )}
                     </div>
                 </form>
             </div>

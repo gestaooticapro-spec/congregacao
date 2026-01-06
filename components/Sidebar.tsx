@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { performLogout } from '@/lib/auth-utils';
 import { Session } from '@supabase/supabase-js';
 
 export default function Sidebar() {
@@ -35,8 +36,8 @@ export default function Sidebar() {
     }, [router]);
 
     const handleLogout = async () => {
-        await supabase.auth.signOut();
-        router.push('/');
+        await performLogout();
+        // router.push('/') is handled inside performLogout
         setIsOpen(false);
     };
 

@@ -59,7 +59,7 @@ export function useBiometricAuth() {
                 },
                 pubKeyCredParams: [{ alg: -7, type: 'public-key' }],
                 authenticatorSelection: {
-                    authenticatorAttachment: 'platform',
+                    // authenticatorAttachment: 'platform', // Removed to allow any available authenticator (platform or cross-platform)
                     userVerification: 'required',
                 },
                 timeout: 60000,

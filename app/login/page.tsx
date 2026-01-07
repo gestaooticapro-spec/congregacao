@@ -42,12 +42,10 @@ export default function LoginPage() {
             updateBiometricToken(data.session.refresh_token)
             router.push('/')
             router.refresh()
-        } catch (err) {
+        } catch (err: any) {
             console.error(err)
-            // Silent fail or show specific error? 
-            // For auto-login, maybe just let user use password.
-            // But if triggered manually, show error.
-            if (loading) setLoading(false) // Only stop loading if we were loading
+            setError(err.message || 'Erro na autenticação biométrica')
+            if (loading) setLoading(false)
         } finally {
             setLoading(false)
         }

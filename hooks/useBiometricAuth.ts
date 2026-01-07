@@ -74,25 +74,9 @@ export function useBiometricAuth() {
             const challenge = new Uint8Array(32)
             window.crypto.getRandomValues(challenge)
 
-            const credentialId = localStorage.getItem(BIOMETRIC_KEYS.CREDENTIAL_ID)
-
-            // Note: In a real secure implementation, we would pass the Credential ID 
-            // to allow the authenticator to find the specific key.
-            // However, for platform authenticators (TouchID/FaceID), passing an empty allowList 
-            // often prompts the user to select a credential or just works if there's only one.
-            // Let's try to be specific if we have the ID.
-
-            const allowCredentials: PublicKeyCredentialDescriptor[] = credentialId ? [{
-                id: Uint8Array.from(atob(credentialId), c => c.charCodeAt(0)), // Decode base64 ID if needed, but credential.id is usually base64url or base64? 
-                // Actually credential.id from create() is base64url encoded string in modern browsers, 
-                // but let's just use the raw ID if we can.
-                // Wait, navigator.credentials.create returns a PublicKeyCredential where .id is a string.
-                // To use it in allowCredentials, we need to convert it back to BufferSource.
-                // A simple way for this "Client-Side Gate" is to NOT filter by ID and just let the user authenticate.
-                // But let's try to be correct.
-                type: 'public-key',
-                transports: ['internal']
-            }] : []
+            // We don't strictly need to filter by credential ID for this client-side gate.
+            // We just want to verify the user is the owner of the device.
+            // This avoids complex Base64URL decoding issues.
 
             // Simplified approach for this "Client Gate" model:
             // We just ask for ANY assertion from this RP.

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BIOMETRIC_KEYS } from '@/lib/auth-utils'
+import { supabase } from '@/lib/supabaseClient'
 
 export function useBiometricAuth() {
     const [isSupported, setIsSupported] = useState(false)
@@ -11,6 +12,19 @@ export function useBiometricAuth() {
             setIsSupported(true)
             const enrolled = localStorage.getItem(BIOMETRIC_KEYS.ENROLLED) === 'true'
             setIsEnrolled(enrolled)
+        }
+
+        // Keep the refresh token updated!
+        // Supabase rotates tokens automatically. If we don't update our stored copy,
+        // it becomes stale and the next biometric login will fail with "Session expired".
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (session?.refresh_token && localStorage.getItem(BIOMETRIC_KEYS.ENROLLED) === 'true') {
+                localStorage.setItem(BIOMETRIC_KEYS.REFRESH_TOKEN, session.refresh_token)
+            }
+        })
+
+        return () => {
+            subscription.unsubscribe()
         }
     }, [])
 

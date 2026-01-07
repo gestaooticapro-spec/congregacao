@@ -50,7 +50,7 @@ export function useBiometricAuth() {
                 challenge,
                 rp: {
                     name: 'Congregação Manager',
-                    id: window.location.hostname,
+                    // id: window.location.hostname, // Let browser default to current domain
                 },
                 user: {
                     id: userId,
@@ -59,8 +59,8 @@ export function useBiometricAuth() {
                 },
                 pubKeyCredParams: [{ alg: -7, type: 'public-key' }],
                 authenticatorSelection: {
-                    // authenticatorAttachment: 'platform', // Removed to allow any available authenticator (platform or cross-platform)
-                    userVerification: 'required',
+                    authenticatorAttachment: 'platform', // Restore UX
+                    userVerification: 'preferred', // Relax requirement
                 },
                 timeout: 60000,
                 attestation: 'none',
@@ -96,8 +96,8 @@ export function useBiometricAuth() {
             // We just ask for ANY assertion from this RP.
             const publicKey: PublicKeyCredentialRequestOptions = {
                 challenge,
-                rpId: window.location.hostname,
-                userVerification: 'required',
+                // rpId: window.location.hostname, // Let browser default
+                userVerification: 'preferred',
                 timeout: 60000,
             }
 

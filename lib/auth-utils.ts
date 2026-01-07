@@ -39,6 +39,16 @@ export async function performLogout() {
 
         keysToRemove.forEach(key => localStorage.removeItem(key))
 
+        // Also clear cookies (used by @supabase/ssr)
+        const cookies = document.cookie.split(";")
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i]
+            const eqPos = cookie.indexOf("=")
+            const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie
+            // Clear all cookies, especially sb-* ones
+            document.cookie = name.trim() + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/"
+        }
+
         // Force a reload to clear in-memory state
         window.location.href = '/'
     } else {

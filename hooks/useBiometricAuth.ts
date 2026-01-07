@@ -38,6 +38,8 @@ export function useBiometricAuth() {
         if (!isSupported) throw new Error('Biometria não suportada')
 
         try {
+            console.log('[Biometric] Starting registration for:', email)
+
             // Create a random challenge
             const challenge = new Uint8Array(32)
             window.crypto.getRandomValues(challenge)
@@ -66,17 +68,22 @@ export function useBiometricAuth() {
                 attestation: 'none',
             }
 
+            console.log('[Biometric] Requesting credential creation...')
             const credential = await navigator.credentials.create({ publicKey }) as PublicKeyCredential
 
             if (credential) {
+                console.log('[Biometric] Credential created successfully:', credential.id)
                 localStorage.setItem(BIOMETRIC_KEYS.CREDENTIAL_ID, credential.id)
                 localStorage.setItem(BIOMETRIC_KEYS.EMAIL, email)
                 localStorage.setItem(BIOMETRIC_KEYS.ENROLLED, 'true')
                 setIsEnrolled(true)
+                console.log('[Biometric] Registration complete!')
                 return true
+            } else {
+                console.error('[Biometric] No credential returned')
             }
         } catch (error) {
-            console.error('Erro ao registrar biometria:', error)
+            console.error('[Biometric] Registration failed:', error)
             throw error
         }
     }
@@ -85,6 +92,8 @@ export function useBiometricAuth() {
         if (!isSupported || !isEnrolled) throw new Error('Biometria não disponível')
 
         try {
+            console.log('[Biometric] Starting authentication...')
+
             const challenge = new Uint8Array(32)
             window.crypto.getRandomValues(challenge)
 
@@ -101,18 +110,24 @@ export function useBiometricAuth() {
                 timeout: 60000,
             }
 
+            console.log('[Biometric] Requesting credential...')
             const assertion = await navigator.credentials.get({ publicKey })
 
             if (assertion) {
+                console.log('[Biometric] Authentication successful!')
                 // Biometric check passed!
                 // Retrieve the stored refresh token
                 const refreshToken = localStorage.getItem(BIOMETRIC_KEYS.REFRESH_TOKEN)
-                if (!refreshToken) throw new Error('Token não encontrado')
+                if (!refreshToken) {
+                    console.error('[Biometric] No refresh token found in storage')
+                    throw new Error('Token não encontrado')
+                }
 
+                console.log('[Biometric] Returning refresh token')
                 return { refreshToken }
             }
         } catch (error) {
-            console.error('Erro na autenticação biométrica:', error)
+            console.error('[Biometric] Authentication failed:', error)
             throw error
         }
     }

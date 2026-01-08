@@ -10,6 +10,7 @@ export default function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(false);
     const [session, setSession] = useState<Session | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -109,22 +110,38 @@ export default function Sidebar() {
 
             {/* Sidebar */}
             <aside
-                className={`fixed top-0 left-0 h-full w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-50 transition-transform duration-300 ease-in-out transform ${isOpen ? 'translate-x-0' : '-translate-x-full'
-                    } md:translate-x-0 print:hidden flex flex-col`}
+                className={`fixed top-0 left-0 h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-50 transition-all duration-300 ease-in-out transform ${isOpen ? 'translate-x-0' : '-translate-x-full'
+                    } md:translate-x-0 print:hidden flex flex-col ${isCollapsed ? 'md:w-16' : 'md:w-64'} w-64`}
             >
                 <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
-                    <Link href="/" className="text-xl font-bold" onClick={() => setIsOpen(false)}>
+                    <Link href="/" className={`text-xl font-bold ${isCollapsed ? 'md:hidden' : ''}`} onClick={() => setIsOpen(false)}>
                         <span className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">Cong</span>
                         <span className="text-slate-700 dark:text-white">Guaíra</span>
                     </Link>
+                    {/* Mobile close button */}
                     <button onClick={() => setIsOpen(false)} className="md:hidden text-slate-500 hover:text-slate-700">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
+                    {/* Desktop collapse button */}
+                    <button
+                        onClick={() => setIsCollapsed(!isCollapsed)}
+                        className="hidden md:flex items-center justify-center w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                        title={isCollapsed ? 'Expandir menu' : 'Recolher menu'}
+                    >
+                        <svg
+                            className={`w-5 h-5 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
                 </div>
 
-                <nav className="p-4 space-y-2 overflow-y-auto flex-1 thin-scrollbar">
+                <nav className={`space-y-2 overflow-y-auto flex-1 thin-scrollbar ${isCollapsed ? 'md:p-2 p-4' : 'p-4'}`}>
                     {!loading && visibleItems.map((item, index) => {
                         if (item.type === 'separator') {
                             return <div key={`sep-${index}`} className="my-2 border-t border-slate-100 dark:border-slate-800" />
@@ -135,40 +152,43 @@ export default function Sidebar() {
                                 key={item.href}
                                 href={item.href}
                                 onClick={() => setIsOpen(false)}
-                                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium ${isActive(item.href) && item.href !== '/'
+                                title={isCollapsed ? item.label : undefined}
+                                className={`flex items-center gap-3 py-3 rounded-xl transition-all duration-200 font-medium ${isCollapsed ? 'md:justify-center md:px-2 px-4' : 'px-4'} ${isActive(item.href) && item.href !== '/'
                                     ? 'bg-primary text-white shadow-md shadow-blue-500/20'
                                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white'
                                     }`}
                             >
                                 <span className="text-xl">{item.icon}</span>
-                                <span>{item.label}</span>
+                                <span className={isCollapsed ? 'md:hidden' : ''}>{item.label}</span>
                             </Link>
                         )
                     })}
                 </nav>
 
-                <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
+                <div className={`border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 ${isCollapsed ? 'md:p-2 p-4' : 'p-4'}`}>
                     {!loading && (
                         session ? (
                             <button
                                 onClick={handleLogout}
-                                className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 font-medium"
+                                title={isCollapsed ? 'Sair' : undefined}
+                                className={`flex items-center gap-3 py-3 w-full rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 font-medium ${isCollapsed ? 'md:justify-center md:px-2 px-4' : 'px-4'}`}
                             >
                                 <span className="text-xl">🚪</span>
-                                <span>Sair</span>
+                                <span className={isCollapsed ? 'md:hidden' : ''}>Sair</span>
                             </button>
                         ) : (
                             <Link
                                 href="/login"
                                 onClick={() => setIsOpen(false)}
-                                className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 font-medium"
+                                title={isCollapsed ? 'Login' : undefined}
+                                className={`flex items-center gap-3 py-3 w-full rounded-xl text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 font-medium ${isCollapsed ? 'md:justify-center md:px-2 px-4' : 'px-4'}`}
                             >
                                 <span className="text-xl">🔐</span>
-                                <span>Login</span>
+                                <span className={isCollapsed ? 'md:hidden' : ''}>Login</span>
                             </Link>
                         )
                     )}
-                    <div className="mt-2 text-xs text-center text-slate-400">
+                    <div className={`mt-2 text-xs text-center text-slate-400 ${isCollapsed ? 'md:hidden' : ''}`}>
                         v0.1.0
                     </div>
                 </div>

@@ -6,6 +6,8 @@ export const viewport: Viewport = {
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
+import MainContent from "@/components/MainContent";
+import { SidebarProvider } from "@/contexts/SidebarContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,12 +36,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
-        <Sidebar />
-        <main className="md:pl-64 pt-16 md:pt-0 min-h-screen transition-all duration-300 print:pl-0">
-          <div className="container mx-auto p-4 md:p-8">
-            {children}
-          </div>
-        </main>
+        <SidebarProvider>
+          <Sidebar />
+          <MainContent>{children}</MainContent>
+        </SidebarProvider>
       </body>
     </html>
   );

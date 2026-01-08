@@ -5,12 +5,13 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Session } from '@supabase/supabase-js';
+import { useSidebar } from '@/contexts/SidebarContext';
 
 export default function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
-    const [isCollapsed, setIsCollapsed] = useState(false);
+    const { isCollapsed, toggleCollapsed } = useSidebar();
     const [session, setSession] = useState<Session | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -126,7 +127,7 @@ export default function Sidebar() {
                     </button>
                     {/* Desktop collapse button */}
                     <button
-                        onClick={() => setIsCollapsed(!isCollapsed)}
+                        onClick={toggleCollapsed}
                         className="hidden md:flex items-center justify-center w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                         title={isCollapsed ? 'Expandir menu' : 'Recolher menu'}
                     >

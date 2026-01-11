@@ -58,6 +58,7 @@ export default function Sidebar() {
         { type: 'link', href: '/saidas', label: 'Horário de Campo', icon: '👜' },
         { type: 'separator' },
         // Restricted Items
+        { type: 'link', href: '/admin/agenda', label: 'Agenda e Lembretes', icon: '📅', restricted: true },
         { type: 'link', href: '/programacao', label: 'Reunião de Quinta', icon: '📖', restricted: true },
         { type: 'link', href: '/admin/discursos', label: 'Discursos', icon: '🎤', restricted: true },
         { type: 'link', href: '/admin/eventos', label: 'Gerenciar Eventos', icon: '🗓️', restricted: true },

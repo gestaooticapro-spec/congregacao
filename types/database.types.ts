@@ -50,6 +50,39 @@ export interface Database {
         }
         Relationships: []
       }
+      agenda_anciaos: {
+        Row: {
+          id: string
+          titulo: string
+          tipo: 'reuniao' | 'anuncio' | 'outro'
+          data_inicio: string
+          data_fim: string | null
+          descricao: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          titulo: string
+          tipo: 'reuniao' | 'anuncio' | 'outro'
+          data_inicio: string
+          data_fim?: string | null
+          descricao?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          titulo?: string
+          tipo?: 'reuniao' | 'anuncio' | 'outro'
+          data_inicio?: string
+          data_fim?: string | null
+          descricao?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       escalas_campo: {
         Row: {
           id: string

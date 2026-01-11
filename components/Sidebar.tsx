@@ -55,6 +55,7 @@ export default function Sidebar() {
         { type: 'link', href: '/quadro-de-anuncios', label: 'Quadro de Anúncios', icon: '📢' },
         { type: 'link', href: '/calendario', label: 'Próximos Eventos', icon: '📅' },
         { type: 'link', href: '/territorios', label: 'Territórios', icon: '🗺️' },
+        { type: 'link', href: '/saidas', label: 'Horário de Campo', icon: '👜' },
         { type: 'separator' },
         // Restricted Items
         { type: 'link', href: '/programacao', label: 'Reunião de Quinta', icon: '📖', restricted: true },

@@ -116,7 +116,7 @@ export default function QuadroDeAnuncios() {
                         </div>
                         <div>
                             <h3 className="font-bold text-lg text-slate-900 dark:text-white group-hover:text-primary transition-colors">
-                                Designações Mecânicas
+                                Designações de Apoio
                             </h3>
                             <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
                                 Reunião

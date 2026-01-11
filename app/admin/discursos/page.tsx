@@ -121,6 +121,7 @@ export default function DiscursosPage() {
 function DiscursosLocaisList({ discursos, onUpdate }: { discursos: DiscursoLocal[], onUpdate: () => void }) {
     const [showModal, setShowModal] = useState(false)
     const [saving, setSaving] = useState(false)
+    const [editingId, setEditingId] = useState<string | null>(null)
 
     // Form Data
     const [data, setData] = useState('')
@@ -136,6 +137,12 @@ function DiscursosLocaisList({ discursos, onUpdate }: { discursos: DiscursoLocal
 
     // Search State
     const [temaSearch, setTemaSearch] = useState('')
+
+    // Quick Add Theme State
+    const [showThemeModal, setShowThemeModal] = useState(false)
+    const [quickThemeSearch, setQuickThemeSearch] = useState('')
+    const [quickThemeId, setQuickThemeId] = useState('')
+
 
     // Lists
     const [membros, setMembros] = useState<{ id: string, nome_completo: string }[]>([])
@@ -163,7 +170,6 @@ function DiscursosLocaisList({ discursos, onUpdate }: { discursos: DiscursoLocal
             .from('membros')
             .select('id, nome_completo')
             .or('is_anciao.eq.true,is_servo_ministerial.eq.true')
-            .order('nome_completo')
             .order('nome_completo')
         setMembros(m || [])
 
@@ -230,7 +236,7 @@ function DiscursosLocaisList({ discursos, onUpdate }: { discursos: DiscursoLocal
         setSaving(true)
         try {
             // Save Talk
-            const { error } = await supabase.from('agenda_discursos_locais').insert({
+            const payload = {
                 data,
                 orador_local_id: tipoOrador === 'LOCAL' ? oradorLocalId : null,
                 orador_visitante_id: tipoOrador === 'VISITANTE' ? oradorVisitanteId : null,
@@ -238,9 +244,17 @@ function DiscursosLocaisList({ discursos, onUpdate }: { discursos: DiscursoLocal
                 cantico: cantico ? parseInt(cantico) : null,
                 tem_midia: temMidia,
                 hospitalidade_id: tipoOrador === 'VISITANTE' && hospitalidadeId ? hospitalidadeId : null
-            })
+            }
 
-            if (error) throw error
+            if (editingId) {
+                const { error } = await supabase.from('agenda_discursos_locais').update(payload).eq('id', editingId)
+                if (error) throw error
+            } else {
+                const { error } = await supabase.from('agenda_discursos_locais').insert(payload)
+                if (error) throw error
+            }
+
+
 
             setShowModal(false)
             resetForm()
@@ -266,6 +280,51 @@ function DiscursosLocaisList({ discursos, onUpdate }: { discursos: DiscursoLocal
             console.error(error)
             alert('Erro ao excluir')
         }
+    }
+
+    const handleAssociateTheme = async () => {
+        if (!oradorLocalId || !quickThemeId) return
+
+        try {
+            const { error } = await supabase
+                .from('membros_temas')
+                .insert({ membro_id: oradorLocalId, tema_id: quickThemeId })
+
+            if (error) throw error
+
+            await fetchTemasPreparados(oradorLocalId)
+            setTemaId(quickThemeId)
+            setShowThemeModal(false)
+            setQuickThemeId('')
+            setQuickThemeSearch('')
+            alert('Tema associado com sucesso!')
+        } catch (error) {
+            console.error(error)
+            alert('Erro ao associar tema')
+        }
+    }
+
+    const handleEdit = (discurso: DiscursoLocal) => {
+        setEditingId(discurso.id)
+        setData(discurso.data)
+        setCantico(discurso.cantico?.toString() || '')
+        setTemMidia(discurso.tem_midia || false)
+
+        if (discurso.orador_local_id) {
+            setTipoOrador('LOCAL')
+            setOradorLocalId(discurso.orador_local_id)
+            setTemaId(discurso.tema_id)
+        } else {
+            setTipoOrador('VISITANTE')
+            setOradorVisitanteId(discurso.orador_visitante_id || '')
+            setTemaId(discurso.tema_id)
+            setTemaSearch(`#${discurso.tema.numero} - ${discurso.tema.titulo}`)
+            if (discurso.hospitalidade_id) {
+                setHospitalidadeId(discurso.hospitalidade_id)
+                setHospitalidadeSearch(discurso.hospitalidade?.nome_completo || '')
+            }
+        }
+        setShowModal(true)
     }
 
     const handleWhatsApp = async (discurso: DiscursoLocal) => {
@@ -331,6 +390,7 @@ ${midiaTexto}`
     }
 
     const resetForm = () => {
+        setEditingId(null)
         setData('')
         setOradorLocalId('')
         setOradorVisitanteId('')
@@ -377,7 +437,7 @@ ${midiaTexto}`
             {showModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-lg shadow-2xl overflow-y-auto max-h-[90vh]">
-                        <h3 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">Novo Discurso (Local)</h3>
+                        <h3 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">{editingId ? 'Editar Discurso (Local)' : 'Novo Discurso (Local)'}</h3>
 
                         <div className="space-y-4">
                             <div>
@@ -432,7 +492,7 @@ ${midiaTexto}`
                                 <div className="flex-1">
                                     <label className="block text-sm font-bold mb-1">Tema</label>
                                     {tipoOrador === 'LOCAL' ? (
-                                        <>
+                                        <div className="flex gap-2">
                                             <select
                                                 value={temaId}
                                                 onChange={e => setTemaId(e.target.value)}
@@ -444,8 +504,21 @@ ${midiaTexto}`
                                                     <option key={t.id} value={t.id}>#{t.numero} - {t.titulo}</option>
                                                 ))}
                                             </select>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.preventDefault()
+                                                    console.log('Opening Quick Theme Modal')
+                                                    setShowThemeModal(true)
+                                                }}
+                                                disabled={!oradorLocalId}
+                                                className="px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50"
+                                                title="Adicionar tema para este orador"
+                                                type="button"
+                                            >
+                                                +
+                                            </button>
                                             {!oradorLocalId && <p className="text-xs text-slate-500 mt-1">Selecione um orador primeiro.</p>}
-                                        </>
+                                        </div>
                                     ) : (
                                         <div className="relative">
                                             <input
@@ -565,9 +638,84 @@ ${midiaTexto}`
                                 {saving ? 'Salvando...' : 'Salvar'}
                             </button>
                         </div>
+
                     </div>
                 </div>
             )}
+
+            {/* Quick Add Theme Modal */}
+            {showThemeModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800">
+                        <h3 className="text-lg font-bold mb-4 text-slate-900 dark:text-white">Adicionar Tema ao Orador</h3>
+                        <p className="text-sm text-slate-500 mb-4">Selecione um tema para adicionar à lista de temas preparados deste orador.</p>
+
+                        <div className="mb-6 relative">
+                            <input
+                                type="text"
+                                value={quickThemeSearch}
+                                onChange={e => setQuickThemeSearch(e.target.value)}
+                                placeholder="Buscar tema (nº ou título)..."
+                                className="w-full p-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700"
+                                autoFocus
+                            />
+                            {quickThemeSearch && !quickThemeId && (
+                                <div className="absolute top-full left-0 right-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl max-h-48 overflow-y-auto z-10 mt-1">
+                                    {allTemas
+                                        .filter(t => t.numero.toString().includes(quickThemeSearch) || t.titulo.toLowerCase().includes(quickThemeSearch.toLowerCase()))
+                                        .map(t => (
+                                            <button
+                                                key={t.id}
+                                                onClick={() => {
+                                                    setQuickThemeId(t.id)
+                                                    setQuickThemeSearch(`#${t.numero} - ${t.titulo}`)
+                                                }}
+                                                className="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm"
+                                            >
+                                                <span className="font-bold text-primary">#{t.numero}</span> - {t.titulo}
+                                            </button>
+                                        ))}
+                                    {allTemas.filter(t => t.numero.toString().includes(quickThemeSearch) || t.titulo.toLowerCase().includes(quickThemeSearch.toLowerCase())).length === 0 && (
+                                        <div className="p-3 text-sm text-slate-500 text-center">Nenhum tema encontrado.</div>
+                                    )}
+                                </div>
+                            )}
+                            {quickThemeId && (
+                                <button
+                                    onClick={() => {
+                                        setQuickThemeId('')
+                                        setQuickThemeSearch('')
+                                    }}
+                                    className="absolute right-2 top-2 text-slate-400 hover:text-red-500"
+                                >
+                                    ✕
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowThemeModal(false)
+                                    setQuickThemeId('')
+                                    setQuickThemeSearch('')
+                                }}
+                                className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleAssociateTheme}
+                                disabled={!quickThemeId}
+                                className="px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-blue-700 disabled:opacity-50"
+                            >
+                                Adicionar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )
+            }
 
             <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
@@ -644,6 +792,7 @@ ${midiaTexto}`
                                             <path fillRule="evenodd" clipRule="evenodd" d="M18.403 5.633A8.919 8.919 0 0 0 12.053 3c-4.948 0-8.976 4.027-8.978 8.977 0 1.582.413 3.126 1.198 4.488L3 21.116l4.759-1.249a8.981 8.981 0 0 0 4.29 1.093h.004c4.947 0 8.975-4.027 8.977-8.977a8.926 8.926 0 0 0-2.627-6.35m-6.35 13.812h-.003a7.446 7.446 0 0 1-3.798-1.041l-.272-.162-2.824.741.753-2.753-.177-.282a7.448 7.448 0 0 1-1.141-3.971c.002-4.114 3.349-7.461 7.465-7.461a7.413 7.413 0 0 1 5.275 2.188 7.42 7.42 0 0 1 2.183 5.279c-.002 4.114-3.349 7.462-7.461 7.462m4.093-5.589c-.225-.113-1.327-.655-1.533-.73-.205-.075-.354-.112-.504.112-.15.224-.579.73-.71.88-.131.149-.262.168-.486.056-.224-.112-.954-.352-1.817-1.122-.673-.6-1.125-1.34-1.257-1.565-.132-.224-.014-.345.098-.458.101-.101.224-.263.336-.395.112-.131.149-.224.224-.374.075-.149.038-.281-.019-.393-.056-.113-.505-1.217-.692-1.666-.181-.435-.366-.377-.504-.383-.13-.006-.28-.006-.429-.006-.15 0-.393.056-.6.28-.206.225-.787.769-.787 1.876 0 1.106.805 2.174.917 2.323.112.15 1.582 2.415 3.832 3.387.536.231.954.369 1.279.473.537.171 1.026.146 1.413.089.431-.064 1.327-.542 1.514-1.066.187-.524.187-.973.131-1.066-.056-.094-.206-.15-.43-.263" />
                                         </svg>
                                     </button>
+                                    <button onClick={() => handleEdit(d)} className="text-blue-500 hover:text-blue-700 p-2 hover:bg-blue-50 rounded-lg transition-colors">✏️</button>
                                     <button onClick={() => handleDelete(d.id)} className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition-colors">🗑️</button>
                                 </td>
                             </tr>
@@ -656,13 +805,14 @@ ${midiaTexto}`
                     </tbody>
                 </table>
             </div>
-        </div>
+        </div >
     )
 }
 
 function DiscursosForaList({ discursos, onUpdate }: { discursos: DiscursoFora[], onUpdate: () => void }) {
     const [showModal, setShowModal] = useState(false)
     const [saving, setSaving] = useState(false)
+    const [editingId, setEditingId] = useState<string | null>(null)
 
     // Form Data
     const [data, setData] = useState('')
@@ -719,21 +869,29 @@ function DiscursosForaList({ discursos, onUpdate }: { discursos: DiscursoFora[],
 
         setSaving(true)
         try {
-            const { error } = await supabase.from('agenda_discursos_fora').insert({
+            const payload = {
                 data,
                 horario,
                 orador_id: oradorId,
                 tema_id: temaId,
                 destino_cidade: cidade,
                 destino_congregacao: congregacao
-            })
+            }
 
-            if (error) throw error
+            if (editingId) {
+                const { error } = await supabase.from('agenda_discursos_fora').update(payload).eq('id', editingId)
+                if (error) throw error
+            } else {
+                const { error } = await supabase.from('agenda_discursos_fora').insert(payload)
+                if (error) throw error
+            }
+
+
 
             setShowModal(false)
             resetForm()
             onUpdate()
-            alert('Agendamento criado!')
+            alert('Agendamento salvo!')
 
         } catch (error: any) {
             console.error(error)
@@ -756,7 +914,19 @@ function DiscursosForaList({ discursos, onUpdate }: { discursos: DiscursoFora[],
         }
     }
 
+    const handleEdit = (discurso: DiscursoFora) => {
+        setEditingId(discurso.id)
+        setData(discurso.data)
+        setHorario(discurso.horario)
+        setOradorId(discurso.orador_id)
+        setTemaId(discurso.tema_id)
+        setCidade(discurso.destino_cidade)
+        setCongregacao(discurso.destino_congregacao)
+        setShowModal(true)
+    }
+
     const resetForm = () => {
+        setEditingId(null)
         setData('')
         setHorario('')
         setOradorId('')
@@ -780,7 +950,7 @@ function DiscursosForaList({ discursos, onUpdate }: { discursos: DiscursoFora[],
             {showModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-lg shadow-2xl">
-                        <h3 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">Novo Discurso (Fora)</h3>
+                        <h3 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">{editingId ? 'Editar Discurso (Fora)' : 'Novo Discurso (Fora)'}</h3>
 
                         <div className="space-y-4">
                             <div className="flex gap-4">
@@ -865,7 +1035,8 @@ function DiscursosForaList({ discursos, onUpdate }: { discursos: DiscursoFora[],
                                     </div>
                                 </td>
                                 <td className="py-3 px-4 text-right">
-                                    <button onClick={() => handleDelete(d.id)} className="text-red-500 hover:text-red-700 p-2">🗑️</button>
+                                    <button onClick={() => handleEdit(d)} className="text-blue-500 hover:text-blue-700 p-2 hover:bg-blue-50 rounded-lg transition-colors">✏️</button>
+                                    <button onClick={() => handleDelete(d.id)} className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition-colors">🗑️</button>
                                 </td>
                             </tr>
                         ))}

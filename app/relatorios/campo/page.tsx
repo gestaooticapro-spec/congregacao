@@ -132,7 +132,7 @@ export default function RelatorioCampoPage() {
                                     {getDayOfWeek(item.data)}
                                 </td>
                                 <td className="border border-slate-300 p-3 text-lg font-medium">
-                                    {item.membros?.nome_civil || item.membros?.nome_completo || 'Sem Dirigente'}
+                                    {item.membros?.nome_completo || 'Sem Dirigente'}
                                 </td>
                             </tr>
                         ))}

@@ -192,7 +192,7 @@ export default function EscalasSuportePage() {
         <div className="max-w-7xl mx-auto p-8 pb-24 print:max-w-none print:p-0">
             <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6 print:hidden">
                 <div className="text-center md:text-left">
-                    <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Designações Mecânicas</h1>
+                    <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Designações de Apoio</h1>
                     <div className="h-1 w-20 bg-primary rounded-full mx-auto md:mx-0"></div>
                 </div>
 
@@ -245,7 +245,7 @@ export default function EscalasSuportePage() {
 
             {/* Print Header */}
             <div className="hidden print:block mb-4 text-center">
-                <h1 className="text-3xl font-bold text-slate-900 mb-1">Designação Mecânica</h1>
+                <h1 className="text-3xl font-bold text-slate-900 mb-1">Designação de Apoio</h1>
                 <p className="text-lg text-slate-600 font-medium">{months[selectedMonth]} de {selectedYear}</p>
                 <div className="h-0.5 w-16 bg-primary mx-auto mt-2 rounded-full"></div>
             </div>

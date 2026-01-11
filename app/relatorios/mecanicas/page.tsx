@@ -94,7 +94,7 @@ export default function RelatorioMecanicasPage() {
 
     const formatName = (membro: any) => {
         if (!membro) return '______________________'
-        return membro.nome_civil || membro.nome_completo
+        return membro.nome_completo || membro.nome_civil
     }
 
     const currentDate = dates[currentIndex]
@@ -107,7 +107,7 @@ export default function RelatorioMecanicasPage() {
             {/* Header / Controls (Hidden on Print) */}
             <div className="mb-8 print:hidden">
                 <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-2xl font-bold">Relatório de Designações Mecânicas</h1>
+                    <h1 className="text-2xl font-bold">Relatório de Designações de Apoio</h1>
                     <div className="flex gap-2">
                         <button
                             onClick={() => router.back()}
@@ -148,7 +148,7 @@ export default function RelatorioMecanicasPage() {
             {/* Report Content */}
             <div className="print-content">
                 <div className="text-center mb-8">
-                    <h2 className="text-2xl font-bold uppercase mb-2">Designações Mecânicas</h2>
+                    <h2 className="text-2xl font-bold uppercase mb-2">Designações de Apoio</h2>
                     <p className="text-lg font-medium capitalize text-slate-600">
                         {currentDate && format(parseISO(currentDate), "eeee, d 'de' MMMM 'de' yyyy", { locale: ptBR })}
                     </p>

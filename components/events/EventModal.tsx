@@ -15,10 +15,10 @@ export default function EventModal({ event, onClose }: EventModalProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-200">
                 <div className={`p-6 ${event.tipo === 'assembleia' ? 'bg-purple-100 dark:bg-purple-900/30' :
-                        event.tipo === 'congresso' ? 'bg-blue-100 dark:bg-blue-900/30' :
-                            event.tipo === 'limpeza' ? 'bg-green-100 dark:bg-green-900/30' :
-                                event.tipo === 'visita' ? 'bg-teal-100 dark:bg-teal-900/30' :
-                                    'bg-orange-100 dark:bg-orange-900/30'
+                    event.tipo === 'congresso' ? 'bg-blue-100 dark:bg-blue-900/30' :
+                        event.tipo === 'limpeza' ? 'bg-green-100 dark:bg-green-900/30' :
+                            event.tipo === 'visita' ? 'bg-teal-100 dark:bg-teal-900/30' :
+                                'bg-orange-100 dark:bg-orange-900/30'
                     }`}>
                     <div className="flex justify-between items-start">
                         <span className="text-4xl">
@@ -52,6 +52,15 @@ export default function EventModal({ event, onClose }: EventModalProps) {
                             )}
                         </span>
                     </div>
+
+                    {event.hora_inicio && (
+                        <div className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
+                            <span className="text-xl">🕐</span>
+                            <span className="font-medium">
+                                às {event.hora_inicio.substring(0, 5)}
+                            </span>
+                        </div>
+                    )}
 
                     {event.descricao && (
                         <div className="pt-4 border-t border-slate-100 dark:border-slate-700">

@@ -62,6 +62,7 @@ export default function Sidebar() {
         { type: 'link', href: '/programacao', label: 'Reunião de Quinta', icon: '📖', restricted: true },
         { type: 'link', href: '/admin/discursos', label: 'Discursos', icon: '🎤', restricted: true },
         { type: 'link', href: '/admin/eventos', label: 'Gerenciar Eventos', icon: '🗓️', restricted: true },
+        { type: 'link', href: '/admin/pauta-anciaos', label: 'Pauta de Reunião', icon: '📋', restricted: true },
         { type: 'separator', restricted: true },
         { type: 'link', href: '/admin/escalas', label: 'Outras Designações', icon: '📋', restricted: true },
         { type: 'link', href: '/admin/campo', label: 'Campo', icon: '👜', restricted: true },

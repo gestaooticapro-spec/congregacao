@@ -8,11 +8,13 @@ import { ptBR } from 'date-fns/locale'
 export default function EventosAnciaos() {
     const [loading, setLoading] = useState(true)
     const [events, setEvents] = useState<any[]>([])
+    const [editingId, setEditingId] = useState<string | null>(null)
     const [formData, setFormData] = useState({
         titulo: '',
         tipo: 'reuniao',
         data_inicio: '',
         data_fim: '',
+        hora_inicio: '',
         descricao: ''
     })
     const [message, setMessage] = useState('')
@@ -37,35 +39,69 @@ export default function EventosAnciaos() {
         }
     }
 
+    const resetForm = () => {
+        setFormData({
+            titulo: '',
+            tipo: 'reuniao',
+            data_inicio: '',
+            data_fim: '',
+            hora_inicio: '',
+            descricao: ''
+        })
+        setEditingId(null)
+    }
+
+    const handleEdit = (event: any) => {
+        setEditingId(event.id)
+        setFormData({
+            titulo: event.titulo || '',
+            tipo: event.tipo || 'reuniao',
+            data_inicio: event.data_inicio || '',
+            data_fim: event.data_fim || '',
+            hora_inicio: event.hora_inicio ? event.hora_inicio.substring(0, 5) : '',
+            descricao: event.descricao || ''
+        })
+        // Scroll to form
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
         setMessage('')
 
         const finalDataFim = formData.data_fim || formData.data_inicio
+        const dataToSave = {
+            ...formData,
+            data_fim: finalDataFim,
+            hora_inicio: formData.hora_inicio || null
+        }
 
         try {
-            const { error } = await supabase
-                .from('agenda_anciaos')
-                .insert([{
-                    ...formData,
-                    data_fim: finalDataFim
-                }] as any)
+            if (editingId) {
+                // Update existing event
+                const { error } = await supabase
+                    .from('agenda_anciaos')
+                    .update(dataToSave)
+                    .eq('id', editingId)
 
-            if (error) throw error
+                if (error) throw error
+                setMessage('Compromisso atualizado com sucesso!')
+            } else {
+                // Insert new event
+                const { error } = await supabase
+                    .from('agenda_anciaos')
+                    .insert([dataToSave] as any)
 
-            setMessage('Compromisso criado com sucesso!')
-            setFormData({
-                titulo: '',
-                tipo: 'reuniao',
-                data_inicio: '',
-                data_fim: '',
-                descricao: ''
-            })
+                if (error) throw error
+                setMessage('Compromisso criado com sucesso!')
+            }
+
+            resetForm()
             fetchEvents()
         } catch (error: any) {
-            console.error('Error creating event:', error)
-            setMessage(`Erro ao criar compromisso: ${error.message || 'Erro desconhecido'}`)
+            console.error('Error saving event:', error)
+            setMessage(`Erro ao salvar compromisso: ${error.message || 'Erro desconhecido'}`)
         } finally {
             setLoading(false)
         }
@@ -81,6 +117,9 @@ export default function EventosAnciaos() {
                 .eq('id', id)
 
             if (error) throw error
+            if (editingId === id) {
+                resetForm()
+            }
             fetchEvents()
         } catch (error) {
             console.error('Error deleting event:', error)
@@ -92,7 +131,20 @@ export default function EventosAnciaos() {
         <div>
             {/* Form */}
             <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm mb-8">
-                <h2 className="text-xl font-semibold mb-4 text-slate-900 dark:text-white">Novo Compromisso (Anciãos)</h2>
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+                        {editingId ? 'Editar Compromisso (Anciãos)' : 'Novo Compromisso (Anciãos)'}
+                    </h2>
+                    {editingId && (
+                        <button
+                            type="button"
+                            onClick={resetForm}
+                            className="text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                        >
+                            Cancelar Edição
+                        </button>
+                    )}
+                </div>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="md:col-span-2">
@@ -117,6 +169,15 @@ export default function EventosAnciaos() {
                                 <option value="anuncio">Anúncio</option>
                                 <option value="outro">Outro</option>
                             </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Hora Início (Opcional)</label>
+                            <input
+                                type="time"
+                                value={formData.hora_inicio}
+                                onChange={e => setFormData({ ...formData, hora_inicio: e.target.value })}
+                                className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-transparent dark:text-white"
+                            />
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                             <div>
@@ -157,7 +218,7 @@ export default function EventosAnciaos() {
                             disabled={loading}
                             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
                         >
-                            {loading ? 'Salvando...' : 'Salvar Compromisso'}
+                            {loading ? 'Salvando...' : (editingId ? 'Atualizar Compromisso' : 'Salvar Compromisso')}
                         </button>
                         {message && (
                             <span className={`text-sm ${message.includes('Erro') ? 'text-red-500' : 'text-green-500'}`}>
@@ -194,9 +255,16 @@ export default function EventosAnciaos() {
                                 events.map(event => (
                                     <tr key={event.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                                         <td className="p-4 whitespace-nowrap">
-                                            {format(new Date(event.data_inicio + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })}
-                                            {event.data_fim && event.data_fim !== event.data_inicio && (
-                                                <> - {format(new Date(event.data_fim + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })}</>
+                                            <div>
+                                                {format(new Date(event.data_inicio + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })}
+                                                {event.data_fim && event.data_fim !== event.data_inicio && (
+                                                    <> - {format(new Date(event.data_fim + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })}</>
+                                                )}
+                                            </div>
+                                            {event.hora_inicio && (
+                                                <div className="text-xs text-slate-500 dark:text-slate-400">
+                                                    às {event.hora_inicio.substring(0, 5)}
+                                                </div>
                                             )}
                                         </td>
                                         <td className="p-4 font-medium text-slate-900 dark:text-white">
@@ -213,12 +281,24 @@ export default function EventosAnciaos() {
                                             </span>
                                         </td>
                                         <td className="p-4 text-right">
-                                            <button
-                                                onClick={() => handleDelete(event.id)}
-                                                className="text-red-600 hover:text-red-800 dark:hover:text-red-400 transition-colors"
-                                            >
-                                                Excluir
-                                            </button>
+                                            <div className="flex items-center justify-end gap-3">
+                                                <button
+                                                    onClick={() => handleEdit(event)}
+                                                    className="text-blue-600 hover:text-blue-800 dark:hover:text-blue-400 transition-colors"
+                                                    title="Editar"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                                    </svg>
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(event.id)}
+                                                    className="text-red-600 hover:text-red-800 dark:hover:text-red-400 transition-colors"
+                                                    title="Excluir"
+                                                >
+                                                    Excluir
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))

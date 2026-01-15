@@ -60,7 +60,7 @@ export default function AgendaAnciaosPage() {
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white text-center md:text-left">
-                        Agenda de Anciãos
+                        Agenda e Lembretes
                     </h1>
                     <p className="text-slate-500 dark:text-slate-400 text-center md:text-left mt-1">
                         Compromissos e lembretes do corpo de anciãos.

@@ -82,7 +82,7 @@ export default function EventosCongregacao() {
                 // Update existing event
                 const { error } = await supabase
                     .from('eventos')
-                    .update(dataToSave)
+                    .update(dataToSave as any)
                     .eq('id', editingId)
 
                 if (error) throw error

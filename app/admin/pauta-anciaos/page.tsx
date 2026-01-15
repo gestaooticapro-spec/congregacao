@@ -5,6 +5,9 @@ import { supabase } from '@/lib/supabaseClient'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
+// Typed client for new table not yet in generated types
+const db = supabase as any
+
 interface PautaItem {
     id: string
     assunto: string
@@ -63,7 +66,7 @@ export default function PautaAnciaosPage() {
 
     const fetchItems = async () => {
         try {
-            let query = supabase
+            let query = db
                 .from('pauta_anciaos')
                 .select('*')
                 .order('created_at', { ascending: false })
@@ -109,7 +112,7 @@ export default function PautaAnciaosPage() {
 
         try {
             if (editingId) {
-                const { error } = await supabase
+                const { error } = await db
                     .from('pauta_anciaos')
                     .update(formData)
                     .eq('id', editingId)
@@ -117,7 +120,7 @@ export default function PautaAnciaosPage() {
                 if (error) throw error
                 setMessage('Item atualizado com sucesso!')
             } else {
-                const { error } = await supabase
+                const { error } = await db
                     .from('pauta_anciaos')
                     .insert([formData])
 
@@ -137,7 +140,7 @@ export default function PautaAnciaosPage() {
 
     const toggleNaPauta = async (id: string, currentValue: boolean) => {
         try {
-            const { error } = await supabase
+            const { error } = await db
                 .from('pauta_anciaos')
                 .update({ na_pauta: !currentValue })
                 .eq('id', id)
@@ -151,7 +154,7 @@ export default function PautaAnciaosPage() {
 
     const toggleArchived = async (id: string, currentValue: boolean) => {
         try {
-            const { error } = await supabase
+            const { error } = await db
                 .from('pauta_anciaos')
                 .update({ arquivado: !currentValue })
                 .eq('id', id)
@@ -167,7 +170,7 @@ export default function PautaAnciaosPage() {
         if (!confirm('Tem certeza que deseja excluir este item?')) return
 
         try {
-            const { error } = await supabase
+            const { error } = await db
                 .from('pauta_anciaos')
                 .delete()
                 .eq('id', id)

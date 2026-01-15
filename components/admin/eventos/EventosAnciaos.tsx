@@ -82,7 +82,7 @@ export default function EventosAnciaos() {
                 // Update existing event
                 const { error } = await supabase
                     .from('agenda_anciaos')
-                    .update(dataToSave)
+                    .update(dataToSave as any)
                     .eq('id', editingId)
 
                 if (error) throw error

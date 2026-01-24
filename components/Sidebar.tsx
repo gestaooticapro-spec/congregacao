@@ -6,19 +6,24 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Session } from '@supabase/supabase-js';
 import { useSidebar } from '@/contexts/SidebarContext';
+import { useUserRoles } from '@/hooks/useUserRoles';
+import { PerfilAcesso } from '@/types/database.types';
 
 export default function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
     const { isCollapsed, toggleCollapsed } = useSidebar();
+    const { hasRole, loading: rolesLoading } = useUserRoles();
     const [session, setSession] = useState<Session | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isSharedAdmin, setIsSharedAdmin] = useState(false);
 
     useEffect(() => {
         // Check active session
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
+            checkIfSharedAdmin(session?.user?.id);
             setLoading(false);
         });
 
@@ -27,6 +32,7 @@ export default function Sidebar() {
             data: { subscription },
         } = supabase.auth.onAuthStateChange((_event, session) => {
             setSession(session);
+            checkIfSharedAdmin(session?.user?.id);
             setLoading(false);
             if (_event === 'SIGNED_OUT') {
                 router.push('/');
@@ -42,13 +48,33 @@ export default function Sidebar() {
         setIsOpen(false);
     };
 
+    const checkIfSharedAdmin = async (userId: string | undefined) => {
+        if (!userId) {
+            setIsSharedAdmin(false);
+            return;
+        }
+        // Check if user is linked to a member
+        const { data: membro } = await supabase
+            .from('membros')
+            .select('id, nome_completo')
+            .eq('user_id', userId)
+            .single();
+
+        // If NO member found, OR member name contains "Admin", it's the shared admin
+        if (!membro) {
+            setIsSharedAdmin(true);
+        } else {
+            setIsSharedAdmin(membro.nome_completo.toLowerCase().includes('admin'));
+        }
+    };
+
     const isActive = (path: string) => {
         return pathname === path || pathname.startsWith(`${path}/`);
     };
 
     type MenuItem =
-        | { type: 'link'; href: string; label: string; icon: string; restricted?: boolean }
-        | { type: 'separator'; restricted?: boolean };
+        | { type: 'link'; href: string; label: string; icon: string; restricted?: boolean; allowedRoles?: PerfilAcesso[] }
+        | { type: 'separator'; restricted?: boolean; allowedRoles?: PerfilAcesso[] };
 
     const menuItems: MenuItem[] = [
         { type: 'link', href: '/', label: 'Home', icon: '🏠' },
@@ -58,31 +84,36 @@ export default function Sidebar() {
         { type: 'link', href: '/saidas', label: 'Horário de Campo', icon: '👜' },
         { type: 'separator' },
         // Restricted Items
-        { type: 'link', href: '/admin/agenda', label: 'Agenda e Lembretes', icon: '📅', restricted: true },
-        { type: 'link', href: '/programacao', label: 'Reunião de Quinta', icon: '📖', restricted: true },
-        { type: 'link', href: '/admin/discursos', label: 'Discursos', icon: '🎤', restricted: true },
-        { type: 'link', href: '/admin/eventos', label: 'Gerenciar Eventos', icon: '🗓️', restricted: true },
-        { type: 'link', href: '/admin/pauta-anciaos', label: 'Pauta de Reunião', icon: '📋', restricted: true },
-        { type: 'separator', restricted: true },
-        { type: 'link', href: '/admin/escalas', label: 'Outras Designações', icon: '📋', restricted: true },
-        { type: 'link', href: '/admin/campo', label: 'Campo', icon: '👜', restricted: true },
-        { type: 'link', href: '/admin/limpeza', label: 'Limpeza', icon: '🧹', restricted: true },
-        { type: 'separator', restricted: true },
-        { type: 'link', href: '/admin/cadastros', label: 'Cadastros', icon: '📚', restricted: true },
-        { type: 'link', href: '/admin/grupos', label: 'Grupos', icon: '🏘️', restricted: true },
-        { type: 'link', href: '/admin/membros', label: 'Membros', icon: '👥', restricted: true },
-        { type: 'link', href: '/admin/territorios', label: 'Gerenciar Territórios', icon: '⚙️', restricted: true },
-        { type: 'separator', restricted: true },
-        { type: 'link', href: '/admin/relatorios', label: 'Relatórios', icon: '📊', restricted: true },
-        { type: 'link', href: '/admin/permissoes', label: 'Permissões', icon: '🔒', restricted: true },
+        { type: 'link', href: '/admin/meu-login', label: isSharedAdmin ? 'Crie Sua Senha' : 'Altere Sua Senha', icon: isSharedAdmin ? '🔑' : '🛡️', restricted: true },
+        { type: 'link', href: '/admin/agenda', label: 'Agenda e Lembretes', icon: '📅', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'RESP_QUINTA', 'RESP_SABADO'] },
+        { type: 'link', href: '/programacao', label: 'Reunião de Quinta', icon: '📖', restricted: true, allowedRoles: ['ADMIN', 'RESP_QUINTA'] },
+        { type: 'link', href: '/admin/discursos', label: 'Discursos', icon: '🎤', restricted: true, allowedRoles: ['ADMIN', 'RESP_SABADO'] },
+        { type: 'link', href: '/admin/eventos', label: 'Gerenciar Eventos', icon: '🗓️', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO'] },
+        { type: 'link', href: '/admin/pauta-anciaos', label: 'Pauta de Reunião', icon: '📋', restricted: true, allowedRoles: ['ADMIN'] },
+        { type: 'separator', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RQA'] },
+        { type: 'link', href: '/admin/escalas', label: 'Outras Designações', icon: '📋', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO'] },
+        { type: 'link', href: '/admin/campo', label: 'Campo', icon: '👜', restricted: true, allowedRoles: ['ADMIN', 'SUPERINTENDENTE_SERVICO'] },
+        { type: 'link', href: '/admin/limpeza', label: 'Limpeza', icon: '🧹', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO'] },
+        { type: 'separator', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'RQA'] },
+        { type: 'link', href: '/admin/cadastros', label: 'Cadastros', icon: '📚', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO'] },
+        { type: 'link', href: '/admin/grupos', label: 'Grupos', icon: '🏘️', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO'] },
+        { type: 'link', href: '/admin/membros', label: 'Membros', icon: '👥', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO'] },
+        { type: 'link', href: '/admin/territorios', label: 'Gerenciar Territórios', icon: '⚙️', restricted: true, allowedRoles: ['ADMIN', 'RQA'] },
+        { type: 'separator', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO'] },
+        { type: 'link', href: '/admin/relatorios', label: 'Relatórios', icon: '📊', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO'] },
+        { type: 'link', href: '/admin/permissoes', label: 'Permissões', icon: '🔒', restricted: true, allowedRoles: ['ADMIN'] },
     ];
 
     const toggleMenu = () => setIsOpen(!isOpen);
 
     // Filter items based on auth state
     const visibleItems = menuItems.filter(item => {
-        if (loading) return false; // Hide everything while loading (or show skeleton)
-        if (item.restricted && !session) return false;
+        if (loading || rolesLoading) return false; // Hide everything while loading (or show skeleton)
+        if (item.restricted) {
+            if (!session) return false;
+            // If roles are specified, check them
+            if (item.allowedRoles && !hasRole(item.allowedRoles)) return false;
+        }
         return true;
     });
 

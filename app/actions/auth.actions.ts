@@ -1,11 +1,11 @@
 'use server'
 
-import { createServerClient } from '@/lib/supabaseServer'
+import { createAdminClient } from '@/lib/supabaseServer'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
 export async function createUserForMember(membroId: string, email: string, password: string) {
-    const supabaseAdmin = createServerClient()
+    const supabaseAdmin = createAdminClient()
 
     try {
         // 1. Create user in Supabase Auth

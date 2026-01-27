@@ -12,6 +12,7 @@ const PERFIS: PerfilAcesso[] = [
     'RESP_QUINTA',
     'RESP_SABADO',
     'RQA',
+    'RT',
     'IRMAO'
 ]
 
@@ -82,7 +83,7 @@ export default function ManagePermissionsPage() {
     return (
         <div className="max-w-4xl mx-auto p-8">
             <div className="text-center mb-12">
-                <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Gerenciar Permissões</h1>
+                <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Gerenciar Permissões (v1.1)</h1>
                 <div className="h-1 w-20 bg-primary mx-auto rounded-full"></div>
             </div>
 
@@ -123,6 +124,11 @@ export default function ManagePermissionsPage() {
                             <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3 group-hover:text-primary transition-colors">
                                 {member.nome_completo}
                             </h3>
+                            {member.nome_civil && (
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
+                                    {member.nome_civil}
+                                </p>
+                            )}
                             <div className="flex flex-wrap gap-2">
                                 {member.membro_perfis?.map((mp) => (
                                     <span

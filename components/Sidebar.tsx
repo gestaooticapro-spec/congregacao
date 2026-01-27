@@ -74,33 +74,35 @@ export default function Sidebar() {
 
     type MenuItem =
         | { type: 'link'; href: string; label: string; icon: string; restricted?: boolean; allowedRoles?: PerfilAcesso[] }
-        | { type: 'separator'; restricted?: boolean; allowedRoles?: PerfilAcesso[] };
+        | { type: 'separator'; label?: string; restricted?: boolean; allowedRoles?: PerfilAcesso[] };
 
     const menuItems: MenuItem[] = [
+        // Public Items
         { type: 'link', href: '/', label: 'Home', icon: '🏠' },
         { type: 'link', href: '/quadro-de-anuncios', label: 'Quadro de Anúncios', icon: '📢' },
         { type: 'link', href: '/calendario', label: 'Próximos Eventos', icon: '📅' },
         { type: 'link', href: '/territorios', label: 'Territórios', icon: '🗺️' },
         { type: 'link', href: '/saidas', label: 'Horário de Campo', icon: '👜' },
-        { type: 'separator' },
-        // Restricted Items
+
+        // Common Restricted Items
+        { type: 'separator', label: 'Área Comum', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT', 'IRMAO'] },
         { type: 'link', href: '/admin/meu-login', label: isSharedAdmin ? 'Crie Sua Senha' : 'Altere Sua Senha', icon: isSharedAdmin ? '🔑' : '🛡️', restricted: true },
-        { type: 'link', href: '/admin/agenda', label: 'Agenda e Lembretes', icon: '📅', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'RESP_QUINTA', 'RESP_SABADO'] },
+        { type: 'link', href: '/admin/agenda', label: 'Agenda e Lembretes', icon: '📅', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT', 'IRMAO'] },
+        { type: 'link', href: '/admin/eventos', label: 'Gerenciar Eventos', icon: '🗓️', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT', 'IRMAO'] },
+        { type: 'link', href: '/admin/pauta-anciaos', label: 'Pauta de Reunião', icon: '📋', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT', 'IRMAO'] },
+        { type: 'link', href: '/admin/relatorios', label: 'Relatórios', icon: '📊', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT', 'IRMAO'] },
+
+        // Role Specific Items
+        { type: 'separator', label: 'Administração', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT'] },
         { type: 'link', href: '/programacao', label: 'Reunião de Quinta', icon: '📖', restricted: true, allowedRoles: ['ADMIN', 'RESP_QUINTA'] },
         { type: 'link', href: '/admin/discursos', label: 'Discursos', icon: '🎤', restricted: true, allowedRoles: ['ADMIN', 'RESP_SABADO'] },
-        { type: 'link', href: '/admin/eventos', label: 'Gerenciar Eventos', icon: '🗓️', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO'] },
-        { type: 'link', href: '/admin/pauta-anciaos', label: 'Pauta de Reunião', icon: '📋', restricted: true, allowedRoles: ['ADMIN'] },
-        { type: 'separator', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RQA'] },
-        { type: 'link', href: '/admin/escalas', label: 'Outras Designações', icon: '📋', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO'] },
-        { type: 'link', href: '/admin/campo', label: 'Campo', icon: '👜', restricted: true, allowedRoles: ['ADMIN', 'SUPERINTENDENTE_SERVICO'] },
-        { type: 'link', href: '/admin/limpeza', label: 'Limpeza', icon: '🧹', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO'] },
-        { type: 'separator', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'RQA'] },
-        { type: 'link', href: '/admin/cadastros', label: 'Cadastros', icon: '📚', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO'] },
-        { type: 'link', href: '/admin/grupos', label: 'Grupos', icon: '🏘️', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO'] },
-        { type: 'link', href: '/admin/membros', label: 'Membros', icon: '👥', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO'] },
-        { type: 'link', href: '/admin/territorios', label: 'Gerenciar Territórios', icon: '⚙️', restricted: true, allowedRoles: ['ADMIN', 'RQA'] },
-        { type: 'separator', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO'] },
-        { type: 'link', href: '/admin/relatorios', label: 'Relatórios', icon: '📊', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO'] },
+        { type: 'link', href: '/admin/escalas', label: 'Outras Designações', icon: '📋', restricted: true, allowedRoles: ['ADMIN', 'RQA'] },
+        { type: 'link', href: '/admin/campo', label: 'Campo', icon: '👜', restricted: true, allowedRoles: ['ADMIN', 'RQA'] },
+        { type: 'link', href: '/admin/limpeza', label: 'Limpeza', icon: '🧹', restricted: true, allowedRoles: ['ADMIN', 'SUPERINTENDENTE_SERVICO'] },
+        { type: 'link', href: '/admin/cadastros', label: 'Cadastros', icon: '📚', restricted: true, allowedRoles: ['ADMIN', 'RESP_SABADO'] },
+        { type: 'link', href: '/admin/grupos', label: 'Grupos', icon: '🏘️', restricted: true, allowedRoles: ['ADMIN', 'SUPERINTENDENTE_SERVICO'] },
+        { type: 'link', href: '/admin/membros', label: 'Membros', icon: '👥', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA'] },
+        { type: 'link', href: '/admin/territorios', label: 'Gerenciar Territórios', icon: '⚙️', restricted: true, allowedRoles: ['ADMIN', 'RT'] },
         { type: 'link', href: '/admin/permissoes', label: 'Permissões', icon: '🔒', restricted: true, allowedRoles: ['ADMIN'] },
     ];
 
@@ -179,7 +181,16 @@ export default function Sidebar() {
                 <nav className={`space-y-2 overflow-y-auto flex-1 thin-scrollbar ${isCollapsed ? 'md:p-2 p-4' : 'p-4'}`}>
                     {!loading && visibleItems.map((item, index) => {
                         if (item.type === 'separator') {
-                            return <div key={`sep-${index}`} className="my-2 border-t border-slate-100 dark:border-slate-800" />
+                            return (
+                                <div key={`sep-${index}`} className="my-2">
+                                    <div className="border-t border-slate-100 dark:border-slate-800" />
+                                    {item.label && !isCollapsed && (
+                                        <span className="block px-4 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                            {item.label}
+                                        </span>
+                                    )}
+                                </div>
+                            );
                         }
 
                         return (

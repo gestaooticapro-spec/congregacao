@@ -13,6 +13,7 @@ export type PerfilAcesso =
   | 'RESP_QUINTA'
   | 'RESP_SABADO'
   | 'RQA'
+  | 'RT'
   | 'IRMAO'
 
 export type TipoReuniao = 'QUINTA' | 'SABADO'

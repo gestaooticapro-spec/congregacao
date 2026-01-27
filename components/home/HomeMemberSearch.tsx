@@ -3,10 +3,8 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Database } from '@/types/database.types'
-import { format, isAfter, parseISO, startOfDay, startOfWeek, endOfWeek, isSameMonth } from 'date-fns'
+import { format, parseISO, startOfWeek, endOfWeek, isSameMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import EventList from '@/components/events/EventList'
-import EventModal from '@/components/events/EventModal'
 
 type Membro = Pick<Database['public']['Tables']['membros']['Row'], 'id' | 'nome_completo' | 'nome_civil' | 'grupo_id'>
 
@@ -24,30 +22,10 @@ export default function HomeMemberSearch() {
     const [loading, setLoading] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
     const [showResults, setShowResults] = useState(false)
-    const [events, setEvents] = useState<any[]>([])
-    const [selectedEvent, setSelectedEvent] = useState<any>(null)
 
     useEffect(() => {
         fetchMembros()
-        fetchEvents()
     }, [])
-
-    const fetchEvents = async () => {
-        try {
-            const today = format(new Date(), 'yyyy-MM-dd')
-            const { data, error } = await supabase
-                .from('eventos')
-                .select('*')
-                .gte('data_fim', today)
-                .order('data_inicio', { ascending: true })
-                .limit(5) // Limit to 5 next events for home page
-
-            if (error) throw error
-            setEvents(data || [])
-        } catch (error) {
-            console.error('Error fetching events:', error)
-        }
-    }
 
     const fetchMembros = async () => {
         const { data } = await supabase
@@ -416,27 +394,6 @@ export default function HomeMemberSearch() {
                         </div>
                     )}
                 </div>
-            )}
-
-            {/* Próximos Eventos (Home) */}
-            {!showResults && searchTerm === '' && events.length > 0 && (
-                <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-                        <span>📅</span> Próximos Eventos
-                    </h2>
-                    <EventList
-                        events={events}
-                        onEventClick={setSelectedEvent}
-                    />
-                </div>
-            )}
-
-            {/* Event Modal */}
-            {selectedEvent && (
-                <EventModal
-                    event={selectedEvent}
-                    onClose={() => setSelectedEvent(null)}
-                />
             )}
         </div>
     )

@@ -188,6 +188,7 @@ export interface Database {
           is_ungido: boolean
           is_discurso_fora: boolean
           ativo: boolean
+          genero: 'M' | 'F' | null
           created_at: string
           updated_at: string
         }
@@ -229,6 +230,7 @@ export interface Database {
           is_ungido?: boolean
           is_discurso_fora?: boolean
           ativo?: boolean
+          genero?: 'M' | 'F' | null
           created_at?: string
           updated_at?: string
         }
@@ -270,6 +272,7 @@ export interface Database {
           is_ungido?: boolean
           is_discurso_fora?: boolean
           ativo?: boolean
+          genero?: 'M' | 'F' | null
           created_at?: string
           updated_at?: string
         }

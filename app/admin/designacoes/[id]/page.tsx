@@ -7,6 +7,8 @@ import { Database } from '@/types/database.types'
 import { checkConflicts } from '@/lib/conflictCheck'
 import { format, parseISO, startOfWeek, endOfWeek } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { generateAutoAssignments } from '@/app/actions/autoAssign'
+import HistoryModal from '@/components/HistoryModal'
 
 type Programacao = Database['public']['Tables']['programacao_semanal']['Row']
 type Membro = Database['public']['Tables']['membros']['Row']
@@ -38,6 +40,21 @@ export default function EditarDesignacoesPage() {
     const [lastAssignments, setLastAssignments] = useState<Record<string, string>>({})
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
+    const [generating, setGenerating] = useState(false)
+
+    // History Modal State
+    // History Modal State
+    const [historyModalOpen, setHistoryModalOpen] = useState(false)
+    const [historyMemberId, setHistoryMemberId] = useState<string | null>(null)
+    const [historyMemberName, setHistoryMemberName] = useState('')
+    const [historyRoleName, setHistoryRoleName] = useState('')
+
+    const openHistory = (membroId: string, membroNome: string, roleName: string) => {
+        setHistoryMemberId(membroId)
+        setHistoryMemberName(membroNome)
+        setHistoryRoleName(roleName)
+        setHistoryModalOpen(true)
+    }
 
     useEffect(() => {
         if (id) {
@@ -285,6 +302,44 @@ export default function EditarDesignacoesPage() {
         }
     }
 
+    const handleAutoSuggest = async () => {
+        // if (!confirm('Isso irá preencher automaticamente os campos vazios com sugestões baseadas no histórico. Deseja continuar?')) return
+
+        setGenerating(true)
+        try {
+            const result = await generateAutoAssignments(id)
+            if (result.success && result.data) {
+                const suggestions = result.data
+
+                if (!presidenteId && suggestions.presidente_id) setPresidenteId(suggestions.presidente_id)
+                if (!oracaoInicialId && suggestions.oracao_inicial_id) setOracaoInicialId(suggestions.oracao_inicial_id)
+                if (!oracaoFinalId && suggestions.oracao_final_id) setOracaoFinalId(suggestions.oracao_final_id)
+
+                const newPartes = partes.map((p, i) => {
+                    const suggestedPart = suggestions.partes[i]
+                    if (suggestedPart) {
+                        return {
+                            ...p,
+                            membro_id: p.membro_id || suggestedPart.membro_id,
+                            ajudante_id: p.ajudante_id || suggestedPart.ajudante_id
+                        }
+                    }
+                    return p
+                })
+                setPartes(newPartes)
+
+                alert('Sugestões aplicadas! Revise e salve.')
+            } else {
+                alert('Erro ao gerar sugestões: ' + result.error)
+            }
+        } catch (error: any) {
+            console.error('Full error object:', error)
+            alert('Erro ao gerar sugestões: ' + (error.message || JSON.stringify(error)))
+        } finally {
+            setGenerating(false)
+        }
+    }
+
     const getWeekRange = (dateString: string) => {
         if (!dateString) return ''
         const date = parseISO(dateString)
@@ -338,17 +393,26 @@ export default function EditarDesignacoesPage() {
                                 </select>
                                 <div className="flex items-center mt-1">
                                     {parte.membro_id && (
-                                        <a
-                                            href={getWhatsAppUrl(parte.membro_id, parte.nome, parte.originalIndex.toString(), parte.ajudante_id)}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-green-500 hover:text-green-600 transition-colors mr-2"
-                                            title="Enviar WhatsApp"
-                                        >
-                                            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-                                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
-                                            </svg>
-                                        </a>
+                                        <>
+                                            <a
+                                                href={getWhatsAppUrl(parte.membro_id, parte.nome, parte.originalIndex.toString(), parte.ajudante_id)}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-green-500 hover:text-green-600 transition-colors mr-2"
+                                                title="Enviar WhatsApp"
+                                            >
+                                                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                                                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+                                                </svg>
+                                            </a>
+                                            <button
+                                                onClick={() => openHistory(parte.membro_id!, membros.find(m => m.id === parte.membro_id)?.nome_completo || '', parte.nome.split('-')[0].trim())}
+                                                className="text-blue-500 hover:text-blue-600 transition-colors mr-2"
+                                                title="Ver Histórico"
+                                            >
+                                                🕒
+                                            </button>
+                                        </>
                                     )}
                                     {parte.membro_id && getStatusIcon((parte as any).status)}
                                 </div>
@@ -395,10 +459,17 @@ export default function EditarDesignacoesPage() {
                 </div>
                 <div className="flex gap-2">
                     <button
+                        onClick={handleAutoSuggest}
+                        disabled={generating}
+                        className="px-4 py-2 border border-purple-300 dark:border-purple-600 rounded-md text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/30 flex items-center gap-2"
+                    >
+                        {generating ? 'Gerando...' : '✨ Sugestão Automática'}
+                    </button>
+                    <button
                         onClick={() => window.print()}
                         className="px-4 py-2 border border-blue-300 dark:border-blue-600 rounded-md text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 flex items-center gap-2"
                     >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                         Imprimir
                     </button>
                     <button
@@ -557,17 +628,26 @@ export default function EditarDesignacoesPage() {
                                     ))}
                                 </select>
                                 {presidenteId && (
-                                    <a
-                                        href={getWhatsAppUrl(presidenteId, 'Presidente', 'presidente')}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="ml-2 text-green-500 hover:text-green-600 transition-colors"
-                                        title="Enviar WhatsApp"
-                                    >
-                                        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-                                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
-                                        </svg>
-                                    </a>
+                                    <>
+                                        <a
+                                            href={getWhatsAppUrl(presidenteId, 'Presidente', 'presidente')}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="ml-2 text-green-500 hover:text-green-600 transition-colors"
+                                            title="Enviar WhatsApp"
+                                        >
+                                            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+                                            </svg>
+                                        </a>
+                                        <button
+                                            onClick={() => openHistory(presidenteId, membros.find(m => m.id === presidenteId)?.nome_completo || '', 'Presidente')}
+                                            className="ml-2 text-blue-500 hover:text-blue-600 transition-colors"
+                                            title="Ver Histórico"
+                                        >
+                                            🕒
+                                        </button>
+                                    </>
                                 )}
                                 {presidenteId && getStatusIcon(programacao?.presidente_status || 'pending')}
                             </div>
@@ -588,17 +668,26 @@ export default function EditarDesignacoesPage() {
                                     ))}
                                 </select>
                                 {oracaoInicialId && (
-                                    <a
-                                        href={getWhatsAppUrl(oracaoInicialId, 'Oração Inicial', 'oracao_inicial')}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="ml-2 text-green-500 hover:text-green-600 transition-colors"
-                                        title="Enviar WhatsApp"
-                                    >
-                                        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-                                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
-                                        </svg>
-                                    </a>
+                                    <>
+                                        <a
+                                            href={getWhatsAppUrl(oracaoInicialId, 'Oração Inicial', 'oracao_inicial')}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="ml-2 text-green-500 hover:text-green-600 transition-colors"
+                                            title="Enviar WhatsApp"
+                                        >
+                                            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+                                            </svg>
+                                        </a>
+                                        <button
+                                            onClick={() => openHistory(oracaoInicialId, membros.find(m => m.id === oracaoInicialId)?.nome_completo || '', 'Oração Inicial')}
+                                            className="ml-2 text-blue-500 hover:text-blue-600 transition-colors"
+                                            title="Ver Histórico"
+                                        >
+                                            🕒
+                                        </button>
+                                    </>
                                 )}
                                 {oracaoInicialId && getStatusIcon(programacao?.oracao_inicial_status || 'pending')}
                             </div>
@@ -619,38 +708,55 @@ export default function EditarDesignacoesPage() {
                                     ))}
                                 </select>
                                 {oracaoFinalId && (
-                                    <a
-                                        href={getWhatsAppUrl(oracaoFinalId, 'Oração Final', 'oracao_final')}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="ml-2 text-green-500 hover:text-green-600 transition-colors"
-                                        title="Enviar WhatsApp"
-                                    >
-                                        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-                                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
-                                        </svg>
-                                    </a>
+                                    <>
+                                        <a
+                                            href={getWhatsAppUrl(oracaoFinalId, 'Oração Final', 'oracao_final')}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="ml-2 text-green-500 hover:text-green-600 transition-colors"
+                                            title="Enviar WhatsApp"
+                                        >
+                                            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+                                            </svg>
+                                        </a>
+                                        <button
+                                            onClick={() => openHistory(oracaoFinalId, membros.find(m => m.id === oracaoFinalId)?.nome_completo || '', 'Oração Final')}
+                                            className="ml-2 text-blue-500 hover:text-blue-600 transition-colors"
+                                            title="Ver Histórico"
+                                        >
+                                            🕒
+                                        </button>
+                                    </>
                                 )}
                                 {oracaoFinalId && getStatusIcon(programacao?.oracao_final_status || 'pending')}
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    {renderPartSection('Tesouros da Palavra de Deus', 'TESOUROS', 'text-gray-600')}
-                    {renderPartSection('Faça Seu Melhor no Ministério', 'MINISTERIO', 'text-yellow-600')}
-                    {renderPartSection('Nossa Vida Cristã', 'VIDA_CRISTA', 'text-red-600')}
+                {renderPartSection('Tesouros da Palavra de Deus', 'TESOUROS', 'text-gray-600')}
+                {renderPartSection('Faça Seu Melhor no Ministério', 'MINISTERIO', 'text-yellow-600')}
+                {renderPartSection('Nossa Vida Cristã', 'VIDA_CRISTA', 'text-red-600')}
 
-                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-4 max-w-5xl mx-auto print:hidden">
-                        <button
-                            onClick={handleSave}
-                            disabled={saving}
-                            className="px-8 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 font-medium shadow-lg text-lg"
-                        >
-                            {saving ? 'Salvando...' : 'Salvar Designações'}
-                        </button>
-                    </div>
-                </div >
-            </div >
-        </div >
+                <div className="fixed bottom-0 left-0 right-0 p-4 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-4 max-w-5xl mx-auto print:hidden">
+                    <button
+                        onClick={handleSave}
+                        disabled={saving}
+                        className="px-8 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 font-medium shadow-lg text-lg"
+                    >
+                        {saving ? 'Salvando...' : 'Salvar Designações'}
+                    </button>
+                </div>
+            </div>
+
+            <HistoryModal
+                isOpen={historyModalOpen}
+                onClose={() => setHistoryModalOpen(false)}
+                membroId={historyMemberId}
+                membroNome={historyMemberName}
+                roleName={historyRoleName}
+            />
+        </div>
     )
 }

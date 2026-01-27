@@ -1,5 +1,6 @@
 import Image from "next/image";
 import HomeMemberSearch from "@/components/home/HomeMemberSearch";
+import HomeEvents from "@/components/home/HomeEvents";
 
 export default function Home() {
   return (
@@ -16,9 +17,9 @@ export default function Home() {
           </div>
 
           <HomeMemberSearch />
-        </div>
 
-        {/* Removed Admin/Programação cards and Footer links as requested */}
+          <HomeEvents />
+        </div>
       </main>
     </div>
   );

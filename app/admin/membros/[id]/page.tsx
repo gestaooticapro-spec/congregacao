@@ -292,6 +292,18 @@ export default function EditarMembroPage() {
                                     />
                                 </div>
                                 <div>
+                                    <label className="block text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Gênero</label>
+                                    <select
+                                        value={formData.genero || ''}
+                                        onChange={(e) => handleChange('genero', e.target.value || null)}
+                                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all dark:text-white"
+                                    >
+                                        <option value="">Selecione...</option>
+                                        <option value="M">Masculino</option>
+                                        <option value="F">Feminino</option>
+                                    </select>
+                                </div>
+                                <div>
                                     <label className="block text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Data de Nascimento</label>
                                     <input
                                         type="date"

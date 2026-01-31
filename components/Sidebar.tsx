@@ -8,6 +8,7 @@ import { Session } from '@supabase/supabase-js';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useUserRoles } from '@/hooks/useUserRoles';
 import { PerfilAcesso } from '@/types/database.types';
+import PasswordReminderModal from './admin/PasswordReminderModal';
 
 export default function Sidebar() {
     const pathname = usePathname();
@@ -18,22 +19,34 @@ export default function Sidebar() {
     const [session, setSession] = useState<Session | null>(null);
     const [loading, setLoading] = useState(true);
     const [isSharedAdmin, setIsSharedAdmin] = useState(false);
+    const [showReminder, setShowReminder] = useState(true);
 
     useEffect(() => {
         // Check active session
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        const initSession = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
             setSession(session);
-            checkIfSharedAdmin(session?.user?.id);
+            if (session?.user?.id) {
+                await checkIfSharedAdmin(session.user.id);
+            }
             setLoading(false);
-        });
+        };
+
+        initSession();
 
         // Listen for auth changes
         const {
             data: { subscription },
-        } = supabase.auth.onAuthStateChange((_event, session) => {
+        } = supabase.auth.onAuthStateChange(async (_event, session) => {
+            setLoading(true); // Reset loading on auth change
             setSession(session);
-            checkIfSharedAdmin(session?.user?.id);
+            if (session?.user?.id) {
+                await checkIfSharedAdmin(session.user.id);
+            } else {
+                setIsSharedAdmin(false);
+            }
             setLoading(false);
+
             if (_event === 'SIGNED_OUT') {
                 router.push('/');
             }
@@ -238,6 +251,12 @@ export default function Sidebar() {
                     </div>
                 </div>
             </aside>
+
+            {/* Password Reminder Modal */}
+            <PasswordReminderModal
+                isOpen={isSharedAdmin && showReminder && !loading}
+                onClose={() => setShowReminder(false)}
+            />
         </>
     );
 }

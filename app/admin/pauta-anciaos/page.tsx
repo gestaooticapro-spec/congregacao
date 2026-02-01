@@ -31,6 +31,7 @@ export default function PautaAnciaosPage() {
     const [showArchived, setShowArchived] = useState(false)
     const [editingId, setEditingId] = useState<string | null>(null)
     const [formOpen, setFormOpen] = useState(false)
+    const [suggestionsOpen, setSuggestionsOpen] = useState(false)
     const [formData, setFormData] = useState({
         assunto: '',
         detalhes: '',
@@ -271,15 +272,19 @@ export default function PautaAnciaosPage() {
                                         type="text"
                                         required
                                         value={formData.sugerido_por}
-                                        onChange={e => setFormData({ ...formData, sugerido_por: e.target.value })}
+                                        onChange={e => {
+                                            setFormData({ ...formData, sugerido_por: e.target.value })
+                                            setSuggestionsOpen(true)
+                                        }}
+                                        onFocus={() => setSuggestionsOpen(true)}
+                                        onBlur={() => setTimeout(() => setSuggestionsOpen(false), 200)}
                                         className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-transparent dark:text-white"
                                         placeholder="Digite para buscar..."
                                     />
-                                    {formData.sugerido_por && anciaos.filter(a => {
+                                    {suggestionsOpen && formData.sugerido_por && anciaos.filter(a => {
                                         const search = formData.sugerido_por.toLowerCase()
                                         return (a.nome_completo.toLowerCase().includes(search) ||
-                                            (a.nome_civil?.toLowerCase().includes(search) ?? false)) &&
-                                            a.nome_completo !== formData.sugerido_por
+                                            (a.nome_civil?.toLowerCase().includes(search) ?? false))
                                     }).length > 0 && (
                                             <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                                                 {anciaos
@@ -292,7 +297,10 @@ export default function PautaAnciaosPage() {
                                                         <button
                                                             key={anciao.id}
                                                             type="button"
-                                                            onClick={() => setFormData({ ...formData, sugerido_por: anciao.nome_completo })}
+                                                            onClick={() => {
+                                                                setFormData({ ...formData, sugerido_por: anciao.nome_completo })
+                                                                setSuggestionsOpen(false)
+                                                            }}
                                                             className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-900 dark:text-white"
                                                         >
                                                             {anciao.nome_completo}

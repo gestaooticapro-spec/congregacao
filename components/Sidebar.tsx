@@ -121,13 +121,20 @@ export default function Sidebar() {
     const toggleMenu = () => setIsOpen(!isOpen);
 
     // Filter items based on auth state
+    // Show public items immediately, only hide restricted items while loading
     const visibleItems = menuItems.filter(item => {
-        if (loading || rolesLoading) return false; // Hide everything while loading (or show skeleton)
-        if (item.restricted) {
-            if (!session) return false;
-            // If roles are specified, check them
-            if (item.allowedRoles && !hasRole(item.allowedRoles)) return false;
-        }
+        // Public items (not restricted) are always shown
+        if (!item.restricted) return true;
+
+        // For restricted items, wait for both session and roles to load
+        if (loading || rolesLoading) return false;
+
+        // Must have session for restricted items
+        if (!session) return false;
+
+        // If roles are specified, check them
+        if (item.allowedRoles && !hasRole(item.allowedRoles)) return false;
+
         return true;
     });
 
@@ -191,7 +198,7 @@ export default function Sidebar() {
                 </div>
 
                 <nav className={`space-y-2 overflow-y-auto flex-1 thin-scrollbar ${isCollapsed ? 'md:p-2 p-4' : 'p-4'}`}>
-                    {!loading && visibleItems.map((item, index) => {
+                    {visibleItems.map((item, index) => {
                         if (item.type === 'separator') {
                             return (
                                 <div key={`sep-${index}`} className="my-2">

@@ -231,28 +231,27 @@ export default function Sidebar() {
                 </nav>
 
                 <div className={`border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 ${isCollapsed ? 'md:p-2 p-4' : 'p-4'}`}>
-                    {!loading && (
-                        session ? (
-                            <button
-                                onClick={handleLogout}
-                                title={isCollapsed ? 'Sair' : undefined}
-                                className={`flex items-center gap-3 py-3 w-full rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 font-medium ${isCollapsed ? 'md:justify-center md:px-2 px-4' : 'px-4'}`}
-                            >
-                                <span className="text-xl">🚪</span>
-                                <span className={isCollapsed ? 'md:hidden' : ''}>Sair</span>
-                            </button>
-                        ) : (
-                            <Link
-                                href="/login"
-                                onClick={() => setIsOpen(false)}
-                                title={isCollapsed ? 'Login' : undefined}
-                                className={`flex items-center gap-3 py-3 w-full rounded-xl text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 font-medium ${isCollapsed ? 'md:justify-center md:px-2 px-4' : 'px-4'}`}
-                            >
-                                <span className="text-xl">🔐</span>
-                                <span className={isCollapsed ? 'md:hidden' : ''}>Login</span>
-                            </Link>
-                        )
+                    {session ? (
+                        <button
+                            onClick={handleLogout}
+                            title={isCollapsed ? 'Sair' : undefined}
+                            className={`flex items-center gap-3 py-3 w-full rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 font-medium ${isCollapsed ? 'md:justify-center md:px-2 px-4' : 'px-4'}`}
+                        >
+                            <span className="text-xl">🚪</span>
+                            <span className={isCollapsed ? 'md:hidden' : ''}>Sair</span>
+                        </button>
+                    ) : !loading && (
+                        <Link
+                            href="/login"
+                            onClick={() => setIsOpen(false)}
+                            title={isCollapsed ? 'Login' : undefined}
+                            className={`flex items-center gap-3 py-3 w-full rounded-xl text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 font-medium ${isCollapsed ? 'md:justify-center md:px-2 px-4' : 'px-4'}`}
+                        >
+                            <span className="text-xl">🔐</span>
+                            <span className={isCollapsed ? 'md:hidden' : ''}>Login</span>
+                        </Link>
                     )}
+
                     <div className={`mt-2 text-xs text-center text-slate-400 ${isCollapsed ? 'md:hidden' : ''}`}>
                         v0.1.0
                     </div>

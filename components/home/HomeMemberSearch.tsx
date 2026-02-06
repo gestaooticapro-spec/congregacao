@@ -6,7 +6,6 @@ import { Database } from '@/types/database.types'
 import { format, parseISO, startOfWeek, endOfWeek, isSameMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
-const TIMEOUT_MS = 10000;
 
 type Membro = Pick<Database['public']['Tables']['membros']['Row'], 'id' | 'nome_completo' | 'nome_civil' | 'grupo_id'>
 
@@ -69,21 +68,75 @@ export default function HomeMemberSearch(): React.ReactNode {
             const hoje = new Date().toISOString().split('T')[0]
             const novasDesignacoes: Designacao[] = []
 
-            // Timeout handling helper
-            const withTimeout = <T,>(promise: PromiseLike<T>) => {
-                return Promise.race([
-                    promise,
-                    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Timeout')), TIMEOUT_MS))
-                ]) as Promise<T>
-            }
+            // Parallelize all requests
+            const [
+                { data: programacoes },
+                { data: suporte },
+                { data: limpeza },
+                { data: campo },
+                { data: lanche },
+                { data: discursosLocais },
+                { data: discursosFora }
+            ] = await Promise.all([
+                // 1. Programação Semanal
+                supabase
+                    .from('programacao_semanal')
+                    .select('*')
+                    .gte('data_reuniao', hoje)
+                    .order('data_reuniao'),
 
-            // 1. Buscar Programação Semanal (Reuniões)
-            const { data: programacoes } = await withTimeout(supabase
-                .from('programacao_semanal')
-                .select('*')
-                .gte('data_reuniao', hoje)
-                .order('data_reuniao'))
+                // 2. Designações de Suporte
+                supabase
+                    .from('designacoes_suporte')
+                    .select('*')
+                    .eq('membro_id', membro.id)
+                    .gte('data', hoje)
+                    .order('data'),
 
+                // 3. Escala de Limpeza
+                membro.grupo_id
+                    ? supabase
+                        .from('escala_limpeza')
+                        .select('*')
+                        .eq('grupo_id', membro.grupo_id)
+                        .gte('data_inicio', startOfWeek(new Date(), { weekStartsOn: 1 }).toISOString().split('T')[0])
+                        .order('data_inicio')
+                    : Promise.resolve({ data: [] }),
+
+                // 4. Escalas de Campo
+                supabase
+                    .from('escalas_campo')
+                    .select('*')
+                    .eq('dirigente_id', membro.id)
+                    .gte('data', hoje)
+                    .order('data'),
+
+                // 5. Hospitalidade
+                supabase
+                    .from('agenda_discursos_locais')
+                    .select('data, tema:temas(titulo), orador_visitante:oradores_visitantes(nome)')
+                    .eq('hospitalidade_id', membro.id)
+                    .gte('data', hoje)
+                    .order('data'),
+
+                // 6. Discursos Locais
+                supabase
+                    .from('agenda_discursos_locais')
+                    .select('data, tema:temas(titulo)')
+                    .eq('orador_local_id', membro.id)
+                    .gte('data', hoje)
+                    .order('data'),
+
+                // 7. Discursos Fora
+                supabase
+                    .from('agenda_discursos_fora')
+                    .select('data, destino_congregacao, tema:temas(titulo)')
+                    .eq('orador_id', membro.id)
+                    .gte('data', hoje)
+                    .order('data')
+            ])
+
+            // Process 1: Programação Semanal
             if (programacoes) {
                 programacoes.forEach(prog => {
                     const weekRange = formatWeekRange(prog.data_reuniao)
@@ -150,14 +203,7 @@ export default function HomeMemberSearch(): React.ReactNode {
                 })
             }
 
-            // 2. Buscar Designações de Suporte
-            const { data: suporte } = await withTimeout(supabase
-                .from('designacoes_suporte')
-                .select('*')
-                .eq('membro_id', membro.id)
-                .gte('data', hoje)
-                .order('data'))
-
+            // Process 2: Suporte
             if (suporte) {
                 suporte.forEach(sup => {
                     novasDesignacoes.push({
@@ -169,64 +215,45 @@ export default function HomeMemberSearch(): React.ReactNode {
                 })
             }
 
-            // 3. Buscar Escala de Limpeza
-            if (membro.grupo_id) {
-                // Calculate start of current week to ensure we don't miss this week's cleaning
-                const startOfCurrentWeek = startOfWeek(new Date(), { weekStartsOn: 1 }).toISOString().split('T')[0]
+            // Process 3: Limpeza
+            if (limpeza) {
+                limpeza.forEach(esc => {
+                    const dataInicio = parseISO(esc.data_inicio)
 
-                const { data: limpeza } = await withTimeout(supabase
-                    .from('escala_limpeza')
-                    .select('*')
-                    .eq('grupo_id', membro.grupo_id)
-                    .gte('data_inicio', startOfCurrentWeek)
-                    .order('data_inicio'))
+                    // Quarta-feira (Monday + 2 days)
+                    const quarta = new Date(dataInicio)
+                    quarta.setDate(dataInicio.getDate() + 2)
 
-                if (limpeza) {
-                    limpeza.forEach(esc => {
-                        const dataInicio = parseISO(esc.data_inicio)
+                    // Sábado (Monday + 5 days)
+                    const sabado = new Date(dataInicio)
+                    sabado.setDate(dataInicio.getDate() + 5)
 
-                        // Quarta-feira (Monday + 2 days)
-                        const quarta = new Date(dataInicio)
-                        quarta.setDate(dataInicio.getDate() + 2)
+                    const quartaStr = quarta.toISOString().split('T')[0]
+                    const sabadoStr = sabado.toISOString().split('T')[0]
 
-                        // Sábado (Monday + 5 days)
-                        const sabado = new Date(dataInicio)
-                        sabado.setDate(dataInicio.getDate() + 5)
+                    // Add Wednesday if it's today or future
+                    if (quartaStr >= hoje) {
+                        novasDesignacoes.push({
+                            tipo: 'LIMPEZA',
+                            data: quartaStr,
+                            descricao: 'Limpeza do Salão (Quarta)',
+                            detalhe: formatWeekRange(esc.data_inicio)
+                        })
+                    }
 
-                        const quartaStr = quarta.toISOString().split('T')[0]
-                        const sabadoStr = sabado.toISOString().split('T')[0]
-
-                        // Add Wednesday if it's today or future
-                        if (quartaStr >= hoje) {
-                            novasDesignacoes.push({
-                                tipo: 'LIMPEZA',
-                                data: quartaStr,
-                                descricao: 'Limpeza do Salão (Quarta)',
-                                detalhe: formatWeekRange(esc.data_inicio)
-                            })
-                        }
-
-                        // Add Saturday if it's today or future
-                        if (sabadoStr >= hoje) {
-                            novasDesignacoes.push({
-                                tipo: 'LIMPEZA',
-                                data: sabadoStr,
-                                descricao: 'Limpeza do Salão (Sábado)',
-                                detalhe: formatWeekRange(esc.data_inicio)
-                            })
-                        }
-                    })
-                }
+                    // Add Saturday if it's today or future
+                    if (sabadoStr >= hoje) {
+                        novasDesignacoes.push({
+                            tipo: 'LIMPEZA',
+                            data: sabadoStr,
+                            descricao: 'Limpeza do Salão (Sábado)',
+                            detalhe: formatWeekRange(esc.data_inicio)
+                        })
+                    }
+                })
             }
 
-            // 4. Buscar Escalas de Campo (Dirigente)
-            const { data: campo } = await withTimeout(supabase
-                .from('escalas_campo')
-                .select('*')
-                .eq('dirigente_id', membro.id)
-                .gte('data', hoje)
-                .order('data'))
-
+            // Process 4: Campo
             if (campo) {
                 campo.forEach(esc => {
                     novasDesignacoes.push({
@@ -238,18 +265,11 @@ export default function HomeMemberSearch(): React.ReactNode {
                 })
             }
 
-            // 5. Buscar Hospitalidade (Lanche)
-            const { data: lanche } = await withTimeout(supabase
-                .from('agenda_discursos_locais')
-                .select('data, tema:temas(titulo), orador_visitante:oradores_visitantes(nome)')
-                .eq('hospitalidade_id', membro.id)
-                .gte('data', hoje)
-                .order('data'))
-
+            // Process 5: Lanche
             if (lanche) {
                 lanche.forEach((l: any) => {
                     novasDesignacoes.push({
-                        tipo: 'SUPORTE', // Reuse SUPORTE style or create new one
+                        tipo: 'SUPORTE',
                         data: l.data,
                         descricao: 'Hospedagem/Lanche',
                         detalhe: formatWeekRange(l.data)
@@ -257,14 +277,7 @@ export default function HomeMemberSearch(): React.ReactNode {
                 })
             }
 
-            // 6. Buscar Discursos Locais
-            const { data: discursosLocais } = await withTimeout(supabase
-                .from('agenda_discursos_locais')
-                .select('data, tema:temas(titulo)')
-                .eq('orador_local_id', membro.id)
-                .gte('data', hoje)
-                .order('data'))
-
+            // Process 6: Discursos Locais
             if (discursosLocais) {
                 discursosLocais.forEach((d: any) => {
                     novasDesignacoes.push({
@@ -276,14 +289,7 @@ export default function HomeMemberSearch(): React.ReactNode {
                 })
             }
 
-            // 7. Buscar Discursos Fora
-            const { data: discursosFora } = await withTimeout(supabase
-                .from('agenda_discursos_fora')
-                .select('data, destino_congregacao, tema:temas(titulo)')
-                .eq('orador_id', membro.id)
-                .gte('data', hoje)
-                .order('data'))
-
+            // Process 7: Discursos Fora
             if (discursosFora) {
                 discursosFora.forEach((d: any) => {
                     novasDesignacoes.push({

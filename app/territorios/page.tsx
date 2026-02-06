@@ -17,27 +17,20 @@ export default function TerritoriosPage() {
     const loadTerritories = async () => {
         setError(null)
 
-        // Create a timeout promise
-        const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Timeout: A consulta demorou muito.')), 15000)
-        )
-
         try {
             // Race between the actual query and the timeout
-            const queryPromise = supabase
+            const { data, error } = await supabase
                 .from('territorios')
                 .select('*, visitas_ativas(count), historico_conclusao(data_fim), responsavel:membros(nome_completo)')
                 .order('nome')
                 .order('data_fim', { foreignTable: 'historico_conclusao', ascending: false })
                 .limit(1, { foreignTable: 'historico_conclusao' })
 
-            const result = await Promise.race([queryPromise, timeoutPromise]) as any
-
-            if (result.error) {
-                console.error('Error loading territories:', result.error)
-                setError(`Erro ao carregar territórios: ${result.error.message}`)
+            if (error) {
+                console.error('Error loading territories:', error)
+                setError(`Erro ao carregar territórios: ${error.message}`)
             } else {
-                setTerritories(result.data || [])
+                setTerritories(data || [])
             }
         } catch (err: any) {
             console.error('Exception loading territories:', err)

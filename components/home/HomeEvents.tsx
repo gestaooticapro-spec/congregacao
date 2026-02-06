@@ -23,24 +23,13 @@ export default function HomeEvents() {
         try {
             const today = format(new Date(), 'yyyy-MM-dd')
 
-            // Create a timeout promise that rejects after 10 seconds
-            const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('Tempo limite de conexão excedido')), 10000)
-            })
-
             // The actual data fetch
-            const filteredQuery = supabase
+            const { data, error } = await supabase
                 .from('eventos')
                 .select('*')
                 .gte('data_fim', today)
                 .order('data_inicio', { ascending: true })
                 .limit(6)
-
-            // Race them
-            const { data, error }: any = await Promise.race([
-                filteredQuery,
-                timeoutPromise.then(() => { throw new Error('Timeout') }) // Should not be reached if timeoutPromise rejects, but safe typing
-            ])
 
             if (error) throw error
             setEvents(data || [])

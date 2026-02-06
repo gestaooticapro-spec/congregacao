@@ -72,38 +72,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         let mounted = true
 
-        // Track the current user ID to prevent redundant role fetches
-        let lastUserId: string | undefined = undefined
+        // CRITICAL: Explicitly get session on mount
+        // onAuthStateChange may not fire reliably on app resume/background
+        const initializeAuth = async () => {
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession()
 
+                if (error) {
+                    console.error('[AuthProvider] Error getting initial session:', error)
+                    if (mounted) setLoading(false)
+                    return
+                }
+
+                if (mounted) {
+                    setSession(session)
+                    setUser(session?.user ?? null)
+
+                    if (session?.user) {
+                        await fetchRoles(session.user.id)
+                    }
+
+                    setLoading(false)
+                }
+            } catch (error) {
+                console.error('[AuthProvider] Exception during init:', error)
+                if (mounted) setLoading(false)
+            }
+        }
+
+        initializeAuth()
+
+        // Also listen for auth state changes (login, logout, token refresh)
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (!mounted) return
 
-            // Only update session if it actually changed
-            // (Supabase sometimes emits multiple events with same session)
-            const currentUserId = session?.user?.id
+            // Skip INITIAL_SESSION since we handle it above
+            if (event === 'INITIAL_SESSION') return
 
-            // Standardize loading state
-            setLoading(true)
             setSession(session)
             setUser(session?.user ?? null)
 
-            // If user changed or we have a user but no roles yet, fetch roles
-            if (currentUserId && (currentUserId !== lastUserId || roles.length === 0)) {
-                lastUserId = currentUserId
-                await fetchRoles(currentUserId)
-            } else if (!currentUserId) {
-                lastUserId = undefined
+            if (session?.user) {
+                await fetchRoles(session.user.id)
+            } else {
                 setRoles([])
             }
-
-            setLoading(false)
         })
 
         return () => {
             mounted = false
             subscription.unsubscribe()
         }
-    }, []) // Dependencies intentionally empty
+    }, [])
 
     const hasRole = (requiredRoles: PerfilAcesso[]) => {
         if (loading) return false

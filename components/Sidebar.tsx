@@ -42,7 +42,7 @@ export default function Sidebar() {
         if (!sessionLoading) {
             checkAdmin();
         }
-    }, [user, sessionLoading]);
+    }, [user?.id, sessionLoading]);
 
     const handleLogout = async () => {
         await supabase.auth.signOut();

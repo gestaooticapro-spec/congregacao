@@ -1,4 +1,4 @@
-import { createBrowserClient } from '@supabase/ssr'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database.types'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -15,15 +15,21 @@ if (typeof window !== 'undefined') {
 
 if (!supabaseUrl || !supabaseAnonKey) {
     console.error('[SupabaseClient] Missing environment variables!')
-    console.error('NEXT_PUBLIC_SUPABASE_URL:', supabaseUrl ? 'defined' : 'MISSING')
-    console.error('NEXT_PUBLIC_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'defined' : 'MISSING')
 }
 
 export function createClient() {
-    return createBrowserClient<Database>(
+    return createSupabaseClient<Database>(
         supabaseUrl || '',
-        supabaseAnonKey || ''
+        supabaseAnonKey || '',
+        {
+            auth: {
+                persistSession: true,
+                autoRefreshToken: true,
+                detectSessionInUrl: true
+            }
+        }
     )
 }
 
 export const supabase = createClient()
+

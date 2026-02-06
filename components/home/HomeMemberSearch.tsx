@@ -179,23 +179,23 @@ export default function HomeMemberSearch(): React.ReactNode {
                     limpeza.forEach(esc => {
                         const dataInicio = parseISO(esc.data_inicio)
 
-                        // Quinta-feira (Monday + 3 days)
-                        const quinta = new Date(dataInicio)
-                        quinta.setDate(dataInicio.getDate() + 3)
+                        // Quarta-feira (Monday + 2 days)
+                        const quarta = new Date(dataInicio)
+                        quarta.setDate(dataInicio.getDate() + 2)
 
                         // Sábado (Monday + 5 days)
                         const sabado = new Date(dataInicio)
                         sabado.setDate(dataInicio.getDate() + 5)
 
-                        const quintaStr = quinta.toISOString().split('T')[0]
+                        const quartaStr = quarta.toISOString().split('T')[0]
                         const sabadoStr = sabado.toISOString().split('T')[0]
 
-                        // Add Thursday if it's today or future
-                        if (quintaStr >= hoje) {
+                        // Add Wednesday if it's today or future
+                        if (quartaStr >= hoje) {
                             novasDesignacoes.push({
                                 tipo: 'LIMPEZA',
-                                data: quintaStr,
-                                descricao: 'Limpeza do Salão (Quinta)',
+                                data: quartaStr,
+                                descricao: 'Limpeza do Salão (Quarta)',
                                 detalhe: formatWeekRange(esc.data_inicio)
                             })
                         }

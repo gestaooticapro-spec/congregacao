@@ -42,7 +42,7 @@ export async function analisarProgramacaoComIA(texto: string): Promise<Programac
 
         Retorne APENAS um JSON (sem markdown) com esta estrutura exata:
         {
-            "data_reuniao": "YYYY-MM-DD" (data da quinta-feira da semana, ou null),
+            "data_reuniao": "YYYY-MM-DD" (data da quarta-feira da semana, ou null),
             "semana_descricao": "Texto da semana (ex: 4-10 Dez)",
             "temas_tesouros": "Tema principal",
             "canticos": { "inicial": 0, "meio": 0, "final": 0 },

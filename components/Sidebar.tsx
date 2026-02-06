@@ -106,7 +106,7 @@ export default function Sidebar() {
 
         // Role Specific Items
         { type: 'separator', label: 'Administração', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT'] },
-        { type: 'link', href: '/programacao', label: 'Reunião de Quinta', icon: '📖', restricted: true, allowedRoles: ['ADMIN', 'RESP_QUINTA'] },
+        { type: 'link', href: '/programacao', label: 'Reunião de Quarta', icon: '📖', restricted: true, allowedRoles: ['ADMIN', 'RESP_QUINTA'] },
         { type: 'link', href: '/admin/discursos', label: 'Discursos', icon: '🎤', restricted: true, allowedRoles: ['ADMIN', 'RESP_SABADO'] },
         { type: 'link', href: '/admin/escalas', label: 'Outras Designações', icon: '📋', restricted: true, allowedRoles: ['ADMIN', 'RQA'] },
         { type: 'link', href: '/admin/campo', label: 'Campo', icon: '👜', restricted: true, allowedRoles: ['ADMIN', 'RQA'] },

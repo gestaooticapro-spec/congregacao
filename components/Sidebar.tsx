@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Session } from '@supabase/supabase-js';
 import { useSidebar } from '@/contexts/SidebarContext';
-import { useUserRoles } from '@/hooks/useUserRoles';
+import { useAuth } from '@/contexts/AuthProvider';
 import { PerfilAcesso } from '@/types/database.types';
 import PasswordReminderModal from './admin/PasswordReminderModal';
 
@@ -15,59 +15,34 @@ export default function Sidebar() {
     const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
     const { isCollapsed, toggleCollapsed } = useSidebar();
-    const { hasRole, loading: rolesLoading } = useUserRoles();
-    const [session, setSession] = useState<Session | null>(null);
-    const [loading, setLoading] = useState(true);
+
+    // Now using global auth context
+    const { user, session, loading: sessionLoading, hasRole } = useAuth();
+    const rolesLoading = sessionLoading; // Alias for compatibility
+
+    // Local UI state
     const [isSharedAdmin, setIsSharedAdmin] = useState(false);
+    const [checkingAdmin, setCheckingAdmin] = useState(false);
     const [showReminder, setShowReminder] = useState(true);
 
+    // Combined loading state for UI
+    const loading = sessionLoading || checkingAdmin;
+
     useEffect(() => {
-        const initSession = async () => {
-            setLoading(true);
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-                setSession(session);
-                if (session?.user?.id) {
-                    await checkIfSharedAdmin(session.user.id);
-                } else {
-                    setIsSharedAdmin(false);
-                }
-            } catch (err) {
-                console.error('[Sidebar] Error getting session:', err);
-                setSession(null);
+        const checkAdmin = async () => {
+            if (user?.id) {
+                setCheckingAdmin(true);
+                await checkIfSharedAdmin(user.id);
+                setCheckingAdmin(false);
+            } else {
                 setIsSharedAdmin(false);
-            } finally {
-                setLoading(false);
             }
         };
 
-        initSession();
-
-        const {
-            data: { subscription },
-        } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            setLoading(true);
-            setSession(session);
-            try {
-                if (session?.user?.id) {
-                    await checkIfSharedAdmin(session.user.id);
-                } else {
-                    setIsSharedAdmin(false);
-                }
-            } catch (err) {
-                console.error('[Sidebar] Error handling auth change:', err);
-                setIsSharedAdmin(false);
-            } finally {
-                setLoading(false);
-            }
-
-            if (_event === 'SIGNED_OUT') {
-                router.push('/');
-            }
-        });
-
-        return () => subscription.unsubscribe();
-    }, [router]);
+        if (!sessionLoading) {
+            checkAdmin();
+        }
+    }, [user, sessionLoading]);
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -75,12 +50,7 @@ export default function Sidebar() {
         setIsOpen(false);
     };
 
-    const checkIfSharedAdmin = async (userId: string | undefined) => {
-        if (!userId) {
-            setIsSharedAdmin(false);
-            return;
-        }
-
+    const checkIfSharedAdmin = async (userId: string) => {
         try {
             const { data: membro, error } = await supabase
                 .from('membros')

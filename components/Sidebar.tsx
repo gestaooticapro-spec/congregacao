@@ -22,30 +22,44 @@ export default function Sidebar() {
     const [showReminder, setShowReminder] = useState(true);
 
     useEffect(() => {
-        // Check active session
         const initSession = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            setSession(session);
-            if (session?.user?.id) {
-                await checkIfSharedAdmin(session.user.id);
+            setLoading(true);
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                setSession(session);
+                if (session?.user?.id) {
+                    await checkIfSharedAdmin(session.user.id);
+                } else {
+                    setIsSharedAdmin(false);
+                }
+            } catch (err) {
+                console.error('[Sidebar] Error getting session:', err);
+                setSession(null);
+                setIsSharedAdmin(false);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         };
 
         initSession();
 
-        // Listen for auth changes
         const {
             data: { subscription },
         } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            setLoading(true); // Reset loading on auth change
+            setLoading(true);
             setSession(session);
-            if (session?.user?.id) {
-                await checkIfSharedAdmin(session.user.id);
-            } else {
+            try {
+                if (session?.user?.id) {
+                    await checkIfSharedAdmin(session.user.id);
+                } else {
+                    setIsSharedAdmin(false);
+                }
+            } catch (err) {
+                console.error('[Sidebar] Error handling auth change:', err);
                 setIsSharedAdmin(false);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
 
             if (_event === 'SIGNED_OUT') {
                 router.push('/');
@@ -66,18 +80,30 @@ export default function Sidebar() {
             setIsSharedAdmin(false);
             return;
         }
-        // Check if user is linked to a member
-        const { data: membro } = await supabase
-            .from('membros')
-            .select('id, nome_completo')
-            .eq('user_id', userId)
-            .single();
 
-        // If NO member found, OR member name contains "Admin", it's the shared admin
-        if (!membro) {
-            setIsSharedAdmin(true);
-        } else {
-            setIsSharedAdmin(membro.nome_completo.toLowerCase().includes('admin'));
+        try {
+            const { data: membro, error } = await supabase
+                .from('membros')
+                .select('id, nome_completo')
+                .eq('user_id', userId)
+                .single();
+
+            if (error) {
+                if (error.code === 'PGRST116') {
+                    setIsSharedAdmin(true);
+                    return;
+                }
+                throw error;
+            }
+
+            if (!membro) {
+                setIsSharedAdmin(true);
+            } else {
+                setIsSharedAdmin(membro.nome_completo.toLowerCase().includes('admin'));
+            }
+        } catch (err) {
+            console.error('[Sidebar] Error checking shared admin:', err);
+            setIsSharedAdmin(false);
         }
     };
 

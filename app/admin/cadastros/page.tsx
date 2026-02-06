@@ -78,9 +78,16 @@ function TemasList() {
 
     const fetchTemas = async () => {
         setLoading(true)
-        const { data } = await supabase.from('temas').select('*').order('numero', { ascending: true })
-        setTemas(data || [])
-        setLoading(false)
+        try {
+            const { data, error } = await supabase.from('temas').select('*').order('numero', { ascending: true })
+            if (error) throw error
+            setTemas(data || [])
+        } catch (error) {
+            console.error('Error fetching temas:', error)
+            setTemas([])
+        } finally {
+            setLoading(false)
+        }
     }
 
     const handleEdit = (tema: Tema) => {
@@ -231,9 +238,16 @@ function VisitantesList() {
 
     const fetchVisitantes = async () => {
         setLoading(true)
-        const { data } = await supabase.from('oradores_visitantes').select('*').order('nome', { ascending: true })
-        setVisitantes(data || [])
-        setLoading(false)
+        try {
+            const { data, error } = await supabase.from('oradores_visitantes').select('*').order('nome', { ascending: true })
+            if (error) throw error
+            setVisitantes(data || [])
+        } catch (error) {
+            console.error('Error fetching visitantes:', error)
+            setVisitantes([])
+        } finally {
+            setLoading(false)
+        }
     }
 
     const handleEdit = (v: Visitante) => {
@@ -400,9 +414,16 @@ function ColaboradoresList() {
 
     const fetchColaboradores = async () => {
         setLoading(true)
-        const { data } = await supabase.from('colaboradores_externos').select('*').order('nome')
-        setColaboradores(data || [])
-        setLoading(false)
+        try {
+            const { data, error } = await supabase.from('colaboradores_externos').select('*').order('nome')
+            if (error) throw error
+            setColaboradores(data || [])
+        } catch (error) {
+            console.error('Error fetching colaboradores:', error)
+            setColaboradores([])
+        } finally {
+            setLoading(false)
+        }
     }
 
     const handleEdit = (c: Colaborador) => {

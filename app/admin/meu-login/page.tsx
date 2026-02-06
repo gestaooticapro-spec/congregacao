@@ -21,39 +21,51 @@ export default function MeuLoginPage() {
     }, [])
 
     const checkUser = async () => {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session) {
-            router.push('/login')
-            return
-        }
+        setLoading(true)
+        try {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session) {
+                router.push('/login')
+                return
+            }
 
-        // Check if user is linked to a member
-        const { data: membro } = await supabase
-            .from('membros')
-            .select('id, nome_completo')
-            .eq('user_id', session.user.id)
-            .single()
+            const { data: membro, error } = await supabase
+                .from('membros')
+                .select('id, nome_completo')
+                .eq('user_id', session.user.id)
+                .single()
 
-        if (!membro || membro.nome_completo.toLowerCase().includes('admin')) {
-            // No member linked OR Admin member -> Shared Admin
-            setIsSharedAdmin(true)
-            fetchMembrosSemLogin()
-        } else {
-            // Member linked -> Individual User
-            setIsSharedAdmin(false)
+            if (error && error.code !== 'PGRST116') throw error
+
+            if (!membro || membro.nome_completo.toLowerCase().includes('admin')) {
+                setIsSharedAdmin(true)
+                await fetchMembrosSemLogin()
+            } else {
+                setIsSharedAdmin(false)
+            }
+        } catch (err) {
+            console.error('Erro ao verificar sessao:', err)
+            setMessage({ type: 'error', text: 'Erro ao verificar sessao' })
+        } finally {
+            setLoading(false)
         }
-        setLoading(false)
     }
 
     const fetchMembrosSemLogin = async () => {
-        const { data } = await supabase
-            .from('membros')
-            .select('id, nome_completo')
-            .is('user_id', null)
-            .or('is_anciao.eq.true,is_servo_ministerial.eq.true')
-            .order('nome_completo')
+        try {
+            const { data, error } = await supabase
+                .from('membros')
+                .select('id, nome_completo')
+                .is('user_id', null)
+                .or('is_anciao.eq.true,is_servo_ministerial.eq.true')
+                .order('nome_completo')
 
-        if (data) setMembros(data)
+            if (error) throw error
+            setMembros(data || [])
+        } catch (err) {
+            console.error('Erro ao carregar membros sem login:', err)
+            setMembros([])
+        }
     }
 
     const handleCreateUser = async (e: React.FormEvent) => {

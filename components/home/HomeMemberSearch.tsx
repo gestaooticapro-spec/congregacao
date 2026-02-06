@@ -31,12 +31,18 @@ export default function HomeMemberSearch(): React.ReactNode {
     }, [])
 
     const fetchMembros = async () => {
-        const { data } = await supabase
-            .from('membros')
-            .select('id, nome_completo, nome_civil, grupo_id')
-            .order('nome_completo')
+        try {
+            const { data, error } = await supabase
+                .from('membros')
+                .select('id, nome_completo, nome_civil, grupo_id')
+                .order('nome_completo')
 
-        if (data) setMembros(data)
+            if (error) throw error
+            if (data) setMembros(data)
+        } catch (error) {
+            console.error('Erro ao carregar membros:', error)
+            setMembros([])
+        }
     }
 
     const formatWeekRange = (dateString: string) => {

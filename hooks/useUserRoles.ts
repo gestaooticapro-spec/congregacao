@@ -14,37 +14,47 @@ export function useUserRoles() {
     const retryCountRef = useRef(0)
     const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-    useEffect(() => {
-        // Safety timeout: if loading takes too long, force it to false
+    const clearLoadingTimeout = () => {
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current)
+            timeoutRef.current = null
+        }
+    }
+
+    const startLoadingTimeout = () => {
+        clearLoadingTimeout()
         timeoutRef.current = setTimeout(() => {
-            if (loading) {
-                console.warn('[useUserRoles] Loading timeout reached, forcing loading to false')
-                setLoading(false)
-                setError('Timeout ao carregar permissões')
-            }
-        }, LOADING_TIMEOUT_MS)
-
-        // Get initial session
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session?.user) {
-                setUserId(session.user.id)
-                fetchRolesWithRetry(session.user.id)
-            } else {
-                setRoles([])
-                setLoading(false)
-            }
-        }).catch(err => {
-            console.error('[useUserRoles] Error getting session:', err)
+            console.warn('[useUserRoles] Loading timeout reached, forcing loading to false')
             setLoading(false)
-            setError('Erro ao obter sessão')
-        })
+            setError('Timeout ao carregar permissoes')
+        }, LOADING_TIMEOUT_MS)
+    }
 
-        // Listen for auth changes
+    useEffect(() => {
+        const loadSession = async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession()
+                if (session?.user) {
+                    setUserId(session.user.id)
+                    fetchRolesWithRetry(session.user.id)
+                } else {
+                    setRoles([])
+                    setLoading(false)
+                }
+            } catch (err) {
+                console.error('[useUserRoles] Error getting session:', err)
+                setLoading(false)
+                setError('Erro ao obter sessao')
+            }
+        }
+
+        loadSession()
+
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             if (session?.user) {
                 if (session.user.id !== userId) {
                     setUserId(session.user.id)
-                    retryCountRef.current = 0 // Reset retries on new user
+                    retryCountRef.current = 0
                     fetchRolesWithRetry(session.user.id)
                 }
             } else {
@@ -56,15 +66,14 @@ export function useUserRoles() {
 
         return () => {
             subscription.unsubscribe()
-            if (timeoutRef.current) {
-                clearTimeout(timeoutRef.current)
-            }
+            clearLoadingTimeout()
         }
     }, [userId])
 
     const fetchRolesWithRetry = async (uid: string) => {
         setLoading(true)
         setError(null)
+        startLoadingTimeout()
 
         try {
             await fetchRoles(uid)
@@ -77,14 +86,14 @@ export function useUserRoles() {
                 setTimeout(() => fetchRolesWithRetry(uid), RETRY_DELAY_MS)
             } else {
                 console.error('[useUserRoles] Max retries reached')
-                setError('Erro ao carregar permissões após várias tentativas')
+                setError('Erro ao carregar permissoes apos varias tentativas')
                 setLoading(false)
+                clearLoadingTimeout()
             }
         }
     }
 
     const fetchRoles = async (uid: string) => {
-        // Step 1: Get member ID from user ID
         const { data: membro, error: membroError } = await supabase
             .from('membros')
             .select('id')
@@ -92,11 +101,11 @@ export function useUserRoles() {
             .single()
 
         if (membroError) {
-            // PGRST116 = no rows found, which is valid (user not linked to member)
             if (membroError.code === 'PGRST116') {
                 console.log('[useUserRoles] User not linked to any member')
                 setRoles([])
                 setLoading(false)
+                clearLoadingTimeout()
                 return
             }
             console.error('[useUserRoles] Error fetching member:', membroError)
@@ -107,10 +116,10 @@ export function useUserRoles() {
             console.log('[useUserRoles] No member found for user')
             setRoles([])
             setLoading(false)
+            clearLoadingTimeout()
             return
         }
 
-        // Step 2: Get roles for the member
         const { data: perfilData, error: perfilError } = await supabase
             .from('membro_perfis')
             .select('perfil')
@@ -125,11 +134,7 @@ export function useUserRoles() {
         console.log('[useUserRoles] Roles loaded:', fetchedRoles)
         setRoles(fetchedRoles)
         setLoading(false)
-
-        // Clear timeout since we succeeded
-        if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current)
-        }
+        clearLoadingTimeout()
     }
 
     const hasRole = (requiredRoles: PerfilAcesso[]) => {

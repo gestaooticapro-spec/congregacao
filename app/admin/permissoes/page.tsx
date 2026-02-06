@@ -35,18 +35,21 @@ export default function ManagePermissionsPage() {
         }
 
         setLoading(true)
-        const { data, error } = await supabase
-            .from('membros')
-            .select('*, membro_perfis(id, perfil)')
-            .ilike('nome_completo', `%${query}%`)
-            .limit(10)
+        try {
+            const { data, error } = await supabase
+                .from('membros')
+                .select('*, membro_perfis(id, perfil)')
+                .ilike('nome_completo', `%${query}%`)
+                .limit(10)
 
-        if (error) {
+            if (error) throw error
+            setMembers(data as any)
+        } catch (error) {
             console.error('Error fetching members:', error)
-        } else {
-            setMembers(data as any) // Type assertion needed for joined query
+            setMembers([])
+        } finally {
+            setLoading(false)
         }
-        setLoading(false)
     }
 
     // Add role

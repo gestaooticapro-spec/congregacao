@@ -75,8 +75,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // CRITICAL: Explicitly get session on mount
         // onAuthStateChange may not fire reliably on app resume/background
         const initializeAuth = async () => {
+            console.log('[AuthProvider] Starting initialization...')
             try {
+                console.log('[AuthProvider] Calling getSession...')
                 const { data: { session }, error } = await supabase.auth.getSession()
+                console.log('[AuthProvider] getSession returned:', { hasSession: !!session, error })
 
                 if (error) {
                     console.error('[AuthProvider] Error getting initial session:', error)
@@ -89,9 +92,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     setUser(session?.user ?? null)
 
                     if (session?.user) {
+                        console.log('[AuthProvider] Fetching roles for user:', session.user.id)
                         await fetchRoles(session.user.id)
+                        console.log('[AuthProvider] Roles fetched successfully')
                     }
 
+                    console.log('[AuthProvider] Setting loading to false')
                     setLoading(false)
                 }
             } catch (error) {

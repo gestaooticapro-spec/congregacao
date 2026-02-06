@@ -51,12 +51,15 @@ export default function Sidebar() {
     };
 
     const checkIfSharedAdmin = async (userId: string) => {
+        console.log('[Sidebar] checkIfSharedAdmin starting for user:', userId)
         try {
+            console.log('[Sidebar] Querying membros table...')
             const { data: membro, error } = await supabase
                 .from('membros')
                 .select('id, nome_completo')
                 .eq('user_id', userId)
                 .single();
+            console.log('[Sidebar] membros query returned:', { hasMembro: !!membro, error })
 
             if (error) {
                 if (error.code === 'PGRST116') {
@@ -71,6 +74,7 @@ export default function Sidebar() {
             } else {
                 setIsSharedAdmin(membro.nome_completo.toLowerCase().includes('admin'));
             }
+            console.log('[Sidebar] checkIfSharedAdmin completed')
         } catch (err) {
             console.error('[Sidebar] Error checking shared admin:', err);
             setIsSharedAdmin(false);

@@ -15,20 +15,24 @@ export default function LoginPage() {
         e.preventDefault()
         setLoading(true)
         setError(null)
+        console.log('[Login] Login attempt started', { email })
 
         try {
-            const { error } = await supabase.auth.signInWithPassword({
+            const { data, error } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             })
 
             if (error) {
+                console.error('[Login] signInWithPassword failed', { message: error.message })
                 setError('Credenciais inválidas. Verifique seu e-mail e senha.')
             } else {
-                router.push('/')
+                console.log('[Login] Login succeeded', { userId: data.user?.id ?? null })
+                router.replace('/')
                 router.refresh()
             }
         } catch (err) {
+            console.error('[Login] Unexpected login exception', err)
             setError('Ocorreu um erro ao tentar fazer login.')
         } finally {
             setLoading(false)

@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useMemo, ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, ReactNode } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Session, User } from '@supabase/supabase-js'
 import { PerfilAcesso } from '@/types/database.types'
@@ -16,31 +16,39 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+const logAuth = (message: string, details?: Record<string, unknown>) => {
+    const timestamp = new Date().toISOString()
+    if (details) {
+        console.log(`[AuthProvider][${timestamp}] ${message}`, details)
+        return
+    }
+    console.log(`[AuthProvider][${timestamp}] ${message}`)
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null)
     const [session, setSession] = useState<Session | null>(null)
     const [roles, setRoles] = useState<PerfilAcesso[]>([])
     const [loading, setLoading] = useState(true)
+    const mountedRef = useRef(false)
+    const syncIdRef = useRef(0)
 
-    const fetchRoles = async (userId: string) => {
+    const fetchRolesForUser = useCallback(async (userId: string, syncId: number) => {
+        logAuth('Fetching roles', { userId, syncId })
         try {
             const { data: membro, error: membroError } = await supabase
                 .from('membros')
                 .select('id')
                 .eq('user_id', userId)
-                .single()
+                .maybeSingle()
 
             if (membroError) {
-                if (membroError.code === 'PGRST116') {
-                    setRoles([])
-                    return
-                }
                 throw membroError
             }
 
             if (!membro) {
-                setRoles([])
-                return
+                logAuth('User has no linked member record', { userId, syncId })
+                return []
             }
 
             const { data: perfilData, error: perfilError } = await supabase
@@ -50,92 +58,182 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (perfilError) throw perfilError
 
-            const fetchedRoles = perfilData?.map(r => r.perfil) || []
+            return perfilData?.map(r => r.perfil) || []
+        } catch (error) {
+            logAuth('Error fetching roles', {
+                userId,
+                syncId,
+                error: error instanceof Error ? error.message : String(error),
+            })
+            throw error
+        }
+    }, [])
 
-            // Only update if roles have changed
+    const syncFromSession = useCallback(async (nextSession: Session | null, source: string) => {
+        const syncId = ++syncIdRef.current
+        const nextUserId = nextSession?.user?.id ?? null
+
+        logAuth('Sync start', {
+            source,
+            syncId,
+            hasSession: !!nextSession,
+            userId: nextUserId,
+        })
+
+        if (!mountedRef.current) return
+
+        setSession(nextSession)
+        setUser(nextSession?.user ?? null)
+
+        if (!nextSession?.user) {
+            setRoles([])
+            setLoading(false)
+            logAuth('Sync completed without active session', { source, syncId })
+            return
+        }
+
+        setLoading(true)
+
+        try {
+            const fetchedRoles = await fetchRolesForUser(nextSession.user.id, syncId)
+
+            if (!mountedRef.current || syncId !== syncIdRef.current) {
+                logAuth('Discarding stale sync result', {
+                    source,
+                    syncId,
+                    activeSyncId: syncIdRef.current,
+                })
+                return
+            }
+
             setRoles(prev => {
                 if (JSON.stringify(prev) === JSON.stringify(fetchedRoles)) return prev
                 return fetchedRoles
             })
-        } catch (error) {
-            console.error('[AuthProvider] Error fetching roles:', error)
-            setRoles([])
-        }
-    }
 
-    const refreshRoles = async () => {
-        if (user) {
-            await fetchRoles(user.id)
+            logAuth('Roles applied', {
+                source,
+                syncId,
+                roleCount: fetchedRoles.length,
+                roles: fetchedRoles,
+            })
+        } catch (error) {
+            if (!mountedRef.current || syncId !== syncIdRef.current) return
+            setRoles([])
+            logAuth('Sync failed, roles cleared', {
+                source,
+                syncId,
+                error: error instanceof Error ? error.message : String(error),
+            })
+        } finally {
+            if (mountedRef.current && syncId === syncIdRef.current) {
+                setLoading(false)
+                logAuth('Sync end', { source, syncId })
+            }
         }
-    }
+    }, [fetchRolesForUser])
+
+    const refreshRoles = useCallback(async () => {
+        await syncFromSession(session, 'manual-refresh')
+    }, [session, syncFromSession])
 
     useEffect(() => {
-        let mounted = true
+        mountedRef.current = true
 
         // CRITICAL: Explicitly get session on mount
         // onAuthStateChange may not fire reliably on app resume/background
         const initializeAuth = async () => {
-            console.log('[AuthProvider] Starting initialization...')
+            logAuth('Initialization start')
+            setLoading(true)
+
             try {
-                console.log('[AuthProvider] Calling getSession...')
                 const { data: { session }, error } = await supabase.auth.getSession()
-                console.log('[AuthProvider] getSession returned:', { hasSession: !!session, error })
+                logAuth('getSession result', {
+                    hasSession: !!session,
+                    userId: session?.user?.id ?? null,
+                    error: error?.message ?? null,
+                })
 
                 if (error) {
-                    console.error('[AuthProvider] Error getting initial session:', error)
-                    if (mounted) setLoading(false)
+                    if (mountedRef.current) setLoading(false)
                     return
                 }
 
-                if (mounted) {
-                    setSession(session)
-                    setUser(session?.user ?? null)
-
-                    if (session?.user) {
-                        console.log('[AuthProvider] Fetching roles for user:', session.user.id)
-                        await fetchRoles(session.user.id)
-                        console.log('[AuthProvider] Roles fetched successfully')
-                    }
-
-                    console.log('[AuthProvider] Setting loading to false')
-                    setLoading(false)
-                }
+                await syncFromSession(session, 'initialize')
             } catch (error) {
-                console.error('[AuthProvider] Exception during init:', error)
-                if (mounted) setLoading(false)
+                logAuth('Initialization error', {
+                    error: error instanceof Error ? error.message : String(error),
+                })
+                if (mountedRef.current) setLoading(false)
             }
         }
 
-        initializeAuth()
+        void initializeAuth()
 
         // Also listen for auth state changes (login, logout, token refresh)
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (!mounted) return
+            if (!mountedRef.current) return
 
             // Skip INITIAL_SESSION since we handle it above
-            if (event === 'INITIAL_SESSION') return
-
-            setSession(session)
-            setUser(session?.user ?? null)
-
-            if (session?.user) {
-                await fetchRoles(session.user.id)
-            } else {
-                setRoles([])
+            if (event === 'INITIAL_SESSION') {
+                logAuth('Skipping INITIAL_SESSION event')
+                return
             }
+
+            logAuth('Auth state change', {
+                event,
+                hasSession: !!session,
+                userId: session?.user?.id ?? null,
+            })
+            await syncFromSession(session, `auth:${event}`)
         })
 
-        return () => {
-            mounted = false
-            subscription.unsubscribe()
+        const handleFocus = async () => {
+            if (!mountedRef.current) return
+            logAuth('Window focus: resyncing session')
+            const { data: { session }, error } = await supabase.auth.getSession()
+            if (error) {
+                logAuth('Window focus getSession error', { error: error.message })
+                return
+            }
+            await syncFromSession(session, 'window-focus')
         }
-    }, [])
 
-    const hasRole = (requiredRoles: PerfilAcesso[]) => {
+        const handleVisibilityChange = async () => {
+            if (document.visibilityState !== 'visible' || !mountedRef.current) return
+            logAuth('Visibility visible: resyncing session')
+            const { data: { session }, error } = await supabase.auth.getSession()
+            if (error) {
+                logAuth('Visibility getSession error', { error: error.message })
+                return
+            }
+            await syncFromSession(session, 'visibility-visible')
+        }
+
+        const onWindowFocus = () => {
+            void handleFocus()
+        }
+        const onVisibilityChange = () => {
+            void handleVisibilityChange()
+        }
+
+        window.addEventListener('focus', onWindowFocus)
+        document.addEventListener('visibilitychange', onVisibilityChange)
+
+        return () => {
+            mountedRef.current = false
+            subscription.unsubscribe()
+
+            window.removeEventListener('focus', onWindowFocus)
+            document.removeEventListener('visibilitychange', onVisibilityChange)
+        }
+    }, [syncFromSession])
+
+    const hasRole = useCallback((requiredRoles: PerfilAcesso[]) => {
         if (loading) return false
         if (requiredRoles.length === 0) return true
         return requiredRoles.some(role => roles.includes(role))
-    }
+    }, [loading, roles])
 
     const value = useMemo(() => ({
         user,
@@ -144,7 +242,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         hasRole,
         refreshRoles
-    }), [user, session, roles, loading])
+    }), [user, session, roles, loading, hasRole, refreshRoles])
 
     return (
         <AuthContext.Provider value={value}>

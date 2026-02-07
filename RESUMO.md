@@ -63,3 +63,38 @@ Quando voltar, podemos:
 
 Rodar os SQLs de diagnóstico (pg_policies e role_table_grants).
 Instrumentar logs no código para capturar error.code, status, message nas consultas de eventos.
+
+## Atualização (2026-02-07)
+
+### Mudanças estruturais aplicadas
+- `lib/supabaseClient.ts`
+  - Voltou para `createBrowserClient` de `@supabase/ssr` (compatível com middleware/cookies).
+  - Timeout global de request restaurado (`NEXT_PUBLIC_SUPABASE_TIMEOUT_MS`, default 15000ms).
+- `contexts/AuthProvider.tsx`
+  - Reescrito fluxo de sincronização de sessão/roles com controle de corrida (`syncId`).
+  - Resync automático em `window focus` e `visibilitychange` para cenário de app instalado/PWA.
+  - Logs detalhados com prefixo `[AuthProvider]`.
+- `components/Sidebar.tsx`
+  - Menu restrito agora depende apenas de estado de auth/roles (não do check de admin compartilhado).
+  - Check de admin compartilhado separado para não bloquear renderização do menu.
+  - Logout resiliente (`global` com fallback `local`) + logs `[Sidebar]`.
+- `app/login/page.tsx`
+  - Logs de tentativa/sucesso/falha de login com prefixo `[Login]`.
+- `lib/supabase/middleware.ts`
+  - Logs server-side de `auth.getUser`, bloqueio de rota `/admin` e requests autenticados.
+- `scripts/diagnostico_auth.sql`
+  - Script de conferência rápida para vínculo auth/users, perfis e políticas RLS/grants.
+
+### Onde olhar os logs no deploy
+- Browser console:
+  - `[SupabaseClient]`
+  - `[AuthProvider]`
+  - `[Sidebar]`
+  - `[Login]`
+- Server logs (Vercel):
+  - `[Middleware]`
+
+### Objetivo dessas mudanças
+- Eliminar estado "logado mas com menu público" por corrida entre sessão, roles e checks auxiliares.
+- Reduzir inconsistência em app instalado após voltar do background.
+- Tornar o ponto exato de falha observável para fechar causa-raiz caso ainda haja intermitência.

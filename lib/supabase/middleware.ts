@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
+    const pathname = request.nextUrl.pathname
     let supabaseResponse = NextResponse.next({
         request,
     })
@@ -15,7 +16,7 @@ export async function updateSession(request: NextRequest) {
                     return request.cookies.getAll()
                 },
                 setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) =>
+                    cookiesToSet.forEach(({ name, value }) =>
                         request.cookies.set(name, value)
                     )
                     supabaseResponse = NextResponse.next({
@@ -37,16 +38,33 @@ export async function updateSession(request: NextRequest) {
 
     const {
         data: { user },
+        error: userError,
     } = await supabase.auth.getUser()
+
+    if (userError) {
+        console.error('[Middleware] auth.getUser error', {
+            pathname,
+            message: userError.message,
+            status: (userError as { status?: number }).status ?? null,
+        })
+    }
 
     if (
         !user &&
-        request.nextUrl.pathname.startsWith('/admin')
+        pathname.startsWith('/admin')
     ) {
+        console.warn('[Middleware] Unauthenticated access blocked', { pathname })
         // no user, potentially respond by redirecting the user to the login page
         const url = request.nextUrl.clone()
         url.pathname = '/login'
         return NextResponse.redirect(url)
+    }
+
+    if (user && pathname.startsWith('/admin')) {
+        console.log('[Middleware] Authenticated admin request', {
+            pathname,
+            userId: user.id,
+        })
     }
 
     // IMPORTANT: You *must* return the supabaseResponse object as it is.

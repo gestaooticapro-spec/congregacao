@@ -7,10 +7,11 @@ import { format, parseISO, startOfWeek, endOfWeek, isSameMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 
-type Membro = Pick<Database['public']['Tables']['membros']['Row'], 'id' | 'nome_completo' | 'nome_civil' | 'grupo_id'>
+
+type Membro = Pick<Database['public']['Tables']['membros']['Row'], 'id' | 'nome_completo' | 'nome_civil' | 'grupo_id' | 'is_anciao'>
 
 type Designacao = {
-    tipo: 'REUNIAO' | 'SUPORTE' | 'LIMPEZA' | 'CAMPO' | 'DISCURSO'
+    tipo: 'REUNIAO' | 'SUPORTE' | 'LIMPEZA' | 'CAMPO' | 'DISCURSO' | 'AGENDA'
     data: string
     descricao: string
     detalhe?: string
@@ -19,7 +20,7 @@ type Designacao = {
 export default function HomeMemberSearch(): React.ReactNode {
     const [membros, setMembros] = useState<Membro[]>([])
     const [selectedMembro, setSelectedMembro] = useState<Membro | null>(null)
-    const [designacoes, setDesignacoes] = useState<Designacao[]>([])
+    const [diasDesignacoes, setDiasDesignacoes] = useState<{ data: string, itens: Designacao[] }[]>([])
     const [loading, setLoading] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
     const [showResults, setShowResults] = useState(false)
@@ -33,7 +34,7 @@ export default function HomeMemberSearch(): React.ReactNode {
         try {
             const { data, error } = await supabase
                 .from('membros')
-                .select('id, nome_completo, nome_civil, grupo_id')
+                .select('id, nome_completo, nome_civil, grupo_id, is_anciao')
                 .order('nome_completo')
 
             if (error) throw error
@@ -61,7 +62,7 @@ export default function HomeMemberSearch(): React.ReactNode {
         setSearchTerm(membro.nome_completo)
         setShowResults(true)
         setLoading(true)
-        setDesignacoes([])
+        setDiasDesignacoes([])
         setError(null)
 
         try {
@@ -76,7 +77,8 @@ export default function HomeMemberSearch(): React.ReactNode {
                 { data: campo },
                 { data: lanche },
                 { data: discursosLocais },
-                { data: discursosFora }
+                { data: discursosFora },
+                { data: agendaAnciaos }
             ] = await Promise.all([
                 // 1. Programação Semanal
                 supabase
@@ -133,7 +135,16 @@ export default function HomeMemberSearch(): React.ReactNode {
                     .select('data, destino_congregacao, tema:temas(titulo)')
                     .eq('orador_id', membro.id)
                     .gte('data', hoje)
-                    .order('data')
+                    .order('data'),
+
+                // 8. Agenda Anciãos (Somente se for Ancião)
+                membro.is_anciao
+                    ? supabase
+                        .from('agenda_anciaos')
+                        .select('*')
+                        .gte('data_inicio', hoje)
+                        .order('data_inicio')
+                    : Promise.resolve({ data: [] })
             ])
 
             // Process 1: Programação Semanal
@@ -301,9 +312,37 @@ export default function HomeMemberSearch(): React.ReactNode {
                 })
             }
 
-            // Ordenar todas por data
-            novasDesignacoes.sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime())
-            setDesignacoes(novasDesignacoes)
+            // Process 8: Agenda Anciãos
+            if (agendaAnciaos) {
+                agendaAnciaos.forEach((ev: any) => {
+                    novasDesignacoes.push({
+                        tipo: 'AGENDA',
+                        data: ev.data_inicio,
+                        descricao: ev.titulo,
+                        detalhe: 'Compromisso do Corpo de Anciãos'
+                    })
+                })
+            }
+
+            // Agrupar por data
+            const diasMap = new Map<string, Designacao[]>()
+            const hojeData = new Date().toISOString().split('T')[0]
+
+            novasDesignacoes.forEach(desig => {
+                // Remove past dates if any slipped through
+                if (desig.data < hojeData) return
+
+                const itens = diasMap.get(desig.data) || []
+                itens.push(desig)
+                diasMap.set(desig.data, itens)
+            })
+
+            // Sort dates
+            const diasOrdenados = Array.from(diasMap.entries())
+                .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime())
+                .map(([data, itens]) => ({ data, itens }))
+
+            setDiasDesignacoes(diasOrdenados)
 
         } catch (error) {
             console.error('Erro ao buscar designações:', error)
@@ -394,33 +433,63 @@ export default function HomeMemberSearch(): React.ReactNode {
                                 Tentar novamente
                             </button>
                         </div>
-                    ) : designacoes.length > 0 ? (
-                        designacoes.map((desig, idx) => (
-                            <div
-                                key={idx}
-                                className={`p-4 rounded-xl border-l-4 shadow-sm bg-white dark:bg-slate-800 transition-transform hover:scale-[1.01] ${desig.tipo === 'LIMPEZA' ? 'border-green-500' :
-                                    desig.tipo === 'SUPORTE' ? 'border-orange-500' :
-                                        desig.tipo === 'CAMPO' ? 'border-purple-500' :
-                                            desig.tipo === 'DISCURSO' ? 'border-teal-500' : 'border-blue-500'
-                                    }`}
-                            >
-                                <div className="flex justify-between items-start">
-                                    <div className="text-left">
-                                        <div className="font-bold text-slate-900 dark:text-white text-lg">
-                                            {desig.descricao}
+                    ) : diasDesignacoes.length > 0 ? (
+                        diasDesignacoes.map((dia, idx) => (
+                            <div key={idx} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                                {/* Header do Dia */}
+                                <div className="bg-slate-50 dark:bg-slate-700/50 p-3 px-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                                    <span className="font-bold text-slate-700 dark:text-slate-200 capitalize">
+                                        {format(parseISO(dia.data), "EEEE, d 'de' MMMM", { locale: ptBR })}
+                                    </span>
+                                    {dia.data === new Date().toISOString().split('T')[0] && (
+                                        <span className="text-xs font-bold px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full">
+                                            HOJE
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* Lista de Designações do Dia */}
+                                <div className="divide-y divide-slate-100 dark:divide-slate-700">
+                                    {dia.itens.map((desig, itemIdx) => (
+                                        <div
+                                            key={itemIdx}
+                                            className="p-4 flex gap-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors"
+                                        >
+                                            {/* Ícone / Indicador Visual */}
+                                            <div className={`
+                                                w-1 rounded-full self-stretch
+                                                ${desig.tipo === 'LIMPEZA' ? 'bg-green-500' :
+                                                    desig.tipo === 'SUPORTE' ? 'bg-orange-500' :
+                                                        desig.tipo === 'CAMPO' ? 'bg-purple-500' :
+                                                            desig.tipo === 'DISCURSO' ? 'bg-teal-500' :
+                                                                desig.tipo === 'AGENDA' ? 'bg-pink-500' : 'bg-blue-500'}
+                                            `} />
+
+                                            <div className="flex-1">
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <h3 className="font-bold text-slate-900 dark:text-white">
+                                                        {desig.descricao}
+                                                    </h3>
+                                                    <span className={`
+                                                        text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider
+                                                        ${desig.tipo === 'LIMPEZA' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                                            desig.tipo === 'SUPORTE' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                                                                desig.tipo === 'CAMPO' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                                                                    desig.tipo === 'DISCURSO' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' :
+                                                                        desig.tipo === 'AGENDA' ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400' :
+                                                                            'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}
+                                                    `}>
+                                                        {desig.tipo}
+                                                    </span>
+                                                </div>
+                                                {desig.detalhe && (
+                                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                                                        {desig.detalhe}
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-                                            {desig.detalhe}
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="font-bold text-slate-700 dark:text-slate-300">
-                                            {format(parseISO(desig.data), "dd 'de' MMMM", { locale: ptBR })}
-                                        </div>
-                                        <div className="text-xs font-bold uppercase tracking-wider mt-1 px-2 py-1 rounded bg-slate-100 dark:bg-slate-700 inline-block text-slate-600 dark:text-slate-400">
-                                            {format(parseISO(desig.data), "EEEE", { locale: ptBR })}
-                                        </div>
-                                    </div>
+                                    ))}
                                 </div>
                             </div>
                         ))

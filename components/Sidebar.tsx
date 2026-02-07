@@ -41,9 +41,6 @@ export default function Sidebar() {
             ? 'Crie Sua Senha'
             : 'Altere Sua Senha';
 
-    // Debug Indicator for development
-    const debugColor = authLoading ? 'bg-yellow-500' : user ? 'bg-green-500' : 'bg-red-500'
-    const debugTitle = authLoading ? 'Carregando...' : user ? `Logado: ${user.email} (${(session?.user?.app_metadata?.roles || []).join(', ')})` : 'Deslogado'
 
     useEffect(() => {
         let active = true;
@@ -192,13 +189,10 @@ export default function Sidebar() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
                 </button>
-                <div className="ml-4 flex items-center gap-2">
-                    <div title={debugTitle} className={`w-3 h-3 rounded-full ${debugColor}`} />
-                    <span className="font-bold text-lg text-slate-800 dark:text-white">
-                        <span className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">Cong</span>
-                        <span>Guaíra</span>
-                    </span>
-                </div>
+                <span className="ml-4 font-bold text-lg text-slate-800 dark:text-white">
+                    <span className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">Cong</span>
+                    <span>Guaíra</span>
+                </span>
             </div>
 
             {isOpen && (
@@ -213,12 +207,9 @@ export default function Sidebar() {
                     } md:translate-x-0 print:hidden flex flex-col ${isCollapsed ? 'md:w-16' : 'md:w-64'} w-64`}
             >
                 <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
-                    <Link href="/" className={`text-xl font-bold flex items-center gap-2 ${isCollapsed ? 'md:hidden' : ''}`} onClick={() => setIsOpen(false)}>
-                        <div title={debugTitle} className={`w-3 h-3 rounded-full ${debugColor}`} />
-                        <div>
-                            <span className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">Cong</span>
-                            <span className="text-slate-700 dark:text-white">Guaíra</span>
-                        </div>
+                    <Link href="/" className={`text-xl font-bold ${isCollapsed ? 'md:hidden' : ''}`} onClick={() => setIsOpen(false)}>
+                        <span className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">Cong</span>
+                        <span className="text-slate-700 dark:text-white">Guaíra</span>
                     </Link>
                     <button onClick={() => setIsOpen(false)} className="md:hidden text-slate-500 hover:text-slate-700">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

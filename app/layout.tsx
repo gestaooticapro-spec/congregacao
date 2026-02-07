@@ -24,6 +24,9 @@ export const metadata: Metadata = {
   title: "CongGuaíra",
   description: "Sistema de Gestão da Congregação Guaíra",
   metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "https://congregacao-five.vercel.app"),
+  other: {
+    google: "notranslate",
+  },
 };
 
 export default function RootLayout({
@@ -32,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="pt-BR" translate="no" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning

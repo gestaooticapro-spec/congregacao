@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Database } from '@/types/database.types'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { format, parseISO, startOfWeek, endOfWeek } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -18,8 +18,11 @@ interface Parte {
     ajudante_id?: string
 }
 
-export default function RelatorioReuniaoMeioSemanaPage() {
+function RelatorioContent() {
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const targetDate = searchParams.get('data')
+
     const [dates, setDates] = useState<string[]>([])
     const [currentIndex, setCurrentIndex] = useState<number>(-1)
     const [programacao, setProgramacao] = useState<Programacao | null>(null)
@@ -48,14 +51,19 @@ export default function RelatorioReuniaoMeioSemanaPage() {
             const uniqueDates = Array.from(new Set(data.map(d => d.data_reuniao)))
             setDates(uniqueDates)
 
-            // Find next meeting (first date >= today)
-            const today = new Date().toISOString().split('T')[0]
-            const nextIndex = uniqueDates.findIndex(d => d >= today)
+            if (targetDate && uniqueDates.includes(targetDate)) {
+                const targetIndex = uniqueDates.indexOf(targetDate)
+                setCurrentIndex(targetIndex)
+            } else {
+                // Find next meeting (first date >= today)
+                const today = new Date().toISOString().split('T')[0]
+                const nextIndex = uniqueDates.findIndex(d => d >= today)
 
-            if (nextIndex !== -1) {
-                setCurrentIndex(nextIndex)
-            } else if (uniqueDates.length > 0) {
-                setCurrentIndex(uniqueDates.length - 1)
+                if (nextIndex !== -1) {
+                    setCurrentIndex(nextIndex)
+                } else if (uniqueDates.length > 0) {
+                    setCurrentIndex(uniqueDates.length - 1)
+                }
             }
         } catch (error) {
             console.error('Erro ao carregar datas:', error)
@@ -300,5 +308,13 @@ export default function RelatorioReuniaoMeioSemanaPage() {
                 }
             `}</style>
         </div>
+    )
+}
+
+export default function RelatorioReuniaoMeioSemanaPage() {
+    return (
+        <Suspense fallback={<div className="p-8 text-center text-slate-500">Carregando visualizador...</div>}>
+            <RelatorioContent />
+        </Suspense>
     )
 }

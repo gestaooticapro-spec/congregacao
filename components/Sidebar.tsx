@@ -288,7 +288,7 @@ export default function Sidebar() {
                         </Link>
                     )}
 
-                    <div className={`mt-2 text-xs text-center text-slate-400 ${isCollapsed ? 'md:hidden' : ''}`}>
+                    <div className={`mt-2 text-xs text-center text-slate-400 ${isCollapsed ? 'md:hidden' : ''}`} suppressHydrationWarning>
                         v0.1.0
                     </div>
                 </div>

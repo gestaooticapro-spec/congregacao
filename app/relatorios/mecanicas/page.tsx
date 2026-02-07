@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Database } from '@/types/database.types'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { format, parseISO, isSaturday, isSunday } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -11,8 +11,11 @@ type SupportAssignment = Database['public']['Tables']['designacoes_suporte']['Ro
     membro: { nome_completo: string; nome_civil: string | null } | null
 }
 
-export default function RelatorioMecanicasPage() {
+function RelatorioContent() {
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const targetDate = searchParams.get('data')
+
     const [dates, setDates] = useState<string[]>([])
     const [currentIndex, setCurrentIndex] = useState<number>(-1)
     const [assignments, setAssignments] = useState<SupportAssignment[]>([])
@@ -41,15 +44,20 @@ export default function RelatorioMecanicasPage() {
             const uniqueDates = Array.from(new Set(data.map(d => d.data)))
             setDates(uniqueDates)
 
-            // Find next meeting (first date >= today)
-            const today = new Date().toISOString().split('T')[0]
-            const nextIndex = uniqueDates.findIndex(d => d >= today)
+            if (targetDate && uniqueDates.includes(targetDate)) {
+                const targetIndex = uniqueDates.indexOf(targetDate)
+                setCurrentIndex(targetIndex)
+            } else {
+                // Find next meeting (first date >= today)
+                const today = new Date().toISOString().split('T')[0]
+                const nextIndex = uniqueDates.findIndex(d => d >= today)
 
-            if (nextIndex !== -1) {
-                setCurrentIndex(nextIndex)
-            } else if (uniqueDates.length > 0) {
-                // If no future dates, show the last one
-                setCurrentIndex(uniqueDates.length - 1)
+                if (nextIndex !== -1) {
+                    setCurrentIndex(nextIndex)
+                } else if (uniqueDates.length > 0) {
+                    // If no future dates, show the last one
+                    setCurrentIndex(uniqueDates.length - 1)
+                }
             }
         } catch (error) {
             console.error('Erro ao carregar datas:', error)
@@ -220,5 +228,13 @@ export default function RelatorioMecanicasPage() {
                 }
             `}</style>
         </div>
+    )
+}
+
+export default function RelatorioMecanicasPage() {
+    return (
+        <Suspense fallback={<div className="p-8 text-center text-slate-500">Carregando visualizador...</div>}>
+            <RelatorioContent />
+        </Suspense>
     )
 }

@@ -56,7 +56,7 @@ export default function HomeEvents() {
             </div>
 
             {loading ? (
-                <div className="text-center py-8 text-slate-500 animate-pulse">
+                <div className="text-center py-8 text-slate-500 animate-pulse" suppressHydrationWarning>
                     Carregando eventos...
                 </div>
             ) : error ? (

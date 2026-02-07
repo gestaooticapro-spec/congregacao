@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { Database } from '@/types/database.types'
 import { format, parseISO, startOfWeek, endOfWeek, isSameMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-
+import { useRouter } from 'next/navigation'
 
 
 type Membro = Pick<Database['public']['Tables']['membros']['Row'], 'id' | 'nome_completo' | 'nome_civil' | 'grupo_id' | 'is_anciao'>
@@ -18,6 +18,7 @@ type Designacao = {
 }
 
 export default function HomeMemberSearch(): React.ReactNode {
+    const router = useRouter()
     const [membros, setMembros] = useState<Membro[]>([])
     const [selectedMembro, setSelectedMembro] = useState<Membro | null>(null)
     const [diasDesignacoes, setDiasDesignacoes] = useState<{ data: string, itens: Designacao[] }[]>([])
@@ -450,46 +451,78 @@ export default function HomeMemberSearch(): React.ReactNode {
 
                                 {/* Lista de Designações do Dia */}
                                 <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                                    {dia.itens.map((desig, itemIdx) => (
-                                        <div
-                                            key={itemIdx}
-                                            className="p-4 flex gap-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors"
-                                        >
-                                            {/* Ícone / Indicador Visual */}
-                                            <div className={`
+                                    {dia.itens.map((desig, itemIdx) => {
+                                        // Logic to determine if card is clickable and where to go
+                                        let destination = ''
+                                        if (desig.tipo === 'SUPORTE') {
+                                            destination = `/relatorios/mecanicas?data=${desig.data}`
+                                        } else if (desig.tipo === 'AGENDA') {
+                                            destination = '/admin/agenda'
+                                        } else if (desig.tipo === 'REUNIAO') {
+                                            // Check if it's Midweek (Wed=3 or Thu=4)
+                                            // The `desig.data` is YYYY-MM-DD string.
+                                            const dateObj = parseISO(desig.data)
+                                            const dayOfWeek = dateObj.getDay() // 0=Sun, 1=Mon, ...
+                                            // Assuming Midweek is Wed(3) or Thu(4)
+                                            if (dayOfWeek === 3 || dayOfWeek === 4) {
+                                                destination = `/relatorios/reuniao-meio-semana?data=${desig.data}`
+                                            }
+                                            // Weekend (Sat=6, Sun=0) -> No link as requested
+                                        }
+
+                                        return (
+                                            <div
+                                                key={itemIdx}
+                                                onClick={() => destination && router.push(destination)}
+                                                className={`
+                                                    p-4 flex gap-4 transition-colors
+                                                    ${destination ? 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50' : ''}
+                                                `}
+                                                role={destination ? 'button' : undefined}
+                                            >
+                                                {/* Ícone / Indicador Visual */}
+                                                <div className={`
                                                 w-1 rounded-full self-stretch
                                                 ${desig.tipo === 'LIMPEZA' ? 'bg-green-500' :
-                                                    desig.tipo === 'SUPORTE' ? 'bg-orange-500' :
-                                                        desig.tipo === 'CAMPO' ? 'bg-purple-500' :
-                                                            desig.tipo === 'DISCURSO' ? 'bg-teal-500' :
-                                                                desig.tipo === 'AGENDA' ? 'bg-pink-500' : 'bg-blue-500'}
+                                                        desig.tipo === 'SUPORTE' ? 'bg-orange-500' :
+                                                            desig.tipo === 'CAMPO' ? 'bg-purple-500' :
+                                                                desig.tipo === 'DISCURSO' ? 'bg-teal-500' :
+                                                                    desig.tipo === 'AGENDA' ? 'bg-pink-500' : 'bg-blue-500'}
                                             `} />
 
-                                            <div className="flex-1">
-                                                <div className="flex items-start justify-between gap-2">
-                                                    <h3 className="font-bold text-slate-900 dark:text-white">
-                                                        {desig.descricao}
-                                                    </h3>
-                                                    <span className={`
+                                                <div className="flex-1">
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <h3 className="font-bold text-slate-900 dark:text-white">
+                                                            {desig.descricao}
+                                                        </h3>
+                                                        <span className={`
                                                         text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider
                                                         ${desig.tipo === 'LIMPEZA' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                                            desig.tipo === 'SUPORTE' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
-                                                                desig.tipo === 'CAMPO' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
-                                                                    desig.tipo === 'DISCURSO' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' :
-                                                                        desig.tipo === 'AGENDA' ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400' :
-                                                                            'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}
+                                                                desig.tipo === 'SUPORTE' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                                                                    desig.tipo === 'CAMPO' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                                                                        desig.tipo === 'DISCURSO' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' :
+                                                                            desig.tipo === 'AGENDA' ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400' :
+                                                                                'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}
                                                     `}>
-                                                        {desig.tipo}
-                                                    </span>
+                                                            {desig.tipo}
+                                                        </span>
+                                                    </div>
+                                                    {desig.detalhe && (
+                                                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                                                            {desig.detalhe}
+                                                        </p>
+                                                    )}
                                                 </div>
-                                                {desig.detalhe && (
-                                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                                                        {desig.detalhe}
-                                                    </p>
+                                                {destination && (
+                                                    <div className="flex items-center text-slate-300 dark:text-slate-600">
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                        </svg>
+                                                    </div>
                                                 )}
                                             </div>
-                                        </div>
-                                    ))}
+                                        )
+                                    })}
                                 </div>
                             </div>
                         ))

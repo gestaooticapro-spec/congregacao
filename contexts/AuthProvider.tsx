@@ -255,15 +255,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             void handleVisibilityChange()
         }
 
-        // window.addEventListener('focus', onWindowFocus)
-        // document.addEventListener('visibilitychange', onVisibilityChange)
+        window.addEventListener('focus', onWindowFocus)
+        document.addEventListener('visibilitychange', onVisibilityChange)
 
         return () => {
             mountedRef.current = false
             subscription.unsubscribe()
 
-            // window.removeEventListener('focus', onWindowFocus)
-            // document.removeEventListener('visibilitychange', onVisibilityChange)
+            window.removeEventListener('focus', onWindowFocus)
+            document.removeEventListener('visibilitychange', onVisibilityChange)
         }
     }, [syncFromSession])
 

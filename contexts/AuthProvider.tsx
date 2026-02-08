@@ -35,38 +35,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const fetchRolesForUser = useCallback(async (userId: string, syncId: number) => {
         logAuth('Fetching roles', { userId, syncId })
-        try {
-            const { data: membro, error: membroError } = await supabase
-                .from('membros')
-                .select('id')
-                .eq('user_id', userId)
-                .maybeSingle()
+        let attempts = 0;
+        const maxAttempts = 3;
 
-            if (membroError) {
-                throw membroError
+        while (attempts < maxAttempts) {
+            attempts++;
+            try {
+                const { data: membro, error: membroError } = await supabase
+                    .from('membros')
+                    .select('id')
+                    .eq('user_id', userId)
+                    .maybeSingle()
+
+                if (membroError) {
+                    throw membroError
+                }
+
+                if (!membro) {
+                    logAuth(`Attempt ${attempts}: User has no linked member record yet`, { userId, syncId })
+                    if (attempts < maxAttempts) {
+                        await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms
+                        continue;
+                    }
+                    return []
+                }
+
+                const { data: perfilData, error: perfilError } = await supabase
+                    .from('membro_perfis')
+                    .select('perfil')
+                    .eq('membro_id', membro.id)
+
+                if (perfilError) throw perfilError
+
+                // If roles found, return them. 
+                // If roles empty but member found, it might be RLS or just no roles assigned.
+                // We'll trust the result if member found, but maybe retry if empty?
+                // Let's retry if empty just in case RLS lags slightly (unlikely but safe).
+                if (!perfilData || perfilData.length === 0) {
+                    logAuth(`Attempt ${attempts}: Member found but roles empty`, { userId, syncId })
+                    if (attempts < maxAttempts) {
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        continue;
+                    }
+                }
+
+                return perfilData?.map(r => r.perfil) || []
+            } catch (error) {
+                logAuth(`Error fetching roles (Attempt ${attempts})`, {
+                    userId,
+                    syncId,
+                    error: error instanceof Error ? error.message : String(error),
+                })
+                if (attempts === maxAttempts) throw error
+                await new Promise(resolve => setTimeout(resolve, 500));
             }
-
-            if (!membro) {
-                logAuth('User has no linked member record', { userId, syncId })
-                return []
-            }
-
-            const { data: perfilData, error: perfilError } = await supabase
-                .from('membro_perfis')
-                .select('perfil')
-                .eq('membro_id', membro.id)
-
-            if (perfilError) throw perfilError
-
-            return perfilData?.map(r => r.perfil) || []
-        } catch (error) {
-            logAuth('Error fetching roles', {
-                userId,
-                syncId,
-                error: error instanceof Error ? error.message : String(error),
-            })
-            throw error
         }
+        return [];
     }, [])
 
     const syncFromSession = useCallback(async (nextSession: Session | null, source: string) => {
@@ -119,12 +143,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             })
         } catch (error) {
             if (!mountedRef.current || syncId !== syncIdRef.current) return
-            setRoles([])
-            logAuth('Sync failed, roles cleared', {
-                source,
-                syncId,
-                error: error instanceof Error ? error.message : String(error),
-            })
+
+            // CRITICAL FIX: Do not wipe roles on transient background sync failures
+            // If the user already has roles, and a re-sync fails (e.g. network blip on focus),
+            // we should KEEP the old roles rather than downgrading them to public.
+            if (source === 'window-focus' || source === 'visibility-visible' || source.startsWith('auth:')) {
+                logAuth('Background sync failed - preserving existing roles', {
+                    source,
+                    syncId,
+                    error: error instanceof Error ? error.message : String(error),
+                    currentRolesCount: roles.length
+                })
+                // Do NOT setRoles([]) here.
+            } else {
+                setRoles([])
+                logAuth('Sync failed, roles cleared', {
+                    source,
+                    syncId,
+                    error: error instanceof Error ? error.message : String(error),
+                })
+            }
         } finally {
             if (mountedRef.current && syncId === syncIdRef.current) {
                 setLoading(false)
@@ -217,20 +255,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             void handleVisibilityChange()
         }
 
-        window.addEventListener('focus', onWindowFocus)
-        document.addEventListener('visibilitychange', onVisibilityChange)
+        // window.addEventListener('focus', onWindowFocus)
+        // document.addEventListener('visibilitychange', onVisibilityChange)
 
         return () => {
             mountedRef.current = false
             subscription.unsubscribe()
 
-            window.removeEventListener('focus', onWindowFocus)
-            document.removeEventListener('visibilitychange', onVisibilityChange)
+            // window.removeEventListener('focus', onWindowFocus)
+            // document.removeEventListener('visibilitychange', onVisibilityChange)
         }
     }, [syncFromSession])
 
     const hasRole = useCallback((requiredRoles: PerfilAcesso[]) => {
-        if (loading) return false
+        // FIX: If we already have roles, don't hide the menu just because a background refresh is loading.
+        // Only block if we are loading AND have no roles yet (initial state).
+        if (loading && roles.length === 0) return false
         if (requiredRoles.length === 0) return true
         return requiredRoles.some(role => roles.includes(role))
     }, [loading, roles])

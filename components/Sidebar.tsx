@@ -172,7 +172,8 @@ export default function Sidebar() {
 
     const visibleItems = menuItems.filter(item => {
         if (!item.restricted) return true;
-        if (authLoading) return false;
+        // FIX: Don't hide menu if we are just searching/refreshing roles but ALREADY have a session.
+        if (authLoading && !session) return false;
         if (!session) return false;
         if (item.allowedRoles && !hasRole(item.allowedRoles)) return false;
         return true;

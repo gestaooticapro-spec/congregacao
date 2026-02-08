@@ -228,13 +228,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const handleFocus = async () => {
             if (!mountedRef.current) return
-            logAuth('Window focus: resyncing session')
-            const { data: { session }, error } = await supabase.auth.getSession()
+            logAuth('Window focus: validating session with server')
+
+            // FIX PWA: getSession() is too lazy (reads from localStorage).
+            // getUser() forces a network call to Supabase. If token is invalid, it triggers auto-refresh.
+            const { data: { user }, error } = await supabase.auth.getUser()
+
             if (error) {
-                logAuth('Window focus getSession error', { error: error.message })
+                logAuth('Window focus validation failed', { error: error.message })
+                // If getUser fails (401), Supabase client usually triggers event 'SIGNED_OUT'
+                // We let the event listener handle the cleanup.
                 return
             }
-            await syncFromSession(session, 'window-focus')
+
+            if (user) {
+                // Now that we know token is valid (or refreshed), get the session object
+                const { data: { session } } = await supabase.auth.getSession()
+                await syncFromSession(session, 'window-focus')
+            }
         }
 
         const handleVisibilityChange = async () => {

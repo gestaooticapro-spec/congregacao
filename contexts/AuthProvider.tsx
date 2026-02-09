@@ -249,14 +249,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         const handleVisibilityChange = async () => {
-            if (document.visibilityState !== 'visible' || !mountedRef.current) return
-            logAuth('Visibility visible: resyncing session')
-            const { data: { session }, error } = await supabase.auth.getSession()
-            if (error) {
-                logAuth('Visibility getSession error', { error: error.message })
+            // AGGRESSIVE LOGOUT STRATEGY:
+            // If the app goes to background (hidden), we force a logout.
+            // This ensures that when the user returns, they must log in again,
+            // guaranteeing a fresh connection and avoiding "frozen" states.
+            if (document.visibilityState === 'hidden' && mountedRef.current) {
+                logAuth('App went to background: forcing aggressive logout')
+                await supabase.auth.signOut()
+                setSession(null)
+                setUser(null)
+                setRoles([])
                 return
             }
-            await syncFromSession(session, 'visibility-visible')
         }
 
         const onWindowFocus = () => {

@@ -248,30 +248,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
         }
 
-        const handleVisibilityChange = async () => {
-            // AGGRESSIVE LOGOUT STRATEGY:
-            // If the app goes to background (hidden), we force a logout.
-            // This ensures that when the user returns, they must log in again,
-            // guaranteeing a fresh connection and avoiding "frozen" states.
-            if (document.visibilityState === 'hidden' && mountedRef.current) {
-                logAuth('App went to background: forcing aggressive logout')
-                await supabase.auth.signOut()
-                setSession(null)
-                setUser(null)
-                setRoles([])
-                return
+        const handleAggressiveLogout = () => {
+            if (!mountedRef.current) return;
+
+            // Check if we are truly hiding/backgrounding
+            if (document.visibilityState === 'hidden') {
+                logAuth('Aggressive Logout Triggered (visibility: hidden)');
+                // Fire and forget - don't await, as the browser might kill the process
+                void supabase.auth.signOut();
+                setSession(null);
+                setUser(null);
+                setRoles([]);
             }
+        }
+
+        const onVisibilityChange = () => {
+            void handleAggressiveLogout();
+        }
+
+        // PWA Specific: iOS/Android sometimes prefer 'pagehide'
+        const onPageHide = () => {
+            logAuth('Aggressive Logout Triggered (pagehide)');
+            void supabase.auth.signOut();
         }
 
         const onWindowFocus = () => {
             void handleFocus()
         }
-        const onVisibilityChange = () => {
-            void handleVisibilityChange()
-        }
 
         window.addEventListener('focus', onWindowFocus)
         document.addEventListener('visibilitychange', onVisibilityChange)
+        window.addEventListener('pagehide', onPageHide)
 
         return () => {
             mountedRef.current = false
@@ -279,6 +286,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             window.removeEventListener('focus', onWindowFocus)
             document.removeEventListener('visibilitychange', onVisibilityChange)
+            window.removeEventListener('pagehide', onPageHide)
         }
     }, [syncFromSession])
 

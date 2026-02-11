@@ -98,3 +98,6 @@ Instrumentar logs no código para capturar error.code, status, message nas consu
 - Eliminar estado "logado mas com menu público" por corrida entre sessão, roles e checks auxiliares.
 - Reduzir inconsistência em app instalado após voltar do background.
 - Tornar o ponto exato de falha observável para fechar causa-raiz caso ainda haja intermitência.
+
+## Documentação Adicional
+- [DOC_FUNCIONALIDADES_FUTURAS.md](file:///c:/Users/Usuario/.gemini/antigravity/scratch/congregation-manager/DOC_FUNCIONALIDADES_FUTURAS.md): Planejamento detalhado das funcionalidades de Ausências (Indisponibilidades) e Acesso via PIN.

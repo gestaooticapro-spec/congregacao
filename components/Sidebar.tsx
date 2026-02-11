@@ -25,8 +25,8 @@ import {
     BookOpen,
     Mic,
     Eraser,
-    Library,
-    Users2
+    LibraryBig,
+    UsersRound
 } from 'lucide-react'
 
 type MenuItem =
@@ -53,9 +53,9 @@ const MENU_ITEMS: MenuItem[] = [
     { type: 'link', href: '/admin/escalas', label: 'Outras Designações', icon: ClipboardList, restricted: true, allowedRoles: ['ADMIN', 'RQA'] },
     { type: 'link', href: '/admin/campo', label: 'Campo', icon: Map, restricted: true, allowedRoles: ['ADMIN', 'RQA'] },
     { type: 'link', href: '/admin/limpeza', label: 'Limpeza', icon: Eraser, restricted: true, allowedRoles: ['ADMIN', 'SUPERINTENDENTE_SERVICO'] },
-    { type: 'link', href: '/admin/cadastros', label: 'Cadastros', icon: Library, restricted: true, allowedRoles: ['ADMIN', 'RESP_SABADO'] },
+    { type: 'link', href: '/admin/cadastros', label: 'Cadastros', icon: LibraryBig, restricted: true, allowedRoles: ['ADMIN', 'RESP_SABADO'] },
     { type: 'link', href: '/admin/grupos', label: 'Grupos', icon: Users, restricted: true, allowedRoles: ['ADMIN', 'SUPERINTENDENTE_SERVICO'] },
-    { type: 'link', href: '/admin/membros', label: 'Membros', icon: Users2, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA'] },
+    { type: 'link', href: '/admin/membros', label: 'Membros', icon: UsersRound, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA'] },
     { type: 'link', href: '/admin/territorios', label: 'Gerenciar Territórios', icon: Settings, restricted: true, allowedRoles: ['ADMIN', 'RT'] },
     { type: 'link', href: '/admin/permissoes', label: 'Permissões', icon: UserCheck, restricted: true, allowedRoles: ['ADMIN'] },
 ]

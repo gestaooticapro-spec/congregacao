@@ -117,16 +117,16 @@ export default function EventList({ events, onEventClick }: EventListProps) {
                                     {event.tipo}
                                 </span>
                             </div>
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white truncate group-hover:text-primary transition-colors">
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white truncate group-hover:text-primary transition-colors mb-1">
                                 {event.titulo}
                             </h3>
+                            <div className="flex items-center">
+                                <span className={`text-xs font-semibold px-2 py-1 rounded-full ${color.bg} ${color.base}`}>
+                                    {getTimeRemaining(event.data_inicio)}
+                                </span>
+                            </div>
                         </div>
 
-                        <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
-                            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${color.bg} ${color.base}`}>
-                                {getTimeRemaining(event.data_inicio)}
-                            </span>
-                        </div>
                     </div>
                 )
             })}

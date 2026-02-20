@@ -1,6 +1,6 @@
 'use client'
 
-import { format } from 'date-fns'
+import { format, differenceInDays, differenceInWeeks, differenceInMonths, startOfDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 interface EventListProps {
@@ -58,6 +58,28 @@ export default function EventList({ events, onEventClick }: EventListProps) {
         return colors[monthIndex % colors.length]
     }
 
+    const getTimeRemaining = (dateString: string) => {
+        const today = startOfDay(new Date())
+        const eventDate = startOfDay(new Date(dateString + 'T12:00:00'))
+
+        const diffMonths = differenceInMonths(eventDate, today)
+        if (diffMonths > 0) {
+            return diffMonths === 1 ? 'Falta 1 mês' : `Faltam ${diffMonths} meses`
+        }
+
+        const diffWeeks = differenceInWeeks(eventDate, today)
+        if (diffWeeks > 0) {
+            return diffWeeks === 1 ? 'Falta 1 semana' : `Faltam ${diffWeeks} semanas`
+        }
+
+        const diffDays = differenceInDays(eventDate, today)
+        if (diffDays === 0) return 'Hoje'
+        if (diffDays === 1) return 'Amanhã'
+        if (diffDays > 0) return `Faltam ${diffDays} dias`
+
+        return ''
+    }
+
     return (
         <div className="space-y-3">
             {events.map(event => {
@@ -100,8 +122,10 @@ export default function EventList({ events, onEventClick }: EventListProps) {
                             </h3>
                         </div>
 
-                        <div className="text-slate-400">
-                            ➡️
+                        <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
+                            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${color.bg} ${color.base}`}>
+                                {getTimeRemaining(event.data_inicio)}
+                            </span>
                         </div>
                     </div>
                 )

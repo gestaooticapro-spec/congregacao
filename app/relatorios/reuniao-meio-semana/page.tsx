@@ -256,33 +256,45 @@ function RelatorioContent() {
                         </p>
                     </div>
 
-                    <p className="text-lg font-medium text-slate-600">
-                        {programacao?.semana_descricao}
-                    </p>
+                    {programacao?.evento_tipo === 'normal' && (
+                        <p className="text-lg font-medium text-slate-600 capitalize">
+                            {programacao?.semana_descricao}
+                        </p>
+                    )}
                 </div>
 
-                {/* Top Roles */}
-                <div className="grid grid-cols-2 gap-8 mb-8 bg-slate-50 p-4 rounded-lg border border-slate-200 print:bg-transparent print:border-none print:p-0">
-                    <div>
-                        <span className="block text-xs font-bold uppercase text-slate-500 mb-1">Presidente</span>
-                        <span className="text-lg font-bold text-slate-900">{getMemberName(programacao?.presidente_id)}</span>
+                {programacao?.evento_tipo === 'normal' ? (
+                    <>
+                        {/* Top Roles */}
+                        <div className="grid grid-cols-2 gap-8 mb-8 bg-slate-50 p-4 rounded-lg border border-slate-200 print:bg-transparent print:border-none print:p-0">
+                            <div>
+                                <span className="block text-xs font-bold uppercase text-slate-500 mb-1">Presidente</span>
+                                <span className="text-lg font-bold text-slate-900">{getMemberName(programacao?.presidente_id)}</span>
+                            </div>
+                            <div className="text-right">
+                                <span className="block text-xs font-bold uppercase text-slate-500 mb-1">Oração Inicial</span>
+                                <span className="text-lg font-bold text-slate-900">{getMemberName(programacao?.oracao_inicial_id)}</span>
+                            </div>
+                        </div>
+
+                        {/* Sections */}
+                        {renderPartSection('Tesouros da Palavra de Deus', 'TESOUROS', 'text-slate-700')}
+                        {renderPartSection('Faça Seu Melhor no Ministério', 'MINISTERIO', 'text-yellow-700')}
+                        {renderPartSection('Nossa Vida Cristã', 'VIDA_CRISTA', 'text-red-700')}
+
+                        {/* Closing Prayer */}
+                        <div className="mt-8 pt-4 border-t border-slate-300 flex justify-between items-center">
+                            <span className="font-bold uppercase text-sm text-slate-500">Oração Final</span>
+                            <span className="text-lg font-bold text-slate-900">{getMemberName(programacao?.oracao_final_id)}</span>
+                        </div>
+                    </>
+                ) : (
+                    <div className="flex items-center justify-center py-20 bg-slate-50 rounded-lg border border-slate-200 print:bg-transparent print:border-none">
+                        <h2 className="text-4xl font-bold uppercase text-slate-800 tracking-wider">
+                            {programacao?.evento_tipo}
+                        </h2>
                     </div>
-                    <div className="text-right">
-                        <span className="block text-xs font-bold uppercase text-slate-500 mb-1">Oração Inicial</span>
-                        <span className="text-lg font-bold text-slate-900">{getMemberName(programacao?.oracao_inicial_id)}</span>
-                    </div>
-                </div>
-
-                {/* Sections */}
-                {renderPartSection('Tesouros da Palavra de Deus', 'TESOUROS', 'text-slate-700')}
-                {renderPartSection('Faça Seu Melhor no Ministério', 'MINISTERIO', 'text-yellow-700')}
-                {renderPartSection('Nossa Vida Cristã', 'VIDA_CRISTA', 'text-red-700')}
-
-                {/* Closing Prayer */}
-                <div className="mt-8 pt-4 border-t border-slate-300 flex justify-between items-center">
-                    <span className="font-bold uppercase text-sm text-slate-500">Oração Final</span>
-                    <span className="text-lg font-bold text-slate-900">{getMemberName(programacao?.oracao_final_id)}</span>
-                </div>
+                )}
 
                 <div className="mt-12 text-sm text-slate-500 text-center italic">
                     "A tua palavra é lâmpada para o meu pé, e luz para o meu caminho." - Salmo 119:105

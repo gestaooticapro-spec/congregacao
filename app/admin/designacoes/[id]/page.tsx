@@ -382,7 +382,8 @@ export default function EditarDesignacoesPage() {
                                 <select
                                     value={parte.membro_id || ''}
                                     onChange={(e) => handleAssignmentChange(parte.originalIndex, 'membro_id', e.target.value)}
-                                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-sm"
+                                    disabled={programacao?.evento_tipo !== 'normal'}
+                                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-sm disabled:opacity-50"
                                 >
                                     <option value="">Selecione...</option>
                                     {getQualifiedMembers(parte).map(m => (
@@ -426,7 +427,8 @@ export default function EditarDesignacoesPage() {
                                     <select
                                         value={parte.ajudante_id || ''}
                                         onChange={(e) => handleAssignmentChange(parte.originalIndex, 'ajudante_id', e.target.value)}
-                                        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-sm"
+                                        disabled={programacao?.evento_tipo !== 'normal'}
+                                        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-sm disabled:opacity-50"
                                     >
                                         <option value="">Selecione...</option>
                                         {getQualifiedMembers(parte, true).map(m => (
@@ -453,15 +455,15 @@ export default function EditarDesignacoesPage() {
             <div className="flex justify-between items-center mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Designações</h1>
-                    <p className="text-gray-600 dark:text-gray-400 mt-1">
-                        {new Date(programacao.data_reuniao + 'T00:00:00').toLocaleDateString('pt-BR')} - {programacao.semana_descricao}
+                    <p className="text-gray-600 dark:text-gray-400 mt-1 capitalize">
+                        {new Date(programacao.data_reuniao + 'T00:00:00').toLocaleDateString('pt-BR')} - {programacao.evento_tipo !== 'normal' ? programacao.evento_tipo : programacao.semana_descricao}
                     </p>
                 </div>
                 <div className="flex gap-2">
                     <button
                         onClick={handleAutoSuggest}
-                        disabled={generating}
-                        className="px-4 py-2 border border-purple-300 dark:border-purple-600 rounded-md text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/30 flex items-center gap-2"
+                        disabled={generating || programacao?.evento_tipo !== 'normal'}
+                        className="px-4 py-2 border border-purple-300 dark:border-purple-600 rounded-md text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/30 flex items-center gap-2 disabled:opacity-50"
                     >
                         {generating ? 'Gerando...' : '✨ Sugestão Automática'}
                     </button>
@@ -497,8 +499,8 @@ export default function EditarDesignacoesPage() {
                             </p>
                         </div>
 
-                        <p className="text-lg font-medium text-slate-600">
-                            {programacao?.semana_descricao}
+                        <p className="text-lg font-medium text-slate-600 capitalize">
+                            {programacao?.evento_tipo !== 'normal' ? programacao?.evento_tipo : programacao?.semana_descricao}
                         </p>
                     </div>
 
@@ -618,7 +620,8 @@ export default function EditarDesignacoesPage() {
                                 <select
                                     value={presidenteId}
                                     onChange={(e) => handleRoleChange('presidente_id', e.target.value)}
-                                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
+                                    disabled={programacao?.evento_tipo !== 'normal'}
+                                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 disabled:opacity-50"
                                 >
                                     <option value="">Selecione...</option>
                                     {getQualifiedMembers({ tipo: 'PRESIDENTE', nome: '', tempo: 0 }).map(m => (
@@ -658,7 +661,8 @@ export default function EditarDesignacoesPage() {
                                 <select
                                     value={oracaoInicialId}
                                     onChange={(e) => handleRoleChange('oracao_inicial_id', e.target.value)}
-                                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
+                                    disabled={programacao?.evento_tipo !== 'normal'}
+                                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 disabled:opacity-50"
                                 >
                                     <option value="">Selecione...</option>
                                     {getQualifiedMembers({ tipo: 'ORACAO', nome: '', tempo: 0 }).map(m => (
@@ -698,7 +702,8 @@ export default function EditarDesignacoesPage() {
                                 <select
                                     value={oracaoFinalId}
                                     onChange={(e) => handleRoleChange('oracao_final_id', e.target.value)}
-                                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
+                                    disabled={programacao?.evento_tipo !== 'normal'}
+                                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 disabled:opacity-50"
                                 >
                                     <option value="">Selecione...</option>
                                     {getQualifiedMembers({ tipo: 'ORACAO', nome: '', tempo: 0 }).map(m => (
@@ -742,7 +747,7 @@ export default function EditarDesignacoesPage() {
                 <div className="fixed bottom-0 left-0 right-0 p-4 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-4 max-w-5xl mx-auto print:hidden">
                     <button
                         onClick={handleSave}
-                        disabled={saving}
+                        disabled={saving || programacao?.evento_tipo !== 'normal'}
                         className="px-8 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 font-medium shadow-lg text-lg"
                     >
                         {saving ? 'Salvando...' : 'Salvar Designações'}

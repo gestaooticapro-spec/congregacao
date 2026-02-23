@@ -28,6 +28,7 @@ export default function ProgramacaoForm({ initialData, isEditing = false }: Prog
     // Basic Info
     const [dataReuniao, setDataReuniao] = useState(initialData?.data_reuniao || '')
     const [semanaDescricao, setSemanaDescricao] = useState(initialData?.semana_descricao || '')
+    const [eventoTipo, setEventoTipo] = useState(initialData?.evento_tipo || 'normal')
 
 
     // Parts
@@ -82,7 +83,10 @@ export default function ProgramacaoForm({ initialData, isEditing = false }: Prog
             alert('Data da reunião é obrigatória')
             return
         }
-        if (!semanaDescricao) {
+
+        const isSemanaObrigatoria = !['assembleia', 'congresso', 'celebração'].includes(eventoTipo);
+
+        if (isSemanaObrigatoria && !semanaDescricao) {
             alert('Descrição da semana é obrigatória')
             return
         }
@@ -113,6 +117,7 @@ export default function ProgramacaoForm({ initialData, isEditing = false }: Prog
             const payload = {
                 data_reuniao: dataReuniao,
                 semana_descricao: semanaDescricao,
+                evento_tipo: eventoTipo,
                 temas_tesouros: '',
                 partes: partesParaSalvar
             }
@@ -224,6 +229,20 @@ export default function ProgramacaoForm({ initialData, isEditing = false }: Prog
                             className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-transparent"
                         />
                     </div>
+                </div>
+                <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo de Evento</label>
+                    <select
+                        value={eventoTipo}
+                        onChange={(e) => setEventoTipo(e.target.value as any)}
+                        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    >
+                        <option value="normal">Normal</option>
+                        <option value="assembleia">Assembleia</option>
+                        <option value="congresso">Congresso</option>
+                        <option value="celebração">Celebração</option>
+                        <option value="visita spte">Visita Supte.</option>
+                    </select>
                 </div>
             </div>
 

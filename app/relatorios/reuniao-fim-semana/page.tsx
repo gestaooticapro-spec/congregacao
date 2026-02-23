@@ -98,10 +98,25 @@ export default function ReuniaoFimSemanaPage() {
                 `)
                 .eq('data', activeDateStr)
 
+            // Fetch Mid-week Meeting to check for special event types
+            const weekStartStr = format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+            const weekEndStr = format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+
+            const { data: specialEventData } = await supabase
+                .from('programacao_semanal')
+                .select('evento_tipo')
+                .gte('data_reuniao', weekStartStr)
+                .lte('data_reuniao', weekEndStr)
+                .in('evento_tipo', ['assembleia', 'congresso'])
+                .limit(1)
+
+            const isSpecialEvent = specialEventData && specialEventData.length > 0;
+
             setData({
                 talk: talkData,
                 assignments: assignmentsData || [],
-                displayDate: activeDateStr
+                displayDate: activeDateStr,
+                specialEventType: isSpecialEvent ? specialEventData[0].evento_tipo : null
             })
 
         } catch (error) {
@@ -145,6 +160,12 @@ export default function ReuniaoFimSemanaPage() {
 
             {loading ? (
                 <div className="text-center py-12 text-slate-500">Carregando...</div>
+            ) : data?.specialEventType ? (
+                <div className="bg-white dark:bg-slate-800 p-12 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center">
+                    <h2 className="text-3xl uppercase tracking-wider text-slate-800 dark:text-white font-bold text-center">
+                        {data.specialEventType}
+                    </h2>
+                </div>
             ) : (
                 <div className="space-y-6">
                     {/* President Card */}

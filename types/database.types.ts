@@ -321,6 +321,7 @@ export interface Database {
           id: string
           data_reuniao: string
           semana_descricao: string
+          evento_tipo: 'normal' | 'assembleia' | 'congresso' | 'celebração' | 'visita spte'
           temas_tesouros: string | null
 
           partes: Json | null
@@ -336,6 +337,7 @@ export interface Database {
           id?: string
           data_reuniao: string
           semana_descricao: string
+          evento_tipo?: 'normal' | 'assembleia' | 'congresso' | 'celebração' | 'visita spte'
           temas_tesouros?: string | null
 
           partes?: Json | null
@@ -348,6 +350,7 @@ export interface Database {
           id?: string
           data_reuniao?: string
           semana_descricao?: string
+          evento_tipo?: 'normal' | 'assembleia' | 'congresso' | 'celebração' | 'visita spte'
           temas_tesouros?: string | null
 
           partes?: Json | null

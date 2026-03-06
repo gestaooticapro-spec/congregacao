@@ -6,18 +6,20 @@ export default function SaidasPage() {
     const [selectedObs, setSelectedObs] = useState<string | null>(null);
 
     const schedule = [
-        { dia: 'Terça', hora: '08:00', local: 'Zoom', obs: '' },
-        { dia: 'Terça', hora: '16:45', local: 'Zoom', obs: 'Local pode ser combinado' },
+        { dia: 'Segunda', hora: '08:00', local: 'Salão', obs: '' },
+        { dia: 'Terça', hora: '08:00', local: 'Salão', obs: '' },
+        { dia: 'Terça', hora: '18:30', local: 'Salão', obs: '' },
         { dia: 'Quarta', hora: '08:00', local: 'Salão', obs: '' },
-        { dia: 'Quarta', hora: '08:00', local: 'Zoom', obs: '' },
+        { dia: 'Quinta', hora: '08:00', local: 'Salão', obs: '' },
+        { dia: 'Quinta', hora: '18:30', local: 'Salão', obs: '' },
         { dia: 'Sexta', hora: '08:00', local: 'Salão', obs: '' },
         { dia: 'Sábado', hora: '08:00', local: 'Salão', obs: '' },
-        { dia: 'Domingo', hora: '08:30', local: 'Salão', obs: '' },
+        { dia: 'Domingo', hora: '08:00', local: 'Salão', obs: '' },
     ];
 
     return (
         <div className="p-6 max-w-4xl mx-auto">
-            <h1 className="text-2xl font-bold mb-6 text-slate-800 dark:text-white">Horário de Campo</h1>
+            <h1 className="text-2xl font-bold mb-6 text-slate-800 dark:text-white">Horário de Campo Especial</h1>
 
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
                 <div className="overflow-x-auto">

@@ -1,38 +1,10 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react'
-import { User, Session } from '@supabase/supabase-js'
-import { supabase } from '@/lib/supabaseClient'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { Session, User } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabaseClient'
 import { PerfilAcesso } from '@/types/database.types'
-
-// Improved retry helper
-async function retry<T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> {
-    try {
-        return await fn()
-    } catch (error) {
-        if (retries > 0) {
-            console.warn(`[AuthBackport] Retrying operation... (${retries} left)`)
-            await new Promise(r => setTimeout(r, delay))
-            return retry(fn, retries - 1, delay * 1.5) // Exponential backoff
-        }
-        throw error
-    }
-}
-
-// Hard timeout wrapper
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
-    return new Promise((resolve) => {
-        const timer = setTimeout(() => {
-            console.warn(`[AuthBackport] Operation timed out after ${ms}ms`)
-            resolve(null)
-        }, ms)
-        promise.then(
-            (val) => { clearTimeout(timer); resolve(val) },
-            (err) => { clearTimeout(timer); console.warn('[AuthBackport] Promise rejected:', err); resolve(null) }
-        )
-    })
-}
 
 type AuthContextType = {
     user: User | null
@@ -43,160 +15,295 @@ type AuthContextType = {
     signOut: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextType>({
-    user: null,
-    session: null,
-    roles: [],
-    loading: true,
-    hasRole: () => false,
-    signOut: async () => { },
-})
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+const logAuth = (message: string, details?: Record<string, unknown>) => {
+    const timestamp = new Date().toISOString()
+    if (details) {
+        console.log(`[AuthProvider][${timestamp}] ${message}`, details)
+        return
+    }
+    console.log(`[AuthProvider][${timestamp}] ${message}`)
+}
+
+async function retry<T>(fn: () => Promise<T>, retries = 2, delay = 500): Promise<T> {
+    try {
+        return await fn()
+    } catch (error) {
+        if (retries <= 0) throw error
+        logAuth('Retrying auth operation', { retriesLeft: retries })
+        await new Promise(resolve => setTimeout(resolve, delay))
+        return retry(fn, retries - 1, delay * 2)
+    }
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null)
     const [session, setSession] = useState<Session | null>(null)
     const [roles, setRoles] = useState<PerfilAcesso[]>([])
     const [loading, setLoading] = useState(true)
+    const mountedRef = useRef(false)
+    const syncIdRef = useRef(0)
+    const rolesRef = useRef<PerfilAcesso[]>([])
     const router = useRouter()
-    const syncingRef = useRef(false)
 
-    const fetchRoles = useCallback(async (userId: string): Promise<PerfilAcesso[]> => {
-        const fetchLogic = async () => {
-            // 1. Get Membro ID
-            const memberResult = await supabase
-                .from('membros')
-                .select('id')
-                .eq('user_id', userId)
-                .maybeSingle()
+    useEffect(() => {
+        rolesRef.current = roles
+    }, [roles])
 
-            if (memberResult.error) throw memberResult.error
-            if (!memberResult.data) return []
-
-            // 2. Get Roles
-            const rolesResult = await supabase
-                .from('membro_perfis')
-                .select('perfil')
-                .eq('membro_id', memberResult.data.id)
-
-            if (rolesResult.error) throw rolesResult.error
-            return rolesResult.data.map((p: any) => p.perfil) as PerfilAcesso[]
-        }
+    const fetchRolesForUser = useCallback(async (userId: string, syncId: number): Promise<PerfilAcesso[] | null> => {
+        logAuth('Fetching roles', { userId, syncId })
 
         try {
-            // Wrap in Retry AND Timeout (Total 10s seems safe)
-            const data = await withTimeout(
-                retry(fetchLogic, 3, 1000),
-                10000
-            )
-            return data || []
-        } catch (e) {
-            console.error('[AuthBackport] Error fetching roles after retries:', e)
-            return []
+            return await retry(async () => {
+                const { data: member, error: memberError } = await supabase
+                    .from('membros')
+                    .select('id')
+                    .eq('user_id', userId)
+                    .maybeSingle()
+
+                if (memberError) throw memberError
+                if (!member) {
+                    logAuth('No member linked to user', { userId, syncId })
+                    return []
+                }
+
+                const { data: roleRows, error: rolesError } = await supabase
+                    .from('membro_perfis')
+                    .select('perfil')
+                    .eq('membro_id', member.id)
+
+                if (rolesError) throw rolesError
+
+                return roleRows.map(row => row.perfil as PerfilAcesso)
+            })
+        } catch (error) {
+            logAuth('Failed to fetch roles', {
+                userId,
+                syncId,
+                error: error instanceof Error ? error.message : String(error),
+            })
+            return null
         }
     }, [])
 
-    const syncAuth = useCallback(async (newSession: Session | null) => {
-        if (syncingRef.current) return
-        syncingRef.current = true
+    const syncFromSession = useCallback(async (nextSession: Session | null, source: string) => {
+        const syncId = ++syncIdRef.current
+        const nextUser = nextSession?.user ?? null
+        const hadRoles = rolesRef.current.length > 0
+        const isBackgroundSync = source !== 'initialize' && source !== 'auth:SIGNED_IN'
+
+        logAuth('Sync start', {
+            source,
+            syncId,
+            hasSession: !!nextSession,
+            userId: nextUser?.id ?? null,
+            hadRoles,
+        })
+
+        if (!mountedRef.current) return
+
+        setSession(nextSession)
+        setUser(nextUser)
+
+        if (!nextUser) {
+            setRoles([])
+            setLoading(false)
+            logAuth('Sync finished without active session', { source, syncId })
+            return
+        }
+
+        setLoading(true)
 
         try {
-            console.log('[AuthBackport] syncAuth', { hasSession: !!newSession, email: newSession?.user?.email })
-            setSession(newSession)
-            setUser(newSession?.user ?? null)
+            const fetchedRoles = await fetchRolesForUser(nextUser.id, syncId)
 
-            if (newSession?.user) {
-                // Only update roles if fetching succeeds. If it returns [], implies no roles or persistent error.
-                // We cannot distinguish easily, but with retries, it's safer.
-                const userRoles = await fetchRoles(newSession.user.id)
-                console.log('[AuthBackport] Roles:', userRoles)
-                setRoles(userRoles)
-            } else {
-                setRoles([])
+            if (!mountedRef.current || syncId !== syncIdRef.current) {
+                logAuth('Discarding stale sync result', {
+                    source,
+                    syncId,
+                    activeSyncId: syncIdRef.current,
+                })
+                return
             }
+
+            if (fetchedRoles === null) {
+                if (isBackgroundSync && hadRoles) {
+                    logAuth('Background sync failed, preserving existing roles', {
+                        source,
+                        syncId,
+                        currentRoleCount: rolesRef.current.length,
+                    })
+                    return
+                }
+
+                setRoles([])
+                logAuth('Sync failed before roles could be resolved', { source, syncId })
+                return
+            }
+
+            setRoles(prevRoles => {
+                const current = prevRoles.join('|')
+                const next = fetchedRoles.join('|')
+                return current === next ? prevRoles : fetchedRoles
+            })
+
+            logAuth('Roles applied', {
+                source,
+                syncId,
+                roles: fetchedRoles,
+            })
         } finally {
-            setLoading(false)
-            syncingRef.current = false
+            if (mountedRef.current && syncId === syncIdRef.current) {
+                setLoading(false)
+                logAuth('Sync end', { source, syncId })
+            }
         }
-    }, [fetchRoles])
+    }, [fetchRolesForUser])
+
+    const signOut = useCallback(async () => {
+        logAuth('Sign out requested')
+        setSession(null)
+        setUser(null)
+        setRoles([])
+        setLoading(false)
+
+        try {
+            const { error: globalError } = await supabase.auth.signOut({ scope: 'global' })
+            if (globalError) {
+                logAuth('Global sign out failed, retrying locally', { error: globalError.message })
+                const { error: localError } = await supabase.auth.signOut({ scope: 'local' })
+                if (localError) {
+                    logAuth('Local sign out also failed', { error: localError.message })
+                }
+            }
+        } catch (error) {
+            logAuth('Unexpected sign out error', {
+                error: error instanceof Error ? error.message : String(error),
+            })
+        }
+
+        router.replace('/login')
+        router.refresh()
+    }, [router])
 
     useEffect(() => {
-        let mounted = true
+        mountedRef.current = true
 
         const initialize = async () => {
+            logAuth('Initialization start')
+
             try {
-                const result = await withTimeout(supabase.auth.getSession(), 8000) // Increased init timeout
-                if (mounted && result) {
-                    await syncAuth(result.data.session)
-                } else if (mounted) {
-                    console.warn('[AuthBackport] Initial getSession timed out')
-                    setLoading(false)
+                const { data: { session: initialSession }, error } = await supabase.auth.getSession()
+                if (error) {
+                    logAuth('Initialization getSession failed', { error: error.message })
+                    if (mountedRef.current) setLoading(false)
+                    return
                 }
-            } catch (e) {
-                console.error('[AuthBackport] Init error:', e)
-                if (mounted) setLoading(false)
+
+                await syncFromSession(initialSession, 'initialize')
+            } catch (error) {
+                logAuth('Initialization error', {
+                    error: error instanceof Error ? error.message : String(error),
+                })
+                if (mountedRef.current) setLoading(false)
             }
         }
-        initialize()
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log(`[AuthBackport] onAuthStateChange: ${event}`)
-            if (!mounted) return
+        void initialize()
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
+            if (!mountedRef.current) return
+            if (event === 'INITIAL_SESSION') return
+
+            logAuth('Auth state changed', {
+                event,
+                hasSession: !!nextSession,
+                userId: nextSession?.user?.id ?? null,
+            })
 
             if (event === 'SIGNED_OUT') {
                 setSession(null)
                 setUser(null)
                 setRoles([])
                 setLoading(false)
-            } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-                await syncAuth(session)
+                return
+            }
+
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+                void syncFromSession(nextSession, `auth:${event}`)
             }
         })
 
-        // Gentle re-sync on focus with debounce AND timeout
-        let focusTimeout: NodeJS.Timeout | null = null
-        const handleFocus = () => {
-            if (focusTimeout) clearTimeout(focusTimeout)
-            focusTimeout = setTimeout(async () => {
-                if (!mounted) return
-                console.log('[AuthBackport] Focus re-sync (debounced)')
-                try {
-                    // Use a simpler check or short timeout
-                    const result = await withTimeout(supabase.auth.getSession(), 5000)
-                    if (mounted && result) {
-                        await syncAuth(result.data.session)
-                    }
-                } catch (e) {
-                    console.warn('[AuthBackport] Focus sync failed (keeping current state)')
+        const handleFocus = async () => {
+            if (!mountedRef.current) return
+            logAuth('Window focus, validating session')
+
+            try {
+                const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser()
+                if (userError) {
+                    logAuth('Focus validation failed', { error: userError.message })
+                    return
                 }
-            }, 2000)
+
+                if (!currentUser) return
+
+                const { data: { session: focusedSession }, error: sessionError } = await supabase.auth.getSession()
+                if (sessionError) {
+                    logAuth('Focus getSession failed', { error: sessionError.message })
+                    return
+                }
+
+                await syncFromSession(focusedSession, 'window-focus')
+            } catch (error) {
+                logAuth('Unexpected focus sync error', {
+                    error: error instanceof Error ? error.message : String(error),
+                })
+            }
         }
+
+        const handleVisibilityChange = async () => {
+            if (document.visibilityState !== 'visible' || !mountedRef.current) return
+
+            try {
+                const { data: { session: visibleSession }, error } = await supabase.auth.getSession()
+                if (error) {
+                    logAuth('Visibility getSession failed', { error: error.message })
+                    return
+                }
+
+                await syncFromSession(visibleSession, 'visibility-visible')
+            } catch (error) {
+                logAuth('Unexpected visibility sync error', {
+                    error: error instanceof Error ? error.message : String(error),
+                })
+            }
+        }
+
         window.addEventListener('focus', handleFocus)
+        document.addEventListener('visibilitychange', handleVisibilityChange)
 
         return () => {
-            mounted = false
+            mountedRef.current = false
             subscription.unsubscribe()
             window.removeEventListener('focus', handleFocus)
-            if (focusTimeout) clearTimeout(focusTimeout)
+            document.removeEventListener('visibilitychange', handleVisibilityChange)
         }
-    }, [syncAuth])
+    }, [syncFromSession])
 
     const hasRole = useCallback((requiredRoles: PerfilAcesso[]) => {
+        if (loading && roles.length === 0) return false
         if (!requiredRoles || requiredRoles.length === 0) return true
         return requiredRoles.some(role => roles.includes(role))
-    }, [roles])
-
-    const signOut = useCallback(async () => {
-        console.log('[AuthBackport] signOut')
-        setSession(null)
-        setUser(null)
-        setRoles([])
-        try { await supabase.auth.signOut() } catch { }
-        router.push('/login')
-        router.refresh()
-    }, [router])
+    }, [loading, roles])
 
     const value = useMemo(() => ({
-        user, session, roles, loading, hasRole, signOut
+        user,
+        session,
+        roles,
+        loading,
+        hasRole,
+        signOut,
     }), [user, session, roles, loading, hasRole, signOut])
 
     return (
@@ -206,4 +313,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     )
 }
 
-export const useAuth = () => useContext(AuthContext)
+export function useAuth() {
+    const context = useContext(AuthContext)
+    if (!context) {
+        throw new Error('useAuth must be used within an AuthProvider')
+    }
+    return context
+}

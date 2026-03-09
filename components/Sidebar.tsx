@@ -9,6 +9,7 @@ import { PerfilAcesso } from '@/types/database.types'
 import {
     Home,
     LayoutDashboard,
+    LucideIcon,
     Map,
     Calendar,
     LogOut,
@@ -30,7 +31,7 @@ import {
 } from 'lucide-react'
 
 type MenuItem =
-    | { type: 'link'; href: string; label: string; icon: any; restricted?: boolean; allowedRoles?: PerfilAcesso[] }
+    | { type: 'link'; href: string; label: string; icon: LucideIcon; restricted?: boolean; allowedRoles?: PerfilAcesso[] }
     | { type: 'separator'; label?: string; restricted?: boolean; allowedRoles?: PerfilAcesso[] }
 
 // Static definition outside component to avoid recreation
@@ -64,7 +65,7 @@ function Sidebar() {
     const pathname = usePathname()
     const [isMobileOpen, setIsMobileOpen] = useState(false)
     const { isCollapsed, toggleCollapsed } = useSidebar()
-    const { user, hasRole, loading, signOut } = useAuth()
+    const { user, roles, hasRole, loading, signOut } = useAuth()
 
     const isActive = (path: string) => {
         if (path === '/' && pathname !== '/') return false
@@ -74,12 +75,12 @@ function Sidebar() {
     const visibleItems = useMemo(() => {
         return MENU_ITEMS.filter(item => {
             if (!item.restricted) return true
-            if (loading) return false
+            if (loading && roles.length === 0) return false
             if (!user) return false
             if (item.allowedRoles && !hasRole(item.allowedRoles)) return false
             return true
         })
-    }, [user, loading, hasRole])
+    }, [user, roles.length, loading, hasRole])
 
     const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ')
 

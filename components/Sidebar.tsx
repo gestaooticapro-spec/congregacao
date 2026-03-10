@@ -1,11 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useState, useMemo, memo } from 'react'
 import { useAuth } from '@/contexts/AuthProvider'
 import { useSidebar } from '@/contexts/SidebarContext'
 import { PerfilAcesso } from '@/types/database.types'
+import PinLoginModal from '@/components/PinLoginModal'
 import {
     Home,
     LayoutDashboard,
@@ -27,11 +28,13 @@ import {
     Mic,
     Eraser,
     LibraryBig,
-    UsersRound
+    UsersRound,
+    UserCircle
 } from 'lucide-react'
 
 type MenuItem =
     | { type: 'link'; href: string; label: string; icon: LucideIcon; restricted?: boolean; allowedRoles?: PerfilAcesso[] }
+    | { type: 'pin-button'; label: string; icon: LucideIcon; restricted?: boolean; allowedRoles?: PerfilAcesso[] }
     | { type: 'separator'; label?: string; restricted?: boolean; allowedRoles?: PerfilAcesso[] }
 
 // Static definition outside component to avoid recreation
@@ -40,6 +43,7 @@ const MENU_ITEMS: MenuItem[] = [
     { type: 'link', href: '/quadro-de-anuncios', label: 'Quadro de Anúncios', icon: LayoutDashboard },
     { type: 'link', href: '/territorios', label: 'Territórios', icon: Map },
     { type: 'link', href: '/saidas', label: 'Horário de Campo', icon: Calendar },
+    { type: 'pin-button', label: 'Meu Relatório (PIN)', icon: UserCircle },
 
     { type: 'separator', label: 'Área Comum', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT', 'IRMAO'] },
     { type: 'link', href: '/admin/meu-login', label: 'Senha e Acesso', icon: ShieldCheck, restricted: true },
@@ -49,6 +53,8 @@ const MENU_ITEMS: MenuItem[] = [
     { type: 'link', href: '/admin/relatorios', label: 'Relatórios', icon: FileText, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT', 'IRMAO'] },
 
     { type: 'separator', label: 'Administração', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT'] },
+    { type: 'link', href: '/admin/relatorios-secretaria', label: 'Secretário (Relatórios)', icon: FileText, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO'] },
+    { type: 'link', href: '/admin/relatorios-grupo', label: 'Meu Grupo', icon: Users, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT'] },
     { type: 'link', href: '/programacao', label: 'Reunião de Quarta', icon: BookOpen, restricted: true, allowedRoles: ['ADMIN', 'RESP_QUINTA'] },
     { type: 'link', href: '/admin/discursos', label: 'Discursos', icon: Mic, restricted: true, allowedRoles: ['ADMIN', 'RESP_SABADO'] },
     { type: 'link', href: '/admin/escalas', label: 'Outras Designações', icon: ClipboardList, restricted: true, allowedRoles: ['ADMIN', 'RQA'] },
@@ -63,13 +69,15 @@ const MENU_ITEMS: MenuItem[] = [
 
 function Sidebar() {
     const pathname = usePathname()
+    const router = useRouter()
     const [isMobileOpen, setIsMobileOpen] = useState(false)
+    const [isPinModalOpen, setIsPinModalOpen] = useState(false)
     const { isCollapsed, toggleCollapsed } = useSidebar()
     const { user, roles, hasRole, loading, signOut } = useAuth()
 
     const isActive = (path: string) => {
         if (path === '/' && pathname !== '/') return false
-        return pathname === path || (path !== '/' && pathname.startsWith(path))
+        return pathname === path || (path !== '/' && pathname.startsWith(path + '/'))
     }
 
     const visibleItems = useMemo(() => {
@@ -138,6 +146,33 @@ function Sidebar() {
 
                 <nav className="flex-1 overflow-y-auto p-2 space-y-1 thin-scrollbar">
                     {visibleItems.map((item, index) => {
+                        if (item.type === 'pin-button') {
+                            const Icon = item.icon
+                            return (
+                                <button
+                                    key="pin-button-item"
+                                    onClick={() => {
+                                        if (typeof window !== 'undefined' && localStorage.getItem('membro_sessao')) {
+                                            router.push('/meu-relatorio')
+                                        } else {
+                                            setIsPinModalOpen(true)
+                                        }
+                                        setIsMobileOpen(false)
+                                    }}
+                                    className={cn(
+                                        "w-full flex items-center gap-3 py-2.5 px-3 rounded-lg transition-all duration-200 font-medium group",
+                                        "text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800/50 hover:text-blue-600 dark:hover:text-blue-400"
+                                    )}
+                                    title={isCollapsed ? item.label : undefined}
+                                >
+                                    <Icon className="w-5 h-5 shrink-0 text-gray-400 dark:text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
+                                    <span className={cn("truncate transition-opacity", isCollapsed && "md:hidden")}>
+                                        {item.label}
+                                    </span>
+                                </button>
+                            )
+                        }
+
                         if (item.type === 'separator') {
                             return (
                                 <div key={`sep-${index}`} className="my-2 px-3">
@@ -207,6 +242,10 @@ function Sidebar() {
                     )}
                 </div>
             </aside>
+            <PinLoginModal
+                isOpen={isPinModalOpen}
+                onClose={() => setIsPinModalOpen(false)}
+            />
         </>
     )
 }

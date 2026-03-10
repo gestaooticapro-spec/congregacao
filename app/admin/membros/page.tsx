@@ -201,6 +201,7 @@ export default function MembrosPage() {
                     <thead className="bg-slate-50 dark:bg-slate-800/50">
                         <tr>
                             <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Nome</th>
+                            <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-32">PIN de Acesso</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -221,6 +222,16 @@ export default function MembrosPage() {
                                         </div>
                                         <span>{membro.nome_civil || membro.nome_completo}</span>
                                     </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-right">
+                                    {membro.pin ? (
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                            <span>🔑</span>
+                                            {membro.pin}
+                                        </span>
+                                    ) : (
+                                        <span className="text-xs text-slate-400 italic">Sem PIN</span>
+                                    )}
                                 </td>
                             </tr>
                         ))}

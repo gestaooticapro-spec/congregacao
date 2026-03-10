@@ -189,6 +189,7 @@ export interface Database {
           is_discurso_fora: boolean
           ativo: boolean
           genero: 'M' | 'F' | null
+          pin: string | null
           created_at: string
           updated_at: string
         }
@@ -231,6 +232,7 @@ export interface Database {
           is_discurso_fora?: boolean
           ativo?: boolean
           genero?: 'M' | 'F' | null
+          pin?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -273,6 +275,7 @@ export interface Database {
           is_discurso_fora?: boolean
           ativo?: boolean
           genero?: 'M' | 'F' | null
+          pin?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -801,12 +804,77 @@ export interface Database {
           }
         ]
       }
+      relatorios_servico: {
+        Row: {
+          id: string
+          membro_id: string
+          mes: string
+          horas: number | null
+          estudos: number | null
+          trabalhou: boolean | null
+          is_pioneiro_auxiliar: boolean | null
+          criado_em: string
+          atualizado_em: string
+        }
+        Insert: {
+          id?: string
+          membro_id: string
+          mes: string
+          horas?: number | null
+          estudos?: number | null
+          trabalhou?: boolean | null
+          is_pioneiro_auxiliar?: boolean | null
+          criado_em?: string
+          atualizado_em?: string
+        }
+        Update: {
+          id?: string
+          membro_id?: string
+          mes?: string
+          horas?: number | null
+          estudos?: number | null
+          trabalhou?: boolean | null
+          is_pioneiro_auxiliar?: boolean | null
+          criado_em?: string
+          atualizado_em?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relatorios_servico_membro_id_fkey"
+            columns: ["membro_id"]
+            isOneToOne: false
+            referencedRelation: "membros"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      verificar_pin: {
+        Args: {
+          p_pin: string
+        }
+        Returns: {
+          id: string
+          nome_completo: string
+          grupo_id: string | null
+          is_pioneiro: boolean
+        }[]
+      }
+      enviar_relatorio_viapin: {
+        Args: {
+          p_pin: string
+          p_mes: string
+          p_horas?: number | null
+          p_estudos?: number | null
+          p_trabalhou?: boolean | null
+          p_is_pioneiro_auxiliar?: boolean | null
+        }
+        Returns: string
+      }
     }
     Enums: {
       perfil_acesso: PerfilAcesso

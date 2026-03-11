@@ -121,7 +121,7 @@ export default function EditarDesignacoesPage() {
         const activeMembros = membros.filter(m => m.ativo !== false)
 
         if (isAssistant) {
-            if (parte.tipo === 'VIDA_CRISTA' && parte.nome.includes('Estudo Bíblico')) {
+            if (parte.tipo === 'VIDA_CRISTA' && parte.nome.toLowerCase().includes('estudo bíblico')) {
                 return activeMembros.filter(m => m.is_leitor_estudo_biblico)
             }
             return activeMembros.filter(m => m.is_ajudante)
@@ -149,8 +149,8 @@ export default function EditarDesignacoesPage() {
         }
 
         if (parte.tipo === 'VIDA_CRISTA') {
-            if (parte.nome.includes('Estudo Bíblico de Congregação')) return activeMembros.filter(m => m.is_anciao) // Conductor
-            if (parte.nome.includes('Leitura do Estudo')) return activeMembros.filter(m => m.is_leitor_estudo_biblico) // Reader
+            if (parte.nome.toLowerCase().includes('estudo bíblico')) return activeMembros.filter(m => m.is_anciao) // Conductor
+            if (parte.nome.toLowerCase().includes('leitura do estudo')) return activeMembros.filter(m => m.is_leitor_estudo_biblico) // Reader
 
             // Fix: Restrict other parts to Elders or Ministerial Servants
             return activeMembros.filter(m => m.is_anciao || m.is_servo_ministerial)
@@ -358,8 +358,8 @@ export default function EditarDesignacoesPage() {
         // Enforce Bible Study as last item for VIDA_CRISTA
         if (tipo === 'VIDA_CRISTA') {
             sectionParts.sort((a, b) => {
-                const aIsStudy = a.nome.includes('Estudo Bíblico');
-                const bIsStudy = b.nome.includes('Estudo Bíblico');
+                const aIsStudy = a.nome.toLowerCase().includes('estudo bíblico');
+                const bIsStudy = b.nome.toLowerCase().includes('estudo bíblico');
                 if (aIsStudy && !bIsStudy) return 1;
                 if (!aIsStudy && bIsStudy) return -1;
                 return 0;
@@ -419,10 +419,10 @@ export default function EditarDesignacoesPage() {
                                 </div>
                             </div>
 
-                            {(parte.tipo === 'MINISTERIO' || (parte.tipo === 'VIDA_CRISTA' && parte.nome.includes('Estudo Bíblico'))) && (
+                            {(parte.tipo === 'MINISTERIO' || (parte.tipo === 'VIDA_CRISTA' && parte.nome.toLowerCase().includes('estudo bíblico'))) && (
                                 <div className="md:col-span-4">
                                     <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                                        {parte.nome.includes('Estudo Bíblico') ? 'Leitor' : 'Ajudante'}
+                                        {parte.nome.toLowerCase().includes('estudo bíblico') ? 'Leitor' : 'Ajudante'}
                                     </label>
                                     <select
                                         value={parte.ajudante_id || ''}
@@ -522,8 +522,8 @@ export default function EditarDesignacoesPage() {
 
                         if (tipo === 'VIDA_CRISTA') {
                             sectionParts.sort((a, b) => {
-                                const aIsStudy = a.nome.includes('Estudo Bíblico');
-                                const bIsStudy = b.nome.includes('Estudo Bíblico');
+                                const aIsStudy = a.nome.toLowerCase().includes('estudo bíblico');
+                                const bIsStudy = b.nome.toLowerCase().includes('estudo bíblico');
                                 if (aIsStudy && !bIsStudy) return 1;
                                 if (!aIsStudy && bIsStudy) return -1;
                                 return 0;
@@ -564,9 +564,9 @@ export default function EditarDesignacoesPage() {
                                                 <div className="font-bold text-slate-900">
                                                     {membros.find(m => m.id === parte.membro_id)?.nome_completo || '______________________'}
                                                 </div>
-                                                {(parte.ajudante_id || (parte.tipo === 'VIDA_CRISTA' && parte.nome.includes('Estudo Bíblico') && parte.ajudante_id)) && (
+                                                {(parte.ajudante_id || (parte.tipo === 'VIDA_CRISTA' && parte.nome.toLowerCase().includes('estudo bíblico') && parte.ajudante_id)) && (
                                                     <div className="text-xs text-slate-500 italic">
-                                                        {parte.nome.includes('Estudo Bíblico') ? 'Leitor: ' : 'Ajudante: '}
+                                                        {parte.nome.toLowerCase().includes('estudo bíblico') ? 'Leitor: ' : 'Ajudante: '}
                                                         {membros.find(m => m.id === parte.ajudante_id)?.nome_completo}
                                                     </div>
                                                 )}

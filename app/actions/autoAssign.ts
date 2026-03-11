@@ -163,9 +163,9 @@ export async function generateAutoAssignments(programacaoId: string): Promise<{ 
                     candidates = membros.filter(m => m.is_publicador && m.genero === 'F')
                 }
             } else if (parte.tipo === 'VIDA_CRISTA') {
-                if (parte.nome.includes('Estudo Bíblico de Congregação')) {
+                if (parte.nome.toLowerCase().includes('estudo bíblico')) {
                     candidates = membros.filter(m => m.is_anciao)
-                } else if (parte.nome.includes('Leitura do Estudo')) {
+                } else if (parte.nome.toLowerCase().includes('leitura do estudo')) {
                     candidates = membros.filter(m => m.is_leitor_estudo_biblico)
                 } else {
                     candidates = membros.filter(m => (m.is_anciao || m.is_servo_ministerial) && m.is_parte_vida_ministerio)
@@ -189,7 +189,7 @@ export async function generateAutoAssignments(programacaoId: string): Promise<{ 
             // `if (parte.nome.includes('Estudo Bíblico') ? 'Leitor' : 'Ajudante')`
             // So for Bible Study, the Reader is the `ajudante_id`.
 
-            if (parte.tipo === 'VIDA_CRISTA' && parte.nome.includes('Estudo Bíblico') && !newParte.ajudante_id) {
+            if (parte.tipo === 'VIDA_CRISTA' && parte.nome.toLowerCase().includes('estudo bíblico') && !newParte.ajudante_id) {
                 const readerCandidates = membros.filter(m => m.is_leitor_estudo_biblico)
                 const selectedReader = pickCandidate(readerCandidates)
                 if (selectedReader) {

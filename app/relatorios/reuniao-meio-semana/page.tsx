@@ -6,6 +6,7 @@ import { Database } from '@/types/database.types'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { format, parseISO, startOfWeek, endOfWeek } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { calculatePartTimes } from '@/lib/scheduleUtils'
 
 type Programacao = Database['public']['Tables']['programacao_semanal']['Row']
 type Membro = Database['public']['Tables']['membros']['Row']
@@ -145,15 +146,44 @@ function RelatorioContent() {
         return `Semana de ${startStr} a ${endStr}`
     }
 
+    const renderBoldTime = (text: string) => {
+        if (!text) return text
+        // Match patterns like (5 min.), (10 min), (45 min.)
+        const regex = /(\(\d+\s*min\.?\))/gi
+
+        const parts = text.split(regex)
+
+        return (
+            <>
+                {parts.map((part, i) => {
+                    if (part.match(regex)) {
+                        return <span key={i} className="font-bold">{part}</span>
+                    }
+                    return part
+                })}
+            </>
+        )
+    }
+
     const renderPartSection = (title: string, tipo: string, colorClass: string) => {
-        const partes = (programacao?.partes as any as Parte[]) || []
-        const sectionParts = partes.filter(p => p.tipo === tipo)
+        const rawPartes = (programacao?.partes as any as Parte[]) || []
+
+        let sectionParts = rawPartes.filter(p => p.tipo === tipo)
+
+        // Calculate times for all parts to get the correct start time for each
+        const calculatedPartes = calculatePartTimes(rawPartes, programacao?.data_reuniao || new Date().toISOString().split('T')[0])
+
+        // Map the calculated start time back onto filtered section parts
+        sectionParts = sectionParts.map(p => {
+            const calculated = calculatedPartes.find(c => c.nome === p.nome && c.tipo === p.tipo)
+            return { ...p, startTime: calculated?.startTime || '' }
+        })
 
         // Enforce Bible Study order
         if (tipo === 'VIDA_CRISTA') {
             sectionParts.sort((a, b) => {
-                const aIsStudy = a.nome.includes('Estudo Bíblico');
-                const bIsStudy = b.nome.includes('Estudo Bíblico');
+                const aIsStudy = a.nome.toLowerCase().includes('estudo bíblico');
+                const bIsStudy = b.nome.toLowerCase().includes('estudo bíblico');
                 if (aIsStudy && !bIsStudy) return 1;
                 if (!aIsStudy && bIsStudy) return -1;
                 return 0;
@@ -171,18 +201,18 @@ function RelatorioContent() {
                     {sectionParts.map((parte, index) => (
                         <div key={index} className="grid grid-cols-12 gap-2 items-start text-sm">
                             <div className="col-span-2 font-bold text-slate-500">
-                                {parte.tempo} min
+                                <span className="text-slate-900 mr-2">{(parte as any).startTime}</span>
                             </div>
                             <div className="col-span-6 font-medium">
-                                {parte.nome}
+                                {renderBoldTime(parte.nome)}
                             </div>
                             <div className="col-span-4 text-right">
                                 <div className="font-bold text-slate-900">
                                     {getMemberName(parte.membro_id)}
                                 </div>
-                                {(parte.ajudante_id || (parte.tipo === 'VIDA_CRISTA' && parte.nome.includes('Estudo Bíblico') && parte.ajudante_id)) && (
+                                {(parte.ajudante_id || (parte.tipo === 'VIDA_CRISTA' && parte.nome.toLowerCase().includes('estudo bíblico') && parte.ajudante_id)) && (
                                     <div className="text-xs text-slate-500 italic">
-                                        {parte.nome.includes('Estudo Bíblico') ? 'Leitor: ' : 'Ajudante: '}
+                                        {parte.nome.toLowerCase().includes('estudo bíblico') ? 'Leitor: ' : 'Ajudante: '}
                                         {getMemberName(parte.ajudante_id)}
                                     </div>
                                 )}
@@ -199,126 +229,174 @@ function RelatorioContent() {
     const currentDate = dates[currentIndex]
 
     return (
-        <div className="p-8 max-w-[210mm] mx-auto min-h-screen print:min-h-0 print:h-auto print:p-0 bg-white text-slate-900" suppressHydrationWarning>
-            {/* Header / Controls (Hidden on Print) */}
-            <div className="mb-8 print:hidden">
-                <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-2xl font-bold">Relatório de Reunião</h1>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => router.back()}
-                            className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-                        >
-                            Voltar
-                        </button>
-                        <button
-                            onClick={handlePrint}
-                            className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors flex items-center gap-2"
-                        >
-                            <span>🖨️</span> Imprimir
-                        </button>
+        <div className="p-4 md:p-8 max-w-5xl mx-auto min-h-screen bg-transparent text-slate-900 print:p-0 print:min-h-0 print:m-0" suppressHydrationWarning>
+            {/* Print View */}
+            <div className="hidden print:block fixed inset-0 bg-white z-[9999] p-0 overflow-y-auto text-slate-900">
+                <div className="max-w-[210mm] mx-auto p-[15mm]">
+                    <div className="text-center mb-8 border-b border-slate-300 pb-4">
+                        <h2 className="text-2xl font-bold uppercase mb-1">Nossa Vida e Ministério Cristão</h2>
+
+                        <div className="mb-2">
+                            <p className="text-xl font-bold text-slate-800 capitalize">
+                                {currentDate ? format(parseISO(currentDate), "d 'de' MMMM 'de' yyyy", { locale: ptBR }) : ''}
+                            </p>
+                            <p className="text-md text-slate-600 capitalize">
+                                {currentDate ? getWeekRange(currentDate) : ''}
+                            </p>
+                        </div>
+
+                        <p className="text-lg font-medium text-slate-600 capitalize">
+                            {programacao?.evento_tipo !== 'normal' ? programacao?.evento_tipo : programacao?.semana_descricao}
+                        </p>
+                    </div>
+
+                    {programacao?.evento_tipo === 'normal' ? (
+                        <>
+                            {/* Top Roles */}
+                            <div className="grid grid-cols-2 gap-8 mb-8">
+                                <div>
+                                    <span className="block text-xs font-bold uppercase text-slate-500 mb-1">Presidente</span>
+                                    <span className="text-lg font-bold text-slate-900">{getMemberName(programacao?.presidente_id)}</span>
+                                </div>
+                                <div className="text-right">
+                                    <span className="block text-xs font-bold uppercase text-slate-500 mb-1">Oração Inicial</span>
+                                    <span className="text-lg font-bold text-slate-900">{getMemberName(programacao?.oracao_inicial_id)}</span>
+                                </div>
+                            </div>
+
+                            {/* Sections */}
+                            {renderPartSection('Tesouros da Palavra de Deus', 'TESOUROS', 'text-slate-700')}
+                            {renderPartSection('Faça Seu Melhor no Ministério', 'MINISTERIO', 'text-yellow-700')}
+                            {renderPartSection('Nossa Vida Cristã', 'VIDA_CRISTA', 'text-red-700')}
+
+                            {/* Closing Prayer */}
+                            <div className="mt-8 pt-4 border-t border-slate-300 flex justify-between items-center">
+                                <span className="font-bold uppercase text-sm text-slate-500">Oração Final</span>
+                                <span className="text-lg font-bold text-slate-900">{getMemberName(programacao?.oracao_final_id)}</span>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="flex items-center justify-center py-20 bg-slate-50 rounded-lg border border-slate-200">
+                            <h2 className="text-4xl font-bold uppercase text-slate-800 tracking-wider">
+                                {programacao?.evento_tipo}
+                            </h2>
+                        </div>
+                    )}
+
+                    <div className="mt-12 text-sm text-slate-500 text-center italic">
+                        "A tua palavra é lâmpada para o meu pé, e luz para o meu caminho." - Salmo 119:105
                     </div>
                 </div>
 
-                <div className="flex items-center justify-center gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
-                    <button
-                        onClick={handlePrev}
-                        disabled={currentIndex <= 0}
-                        className="p-2 hover:bg-slate-200 rounded-full transition-colors disabled:opacity-30"
-                    >
-                        ◀️
-                    </button>
-                    <h2 className="text-xl font-bold capitalize w-64 text-center">
-                        {currentDate ? format(parseISO(currentDate), "d 'de' MMMM", { locale: ptBR }) : 'Carregando...'}
-                    </h2>
-                    <button
-                        onClick={handleNext}
-                        disabled={currentIndex >= dates.length - 1}
-                        className="p-2 hover:bg-slate-200 rounded-full transition-colors disabled:opacity-30"
-                    >
-                        ▶️
-                    </button>
-                </div>
+                <style jsx global>{`
+                    @media print {
+                        @page {
+                            size: A4 portrait;
+                            margin: 0;
+                        }
+                        body {
+                            background: white;
+                            -webkit-print-color-adjust: exact;
+                        }
+                        /* Hide scrollbars in print */
+                        ::-webkit-scrollbar {
+                            display: none;
+                        }
+                        nav, aside, header, footer, .no-print {
+                            display: none !important;
+                        }
+                    }
+                `}</style>
             </div>
 
-            {/* Report Content */}
-            <div className="print-content">
-                <div className="text-center mb-8 border-b border-slate-300 pb-4">
-                    <h2 className="text-2xl font-bold uppercase mb-1">Nossa Vida e Ministério Cristão</h2>
-
-                    {/* Print Only Header Info */}
-                    <div className="hidden print:block mb-2">
-                        <p className="text-xl font-bold text-slate-800 capitalize">
-                            {currentDate ? format(parseISO(currentDate), "d 'de' MMMM 'de' yyyy", { locale: ptBR }) : ''}
-                        </p>
-                        <p className="text-md text-slate-600 capitalize">
-                            {currentDate ? getWeekRange(currentDate) : ''}
-                        </p>
+            {/* Editor/Screen View (Hidden on Print) */}
+            <div className="print:hidden">
+                <div className="mb-8 print:hidden">
+                    <div className="flex justify-between items-center mb-6">
+                        <h1 className="text-2xl font-bold">Relatório de Reunião</h1>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => router.back()}
+                                className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors bg-white shadow-sm"
+                            >
+                                Voltar
+                            </button>
+                            <button
+                                onClick={handlePrint}
+                                className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors flex items-center gap-2 shadow-sm"
+                            >
+                                <span>🖨️</span> Imprimir
+                            </button>
+                        </div>
                     </div>
 
-                    {programacao?.evento_tipo === 'normal' && (
-                        <p className="text-lg font-medium text-slate-600 capitalize">
-                            {programacao?.semana_descricao}
-                        </p>
+                    <div className="flex items-center justify-center gap-4 bg-white shadow-sm p-4 rounded-lg border border-slate-200">
+                        <button
+                            onClick={handlePrev}
+                            disabled={currentIndex <= 0}
+                            className="p-2 hover:bg-slate-100 rounded-full transition-colors disabled:opacity-30"
+                        >
+                            ◀️
+                        </button>
+                        <h2 className="text-xl font-bold capitalize w-64 text-center">
+                            {currentDate ? format(parseISO(currentDate), "d 'de' MMMM", { locale: ptBR }) : 'Carregando...'}
+                        </h2>
+                        <button
+                            onClick={handleNext}
+                            disabled={currentIndex >= dates.length - 1}
+                            className="p-2 hover:bg-slate-100 rounded-full transition-colors disabled:opacity-30"
+                        >
+                            ▶️
+                        </button>
+                    </div>
+                </div>
+
+                {/* Report Content for Screen */}
+                <div className="max-w-[210mm] mx-auto bg-white border border-slate-200 p-8 shadow-sm rounded-lg print:hidden">
+                    <div className="text-center mb-8 border-b border-slate-300 pb-4">
+                        <h2 className="text-2xl font-bold uppercase mb-1">Nossa Vida e Ministério Cristão</h2>
+
+                        {programacao?.evento_tipo === 'normal' && (
+                            <p className="text-lg font-medium text-slate-600 capitalize">
+                                {programacao?.semana_descricao}
+                            </p>
+                        )}
+                    </div>
+
+                    {programacao?.evento_tipo === 'normal' ? (
+                        <>
+                            {/* Top Roles */}
+                            <div className="grid grid-cols-2 gap-8 mb-8 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                <div>
+                                    <span className="block text-xs font-bold uppercase text-slate-500 mb-1">Presidente</span>
+                                    <span className="text-lg font-bold text-slate-900">{getMemberName(programacao?.presidente_id)}</span>
+                                </div>
+                                <div className="text-right">
+                                    <span className="block text-xs font-bold uppercase text-slate-500 mb-1">Oração Inicial</span>
+                                    <span className="text-lg font-bold text-slate-900">{getMemberName(programacao?.oracao_inicial_id)}</span>
+                                </div>
+                            </div>
+
+                            {/* Sections */}
+                            {renderPartSection('Tesouros da Palavra de Deus', 'TESOUROS', 'text-slate-700')}
+                            {renderPartSection('Faça Seu Melhor no Ministério', 'MINISTERIO', 'text-yellow-700')}
+                            {renderPartSection('Nossa Vida Cristã', 'VIDA_CRISTA', 'text-red-700')}
+
+                            {/* Closing Prayer */}
+                            <div className="mt-8 pt-4 border-t border-slate-300 flex justify-between items-center">
+                                <span className="font-bold uppercase text-sm text-slate-500">Oração Final</span>
+                                <span className="text-lg font-bold text-slate-900">{getMemberName(programacao?.oracao_final_id)}</span>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="flex items-center justify-center py-20 bg-slate-50 rounded-lg border border-slate-200">
+                            <h2 className="text-4xl font-bold uppercase text-slate-800 tracking-wider">
+                                {programacao?.evento_tipo}
+                            </h2>
+                        </div>
                     )}
                 </div>
-
-                {programacao?.evento_tipo === 'normal' ? (
-                    <>
-                        {/* Top Roles */}
-                        <div className="grid grid-cols-2 gap-8 mb-8 bg-slate-50 p-4 rounded-lg border border-slate-200 print:bg-transparent print:border-none print:p-0">
-                            <div>
-                                <span className="block text-xs font-bold uppercase text-slate-500 mb-1">Presidente</span>
-                                <span className="text-lg font-bold text-slate-900">{getMemberName(programacao?.presidente_id)}</span>
-                            </div>
-                            <div className="text-right">
-                                <span className="block text-xs font-bold uppercase text-slate-500 mb-1">Oração Inicial</span>
-                                <span className="text-lg font-bold text-slate-900">{getMemberName(programacao?.oracao_inicial_id)}</span>
-                            </div>
-                        </div>
-
-                        {/* Sections */}
-                        {renderPartSection('Tesouros da Palavra de Deus', 'TESOUROS', 'text-slate-700')}
-                        {renderPartSection('Faça Seu Melhor no Ministério', 'MINISTERIO', 'text-yellow-700')}
-                        {renderPartSection('Nossa Vida Cristã', 'VIDA_CRISTA', 'text-red-700')}
-
-                        {/* Closing Prayer */}
-                        <div className="mt-8 pt-4 border-t border-slate-300 flex justify-between items-center">
-                            <span className="font-bold uppercase text-sm text-slate-500">Oração Final</span>
-                            <span className="text-lg font-bold text-slate-900">{getMemberName(programacao?.oracao_final_id)}</span>
-                        </div>
-                    </>
-                ) : (
-                    <div className="flex items-center justify-center py-20 bg-slate-50 rounded-lg border border-slate-200 print:bg-transparent print:border-none">
-                        <h2 className="text-4xl font-bold uppercase text-slate-800 tracking-wider">
-                            {programacao?.evento_tipo}
-                        </h2>
-                    </div>
-                )}
-
-                <div className="mt-12 text-sm text-slate-500 text-center italic">
-                    "A tua palavra é lâmpada para o meu pé, e luz para o meu caminho." - Salmo 119:105
-                </div>
             </div>
-
-            <style jsx global>{`
-                @media print {
-                    @page {
-                        size: A4 portrait;
-                        margin: 15mm;
-                    }
-                    body {
-                        background: white;
-                        -webkit-print-color-adjust: exact;
-                    }
-                    nav, aside, header, footer, .no-print {
-                        display: none !important;
-                    }
-                    .print-content {
-                        width: 100%;
-                    }
-                }
-            `}</style>
         </div>
     )
 }

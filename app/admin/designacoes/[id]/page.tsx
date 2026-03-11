@@ -9,6 +9,7 @@ import { format, parseISO, startOfWeek, endOfWeek } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { generateAutoAssignments } from '@/app/actions/autoAssign'
 import HistoryModal from '@/components/HistoryModal'
+import { calculatePartTimes } from '@/lib/scheduleUtils'
 
 type Programacao = Database['public']['Tables']['programacao_semanal']['Row']
 type Membro = Database['public']['Tables']['membros']['Row']
@@ -352,8 +353,29 @@ export default function EditarDesignacoesPage() {
         return `Semana de ${startStr} a ${endStr}`
     }
 
+    const renderBoldTime = (text: string) => {
+        if (!text) return text
+        const regex = /(\(\d+\s*min\.?\))/gi
+        const parts = text.split(regex)
+
+        return (
+            <>
+                {parts.map((part, i) => {
+                    if (part.match(regex)) {
+                        return <span key={i} className="font-bold">{part}</span>
+                    }
+                    return part
+                })}
+            </>
+        )
+    }
+
     const renderPartSection = (title: string, tipo: string, colorClass: string) => {
-        const sectionParts = partes.map((p, i) => ({ ...p, originalIndex: i })).filter(p => p.tipo === tipo)
+        const calculatedPartes = calculatePartTimes(partes, programacao?.data_reuniao || new Date().toISOString().split('T')[0])
+        const sectionParts = partes.map((p, i) => {
+            const calculated = calculatedPartes.find(c => c.nome === p.nome && c.tipo === p.tipo)
+            return { ...p, originalIndex: i, startTime: calculated?.startTime || '' }
+        }).filter(p => p.tipo === tipo)
 
         // Enforce Bible Study as last item for VIDA_CRISTA
         if (tipo === 'VIDA_CRISTA') {
@@ -373,8 +395,8 @@ export default function EditarDesignacoesPage() {
                     {sectionParts.map((parte) => (
                         <div key={parte.originalIndex} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                             <div className="md:col-span-4">
-                                <p className="font-medium text-gray-900 dark:text-white">{parte.nome}</p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">{parte.tempo} min</p>
+                                <p className="font-medium text-gray-900 dark:text-white">{renderBoldTime(parte.nome)}</p>
+                                <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{parte.startTime}</p>
                             </div>
 
                             <div className="md:col-span-4">
@@ -518,7 +540,11 @@ export default function EditarDesignacoesPage() {
 
                     {/* Sections */}
                     {['TESOUROS', 'MINISTERIO', 'VIDA_CRISTA'].map((tipo) => {
-                        const sectionParts = partes.map((p, i) => ({ ...p, originalIndex: i })).filter(p => p.tipo === tipo)
+                        const calculatedPartes = calculatePartTimes(partes, programacao?.data_reuniao || new Date().toISOString().split('T')[0])
+                        const sectionParts = partes.map((p, i) => {
+                            const calculated = calculatedPartes.find(c => c.nome === p.nome && c.tipo === p.tipo)
+                            return { ...p, originalIndex: i, startTime: calculated?.startTime || '' }
+                        }).filter(p => p.tipo === tipo)
 
                         if (tipo === 'VIDA_CRISTA') {
                             sectionParts.sort((a, b) => {
@@ -555,10 +581,10 @@ export default function EditarDesignacoesPage() {
                                     {sectionParts.map((parte) => (
                                         <div key={parte.originalIndex} className="grid grid-cols-12 gap-2 items-start text-sm">
                                             <div className="col-span-2 font-bold text-slate-500">
-                                                {parte.tempo} min
+                                                <span className="text-slate-900 mr-2">{parte.startTime}</span>
                                             </div>
                                             <div className="col-span-6 font-medium">
-                                                {parte.nome}
+                                                {renderBoldTime(parte.nome)}
                                             </div>
                                             <div className="col-span-4 text-right">
                                                 <div className="font-bold text-slate-900">

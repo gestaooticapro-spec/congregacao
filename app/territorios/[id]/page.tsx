@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, use } from 'react'
-import { getTerritory, toggleVisita, closeTerritory, assignTerritory } from '@/app/actions/territorios.actions'
+import { getTerritory, toggleVisita, closeTerritory, assignTerritory, releaseTerritory } from '@/app/actions/territorios.actions'
 import MapaInterativo from '@/components/territorios/MapaInterativo'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
@@ -83,6 +83,20 @@ export default function TerritorioPage({ params }: { params: Promise<{ id: strin
             setClosing(false)
         } else {
             alert('Território fechado com sucesso!')
+            router.push('/territorios')
+        }
+    }
+
+    const handleReleaseTerritory = async () => {
+        if (!confirm('Tem certeza que deseja abrir mão deste território? Nenhuma marcação foi feita.')) return
+
+        setClosing(true) // Reuse closing state for ui disabled
+        const res = await releaseTerritory(id)
+        if (res.error) {
+            alert(res.error)
+            setClosing(false)
+        } else {
+            alert('Território liberado!')
             router.push('/territorios')
         }
     }
@@ -173,13 +187,26 @@ export default function TerritorioPage({ params }: { params: Promise<{ id: strin
             </div>
 
             {isComplete && (
-                <div className="fixed bottom-6 left-0 right-0 px-4 flex justify-center">
+                <div className="fixed bottom-6 left-0 right-0 px-4 flex justify-center z-50">
                     <button
                         onClick={handleCloseTerritory}
                         disabled={closing}
                         className="bg-green-600 text-white px-8 py-3 rounded-full shadow-xl font-bold text-lg animate-pulse hover:bg-green-700 disabled:opacity-50"
                     >
                         {closing ? 'Fechando...' : 'Fechar Território 🎉'}
+                    </button>
+                </div>
+            )}
+
+            {visitas.length === 0 && Boolean(territorio.responsavel_id) && (
+                <div className="fixed bottom-6 left-0 right-0 px-4 flex justify-center z-50">
+                    <button
+                        onClick={handleReleaseTerritory}
+                        disabled={closing}
+                        className="bg-red-500 text-white px-6 py-2 rounded-full shadow-lg font-semibold text-sm hover:bg-red-600 disabled:opacity-50 flex items-center gap-2"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
+                        {closing ? 'Aguarde...' : 'Liberar (Peguei por engano)'}
                     </button>
                 </div>
             )}

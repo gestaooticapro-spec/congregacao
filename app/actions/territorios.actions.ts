@@ -334,3 +334,28 @@ export async function getTerritoryReport(serviceYear: number) {
 
     return { data: reportData }
 }
+
+export async function releaseTerritory(territorioId: string) {
+    const supabase = await createClient()
+
+    // Clear responsible ONLY, do not touch history (this signifies a cancellation)
+    const { error } = await supabase
+        .from('territorios')
+        .update({ responsavel_id: null })
+        .eq('id', territorioId)
+
+    if (error) {
+        console.error('Error releasing territory:', error)
+        return { error: 'Erro ao liberar território' }
+    }
+
+    // Since no pins were supposed to be added, but just in case, ensure no active visits are left
+    await supabase
+        .from('visitas_ativas')
+        .delete()
+        .eq('territorio_id', territorioId)
+
+    revalidatePath(`/territorios/${territorioId}`)
+    revalidatePath('/territorios')
+    return { success: true }
+}

@@ -253,7 +253,7 @@ export default function MeuRelatorioPage() {
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
                             <BookOpen className="w-4 h-4 text-gray-400" />
-                            Estudos Bíblicos Direcionados
+                            Estudos Bíblicos
                         </label>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
                             Quantas pessoas diferentes você dirigiu estudos no mês? (Opcional)

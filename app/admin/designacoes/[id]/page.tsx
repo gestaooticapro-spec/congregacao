@@ -444,7 +444,7 @@ export default function EditarDesignacoesPage() {
                             {(parte.tipo === 'MINISTERIO' || (parte.tipo === 'VIDA_CRISTA' && parte.nome.toLowerCase().includes('estudo bíblico'))) && (
                                 <div className="md:col-span-4">
                                     <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                                        {parte.nome.toLowerCase().includes('estudo bíblico') ? 'Leitor' : 'Ajudante'}
+                                        {(parte.tipo === 'VIDA_CRISTA' && parte.nome.toLowerCase().includes('estudo bíblico')) ? 'Leitor' : 'Ajudante'}
                                     </label>
                                     <select
                                         value={parte.ajudante_id || ''}
@@ -592,7 +592,7 @@ export default function EditarDesignacoesPage() {
                                                 </div>
                                                 {(parte.ajudante_id || (parte.tipo === 'VIDA_CRISTA' && parte.nome.toLowerCase().includes('estudo bíblico') && parte.ajudante_id)) && (
                                                     <div className="text-xs text-slate-500 italic">
-                                                        {parte.nome.toLowerCase().includes('estudo bíblico') ? 'Leitor: ' : 'Ajudante: '}
+                                                        {(parte.tipo === 'VIDA_CRISTA' && parte.nome.toLowerCase().includes('estudo bíblico')) ? 'Leitor: ' : 'Ajudante: '}
                                                         {membros.find(m => m.id === parte.ajudante_id)?.nome_completo}
                                                     </div>
                                                 )}

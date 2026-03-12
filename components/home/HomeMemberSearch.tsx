@@ -184,7 +184,7 @@ export default function HomeMemberSearch(): React.ReactNode {
                     if (prog.partes && Array.isArray(prog.partes)) {
                         prog.partes.forEach((parte: any) => {
                             if (parte.membro_id === membro.id) {
-                                let descricao = parte.nome
+                                let descricao = `PARTE - ${parte.nome}`
                                 if (parte.ajudante_id) {
                                     const ajudante = membros.find(m => m.id === parte.ajudante_id)
                                     if (ajudante) {
@@ -198,10 +198,11 @@ export default function HomeMemberSearch(): React.ReactNode {
                                     detalhe: weekRange
                                 })
                             } else if (parte.ajudante_id === membro.id) {
-                                let descricao = parte.nome
+                                const isLeitor = (parte.tipo === 'VIDA_CRISTA' && parte.nome.toLowerCase().includes('estudo bíblico'))
+                                let descricao = `${isLeitor ? 'LEITOR' : 'AJUDANTE'} - ${parte.nome}`
                                 const estudante = membros.find(m => m.id === parte.membro_id)
                                 if (estudante) {
-                                    descricao += ` (Ajudante de ${estudante.nome_completo})`
+                                    descricao += ` (${isLeitor ? 'Leitor' : 'Ajudante'} de ${estudante.nome_completo})`
                                 }
                                 novasDesignacoes.push({
                                     tipo: 'REUNIAO',

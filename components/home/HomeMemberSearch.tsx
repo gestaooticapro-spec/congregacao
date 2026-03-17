@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { Database } from '@/types/database.types'
+import { Database, Json } from '@/types/database.types'
 import { format, parseISO, startOfWeek, endOfWeek, isSameMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useRouter } from 'next/navigation'
@@ -17,6 +17,39 @@ type Designacao = {
     detalhe?: string
 }
 
+type MembroSessao = {
+    id: string
+    nome?: string
+}
+
+type ParteProgramacao = {
+    membro_id?: string | null
+    ajudante_id?: string | null
+    nome: string
+    tipo?: string | null
+}
+
+type LancheAgenda = {
+    data: string
+}
+
+type DiscursoLocalAgenda = {
+    data: string
+    tema?: {
+        titulo?: string | null
+    } | null
+}
+
+type DiscursoForaAgenda = {
+    data: string
+    destino_congregacao: string
+    tema?: {
+        titulo?: string | null
+    } | null
+}
+
+type EventoAgendaAnciaos = Pick<Database['public']['Tables']['agenda_anciaos']['Row'], 'data_inicio' | 'titulo'>
+
 export default function HomeMemberSearch(): React.ReactNode {
     const router = useRouter()
     const [membros, setMembros] = useState<Membro[]>([])
@@ -26,6 +59,10 @@ export default function HomeMemberSearch(): React.ReactNode {
     const [searchTerm, setSearchTerm] = useState('')
     const [showResults, setShowResults] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [isSessaoMembroAtiva, setIsSessaoMembroAtiva] = useState(false)
+    const [nomeSessao, setNomeSessao] = useState<string | null>(null)
+    const [autoSessaoProcessada, setAutoSessaoProcessada] = useState(false)
+    const handleSearchRef = useRef<(membro: Membro) => Promise<void>>(async () => { })
 
     useEffect(() => {
         fetchMembros()
@@ -36,6 +73,7 @@ export default function HomeMemberSearch(): React.ReactNode {
             const { data, error } = await supabase
                 .from('membros')
                 .select('id, nome_completo, nome_civil, grupo_id, is_anciao')
+                .eq('ativo', true)
                 .order('nome_completo')
 
             if (error) throw error
@@ -45,6 +83,29 @@ export default function HomeMemberSearch(): React.ReactNode {
             setMembros([])
         }
     }
+
+    useEffect(() => {
+        if (autoSessaoProcessada || membros.length === 0) return
+
+        setAutoSessaoProcessada(true)
+
+        const stored = localStorage.getItem('membro_sessao')
+        if (!stored) return
+
+        try {
+            const parsed = JSON.parse(stored) as MembroSessao
+            if (!parsed?.id) return
+
+            const membroDaSessao = membros.find(membro => membro.id === parsed.id)
+            if (!membroDaSessao) return
+
+            setIsSessaoMembroAtiva(true)
+            setNomeSessao(parsed.nome || membroDaSessao.nome_completo)
+            void handleSearchRef.current(membroDaSessao)
+        } catch (err) {
+            console.warn('Falha ao restaurar membro_sessao na home:', err)
+        }
+    }, [autoSessaoProcessada, membros])
 
     const formatWeekRange = (dateString: string) => {
         const date = parseISO(dateString)
@@ -182,7 +243,8 @@ export default function HomeMemberSearch(): React.ReactNode {
                     }
                     // Partes (JSON)
                     if (prog.partes && Array.isArray(prog.partes)) {
-                        prog.partes.forEach((parte: any) => {
+                        ; (prog.partes as Json[]).forEach((parteJson) => {
+                            const parte = parteJson as ParteProgramacao
                             if (parte.membro_id === membro.id) {
                                 let descricao = `PARTE - ${parte.nome}`
                                 if (parte.ajudante_id) {
@@ -280,7 +342,7 @@ export default function HomeMemberSearch(): React.ReactNode {
 
             // Process 5: Lanche
             if (lanche) {
-                lanche.forEach((l: any) => {
+                lanche.forEach((l: LancheAgenda) => {
                     novasDesignacoes.push({
                         tipo: 'SUPORTE',
                         data: l.data,
@@ -292,7 +354,7 @@ export default function HomeMemberSearch(): React.ReactNode {
 
             // Process 6: Discursos Locais
             if (discursosLocais) {
-                discursosLocais.forEach((d: any) => {
+                discursosLocais.forEach((d: DiscursoLocalAgenda) => {
                     novasDesignacoes.push({
                         tipo: 'DISCURSO',
                         data: d.data,
@@ -304,7 +366,7 @@ export default function HomeMemberSearch(): React.ReactNode {
 
             // Process 7: Discursos Fora
             if (discursosFora) {
-                discursosFora.forEach((d: any) => {
+                discursosFora.forEach((d: DiscursoForaAgenda) => {
                     novasDesignacoes.push({
                         tipo: 'DISCURSO',
                         data: d.data,
@@ -316,7 +378,7 @@ export default function HomeMemberSearch(): React.ReactNode {
 
             // Process 8: Agenda Anciãos
             if (agendaAnciaos) {
-                agendaAnciaos.forEach((ev: any) => {
+                agendaAnciaos.forEach((ev: EventoAgendaAnciaos) => {
                     novasDesignacoes.push({
                         tipo: 'AGENDA',
                         data: ev.data_inicio,
@@ -354,6 +416,8 @@ export default function HomeMemberSearch(): React.ReactNode {
         }
     }
 
+    handleSearchRef.current = handleSearch
+
     const formatarFuncaoSuporte = (funcao: string) => {
         const mapa: Record<string, string> = {
             'SOM': 'Operador de Som',
@@ -367,6 +431,11 @@ export default function HomeMemberSearch(): React.ReactNode {
         return mapa[funcao] || funcao
     }
 
+    const primeiroNome = (nome: string | null | undefined) => {
+        if (!nome) return ''
+        return nome.trim().split(' ')[0] || ''
+    }
+
     const filteredMembros = searchTerm === ''
         ? []
         : membros.filter(m =>
@@ -376,7 +445,8 @@ export default function HomeMemberSearch(): React.ReactNode {
 
     return (
         <div className="w-full max-w-2xl mx-auto">
-            <div className="relative mb-8">
+            {!isSessaoMembroAtiva && (
+                <div className="relative mb-8">
                 <input
                     type="text"
                     value={searchTerm}
@@ -412,14 +482,26 @@ export default function HomeMemberSearch(): React.ReactNode {
                         )}
                     </div>
                 )}
-            </div>
+                </div>
+            )}
 
             {/* Resultados */}
             {showResults && selectedMembro && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-                        <span>📅</span> Designações para {selectedMembro.nome_completo}
-                    </h2>
+                    {isSessaoMembroAtiva ? (
+                        <div className="mb-4 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-sky-50 px-5 py-4 text-left shadow-sm dark:border-blue-900/30 dark:from-blue-950/40 dark:to-slate-900">
+                            <p className="text-sm font-medium uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
+                                Olá, {primeiroNome(nomeSessao || selectedMembro.nome_completo)}
+                            </p>
+                            <h2 className="mt-1 text-xl font-bold text-slate-800 dark:text-white">
+                                Seus próximos compromissos
+                            </h2>
+                        </div>
+                    ) : (
+                        <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                            <span>📅</span> Designações para {selectedMembro.nome_completo}
+                        </h2>
+                    )}
 
                     {loading ? (
                         <div className="text-center py-8 text-slate-500">

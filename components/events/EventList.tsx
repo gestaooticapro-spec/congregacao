@@ -2,10 +2,13 @@
 
 import { format, differenceInDays, differenceInWeeks, differenceInMonths, startOfDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { Database } from '@/types/database.types'
+
+type Evento = Database['public']['Tables']['eventos']['Row']
 
 interface EventListProps {
-    events: any[]
-    onEventClick: (event: any) => void
+    events: Evento[]
+    onEventClick: (event: Evento) => void
 }
 
 export default function EventList({ events, onEventClick }: EventListProps) {
@@ -17,44 +20,42 @@ export default function EventList({ events, onEventClick }: EventListProps) {
         )
     }
 
-    // Define a loop of colors
-    // Structure: [Icon/Text Color, Border Color]
     const colors = [
         {
             base: 'text-purple-600 dark:text-purple-400',
             bg: 'bg-purple-100 dark:bg-purple-900/30',
-            border: 'border-purple-200 dark:border-purple-800'
+            bar: 'bg-purple-500 dark:bg-purple-400',
         },
         {
             base: 'text-blue-600 dark:text-blue-400',
             bg: 'bg-blue-100 dark:bg-blue-900/30',
-            border: 'border-blue-200 dark:border-blue-800'
+            bar: 'bg-blue-500 dark:bg-blue-400',
         },
         {
             base: 'text-green-600 dark:text-green-400',
             bg: 'bg-green-100 dark:bg-green-900/30',
-            border: 'border-green-200 dark:border-green-800'
+            bar: 'bg-green-500 dark:bg-green-400',
         },
         {
             base: 'text-teal-600 dark:text-teal-400',
             bg: 'bg-teal-100 dark:bg-teal-900/30',
-            border: 'border-teal-200 dark:border-teal-800'
+            bar: 'bg-teal-500 dark:bg-teal-400',
         },
         {
             base: 'text-orange-600 dark:text-orange-400',
             bg: 'bg-orange-100 dark:bg-orange-900/30',
-            border: 'border-orange-200 dark:border-orange-800'
+            bar: 'bg-orange-500 dark:bg-orange-400',
         },
         {
             base: 'text-pink-600 dark:text-pink-400',
             bg: 'bg-pink-100 dark:bg-pink-900/30',
-            border: 'border-pink-200 dark:border-pink-800'
+            bar: 'bg-pink-500 dark:bg-pink-400',
         },
     ]
 
     const getMonthColors = (dateString: string) => {
         const date = new Date(dateString)
-        const monthIndex = date.getMonth() // 0-11
+        const monthIndex = date.getMonth()
         return colors[monthIndex % colors.length]
     }
 
@@ -80,53 +81,57 @@ export default function EventList({ events, onEventClick }: EventListProps) {
         return ''
     }
 
+    const formatarPeriodo = (evento: Evento) => {
+        if (evento.data_fim && evento.data_fim !== evento.data_inicio) {
+            return `${format(new Date(evento.data_inicio + 'T12:00:00'), 'dd', { locale: ptBR })} - ${format(new Date(evento.data_fim + 'T12:00:00'), "dd 'de' MMM", { locale: ptBR })}`
+        }
+
+        return format(new Date(evento.data_inicio + 'T12:00:00'), "dd 'de' MMM", { locale: ptBR })
+    }
+
     return (
         <div className="space-y-3">
-            {events.map(event => {
+            {events.map((event) => {
                 const color = getMonthColors(event.data_inicio)
 
                 return (
                     <div
                         key={event.id}
                         onClick={() => onEventClick(event)}
-                        className={`flex items-center gap-4 p-4 bg-white dark:bg-slate-800 rounded-xl border-l-4 shadow-sm hover:shadow-md transition-all cursor-pointer group ${color.border} border-y border-r border-slate-200 dark:border-r-slate-700 dark:border-y-slate-700`}
+                        className="px-4 py-3 flex gap-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors cursor-pointer group hover:bg-slate-50 dark:hover:bg-slate-700/50"
                     >
-                        <div className={`
-                            w-12 h-12 rounded-lg flex items-center justify-center text-xl shrink-0
-                            ${color.bg} ${color.base}
-                        `}>
-                            {event.tipo === 'assembleia' ? '🏛️' :
-                                event.tipo === 'congresso' ? '🏟️' :
-                                    event.tipo === 'limpeza' ? '🧹' :
-                                        event.tipo === 'visita' ? '👔' : '⭐'}
-                        </div>
+                        <div className={`w-1 rounded-full self-stretch ${color.bar}`} />
 
                         <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                                <span className={`text-sm font-bold uppercase tracking-wide ${color.base}`}>
-                                    {format(new Date(event.data_inicio + 'T12:00:00'), "dd", { locale: ptBR })}
-                                    {event.data_fim && event.data_fim !== event.data_inicio && (
-                                        <> - {format(new Date(event.data_fim + 'T12:00:00'), "dd 'de' MMM", { locale: ptBR })}</>
-                                    )}
-                                    {(!event.data_fim || event.data_fim === event.data_inicio) && (
-                                        <> de {format(new Date(event.data_inicio + 'T12:00:00'), "MMM", { locale: ptBR })}</>
-                                    )}
-                                </span>
-                                <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
-                                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 capitalize">
-                                    {event.tipo}
-                                </span>
-                            </div>
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white truncate group-hover:text-primary transition-colors mb-1">
-                                {event.titulo}
-                            </h3>
-                            <div className="flex items-center">
-                                <span className={`text-xs font-semibold px-2 py-1 rounded-full ${color.bg} ${color.base}`}>
-                                    {getTimeRemaining(event.data_inicio)}
-                                </span>
+                            <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <h3 className="font-bold text-slate-900 dark:text-white truncate group-hover:text-primary transition-colors">
+                                            {event.titulo}
+                                        </h3>
+                                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 shrink-0">
+                                            {event.tipo}
+                                        </span>
+                                    </div>
+
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                                        {formatarPeriodo(event)}
+                                        {getTimeRemaining(event.data_inicio) && (
+                                            <>
+                                                {' · '}
+                                                <span className={color.base}>{getTimeRemaining(event.data_inicio)}</span>
+                                            </>
+                                        )}
+                                    </p>
+                                </div>
+
+                                <div className="flex items-center text-slate-300 dark:text-slate-600 shrink-0">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </div>
                             </div>
                         </div>
-
                     </div>
                 )
             })}

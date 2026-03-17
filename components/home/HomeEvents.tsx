@@ -42,7 +42,7 @@ export default function HomeEvents() {
     }
 
     return (
-        <div className="w-full mt-8">
+        <div className="w-full max-w-2xl mx-auto mt-8">
             <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-slate-800 dark:text-white">
                     Próximos Eventos

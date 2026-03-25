@@ -431,6 +431,16 @@ export default function HomeMemberSearch(): React.ReactNode {
         return mapa[funcao] || funcao
     }
 
+    const handleLogout = () => {
+        localStorage.removeItem('membro_sessao')
+        setIsSessaoMembroAtiva(false)
+        setNomeSessao(null)
+        setSelectedMembro(null)
+        setSearchTerm('')
+        setShowResults(false)
+        setDiasDesignacoes([])
+    }
+
     const primeiroNome = (nome: string | null | undefined) => {
         if (!nome) return ''
         return nome.trim().split(' ')[0] || ''
@@ -490,12 +500,22 @@ export default function HomeMemberSearch(): React.ReactNode {
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {isSessaoMembroAtiva ? (
                         <div className="mb-4 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-sky-50 px-5 py-4 text-left shadow-sm dark:border-blue-900/30 dark:from-blue-950/40 dark:to-slate-900">
-                            <p className="text-sm font-medium uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
-                                Olá, {primeiroNome(nomeSessao || selectedMembro.nome_completo)}
-                            </p>
-                            <h2 className="mt-1 text-xl font-bold text-slate-800 dark:text-white">
-                                Seus próximos compromissos
-                            </h2>
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <p className="text-sm font-medium uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
+                                        Olá, {primeiroNome(nomeSessao || selectedMembro.nome_completo)}
+                                    </p>
+                                    <h2 className="mt-1 text-xl font-bold text-slate-800 dark:text-white">
+                                        Seus próximos compromissos
+                                    </h2>
+                                </div>
+                                <button 
+                                    onClick={handleLogout}
+                                    className="text-xs font-semibold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-wider"
+                                >
+                                    Esse não sou eu
+                                </button>
+                            </div>
                         </div>
                     ) : (
                         <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">

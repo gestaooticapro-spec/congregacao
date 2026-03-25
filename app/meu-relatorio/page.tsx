@@ -60,27 +60,42 @@ export default function MeuRelatorioPage() {
             return
         }
 
-        try {
-            const parsed: SessaoMembro = JSON.parse(stored)
+        const validate = async () => {
+            try {
+                const parsed: SessaoMembro = JSON.parse(stored)
 
-            // Se não tiver PIN na sessão, força logout para a pessoa logar de novo e salvar o PIN
-            if (!parsed.pin) {
-                console.warn('Sessão antiga detectada (sem PIN). Forçando logout.')
+                // Se não tiver PIN na sessão, força logout
+                if (!parsed.pin) {
+                    console.warn('Sessão antiga detectada (sem PIN). Forçando logout.')
+                    handleLogout()
+                    return
+                }
+
+                // Valida com o servidor se o PIN ainda é válido
+                const { data, error } = await supabase.rpc('verificar_pin', { p_pin: parsed.pin })
+
+                if (error || !data || data.length === 0) {
+                    console.warn('PIN inválido ou alterado. Forçando logout.')
+                    localStorage.removeItem('membro_sessao')
+                    toast('Seu PIN foi atualizado. Por favor, insira o novo PIN.', { icon: '🔑', duration: 5000 })
+                    router.replace('/')
+                    return
+                }
+
+                setSessao(parsed)
+
+                // Prefill para publicadores
+                if (!parsed.is_pioneiro) {
+                    setTrabalhou(true)
+                }
+            } catch (e) {
                 handleLogout()
-                return
+            } finally {
+                setIsLoading(false)
             }
-
-            setSessao(parsed)
-
-            // Prefill para publicadores
-            if (!parsed.is_pioneiro) {
-                setTrabalhou(true)
-            }
-        } catch (e) {
-            handleLogout()
-        } finally {
-            setIsLoading(false)
         }
+
+        validate()
     }, [router])
 
     const handleLogout = () => {

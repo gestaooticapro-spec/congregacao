@@ -128,7 +128,8 @@ export default function HomeMemberSearch(): React.ReactNode {
         setError(null)
 
         try {
-            const hoje = new Date().toISOString().split('T')[0]
+            const hoje = format(new Date(), 'yyyy-MM-dd')
+            const dataInicioSemanaLocal = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd')
             const novasDesignacoes: Designacao[] = []
 
             // Parallelize all requests
@@ -163,7 +164,7 @@ export default function HomeMemberSearch(): React.ReactNode {
                         .from('escala_limpeza')
                         .select('*')
                         .eq('grupo_id', membro.grupo_id)
-                        .gte('data_inicio', startOfWeek(new Date(), { weekStartsOn: 1 }).toISOString().split('T')[0])
+                        .gte('data_inicio', dataInicioSemanaLocal)
                         .order('data_inicio')
                     : Promise.resolve({ data: [] }),
 
@@ -303,8 +304,8 @@ export default function HomeMemberSearch(): React.ReactNode {
                     const sabado = new Date(dataInicio)
                     sabado.setDate(dataInicio.getDate() + 5)
 
-                    const quartaStr = quarta.toISOString().split('T')[0]
-                    const sabadoStr = sabado.toISOString().split('T')[0]
+                    const quartaStr = format(quarta, 'yyyy-MM-dd')
+                    const sabadoStr = format(sabado, 'yyyy-MM-dd')
 
                     // Add Wednesday if it's today or future
                     if (quartaStr >= hoje) {
@@ -390,7 +391,7 @@ export default function HomeMemberSearch(): React.ReactNode {
 
             // Agrupar por data
             const diasMap = new Map<string, Designacao[]>()
-            const hojeData = new Date().toISOString().split('T')[0]
+            const hojeData = format(new Date(), 'yyyy-MM-dd')
 
             novasDesignacoes.forEach(desig => {
                 // Remove past dates if any slipped through
@@ -407,7 +408,6 @@ export default function HomeMemberSearch(): React.ReactNode {
                 .map(([data, itens]) => ({ data, itens }))
 
             setDiasDesignacoes(diasOrdenados)
-
         } catch (error) {
             console.error('Erro ao buscar designações:', error)
             setError('Falha ao carregar designações. Verifique sua conexão.')

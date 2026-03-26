@@ -51,10 +51,10 @@ const MENU_ITEMS: MenuItem[] = [
     { type: 'link', href: '/admin/eventos', label: 'Gerenciar Eventos', icon: PlusCircle, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT', 'IRMAO'] },
     { type: 'link', href: '/admin/pauta-anciaos', label: 'Pauta de Reunião', icon: ClipboardList, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT', 'IRMAO'] },
     { type: 'link', href: '/admin/relatorios', label: 'Relatórios', icon: FileText, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT', 'IRMAO'] },
+    { type: 'link', href: '/admin/relatorios-grupo', label: 'Meu Grupo', icon: Users, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT', 'IRMAO'] },
 
     { type: 'separator', label: 'Administração', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT'] },
     { type: 'link', href: '/admin/relatorios-secretaria', label: 'Secretário (Relatórios)', icon: FileText, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO'] },
-    { type: 'link', href: '/admin/relatorios-grupo', label: 'Meu Grupo', icon: Users, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT'] },
     { type: 'link', href: '/programacao', label: 'Reunião de Quarta', icon: BookOpen, restricted: true, allowedRoles: ['ADMIN', 'RESP_QUINTA'] },
     { type: 'link', href: '/admin/discursos', label: 'Discursos', icon: Mic, restricted: true, allowedRoles: ['ADMIN', 'RESP_SABADO'] },
     { type: 'link', href: '/admin/escalas', label: 'Outras Designações', icon: ClipboardList, restricted: true, allowedRoles: ['ADMIN', 'RQA'] },

@@ -30,10 +30,12 @@ const getMonthOptions = () => {
     const now = new Date()
     const currentMonth = startOfMonth(now)
     const prevMonth = startOfMonth(subMonths(now, 1))
+    const prevPrevMonth = startOfMonth(subMonths(now, 2))
 
     return [
+        { value: format(prevMonth, 'yyyy-MM-dd'), label: format(prevMonth, 'MMMM yyyy', { locale: ptBR }) },
         { value: format(currentMonth, 'yyyy-MM-dd'), label: format(currentMonth, 'MMMM yyyy', { locale: ptBR }) },
-        { value: format(prevMonth, 'yyyy-MM-dd'), label: format(prevMonth, 'MMMM yyyy', { locale: ptBR }) }
+        { value: format(prevPrevMonth, 'yyyy-MM-dd'), label: format(prevPrevMonth, 'MMMM yyyy', { locale: ptBR }) }
     ]
 }
 
@@ -44,6 +46,83 @@ export default function RelatoriosGrupoPage() {
     const [mes, setMes] = useState(meses[0].value)
     const [membrosGrupo, setMembrosGrupo] = useState<RelatorioView[]>([])
     const [nomeGrupo, setNomeGrupo] = useState('')
+
+    // Estado do Modal
+    const [membroEditando, setMembroEditando] = useState<RelatorioView | null>(null)
+    const [isSaving, setIsSaving] = useState(false)
+    const [formRelatorio, setFormRelatorio] = useState({
+        participou: true,
+        estudos: 0,
+        horas: 0,
+        is_pioneiro_auxiliar: false
+    })
+
+    const handleOpenModal = (view: RelatorioView) => {
+        setMembroEditando(view)
+        setFormRelatorio({
+            participou: view.relatorio ? (view.relatorio.trabalhou ?? true) : true,
+            estudos: view.relatorio?.estudos || 0,
+            horas: view.relatorio?.horas || 0,
+            is_pioneiro_auxiliar: view.relatorio?.is_pioneiro_auxiliar || false
+        })
+    }
+
+    const handleSaveRelatorio = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!membroEditando) return
+
+        setIsSaving(true)
+        try {
+            const isPioneiroRegular = membroEditando.membro.is_pioneiro
+            const isAuxiliar = formRelatorio.is_pioneiro_auxiliar
+            const isPioneiro = isPioneiroRegular || isAuxiliar
+
+            const payload = {
+                membro_id: membroEditando.membro.id,
+                mes: mes,
+                trabalhou: formRelatorio.participou,
+                estudos: formRelatorio.estudos,
+                horas: isPioneiro ? formRelatorio.horas : (formRelatorio.horas > 0 ? formRelatorio.horas : null),
+                is_pioneiro_auxiliar: isAuxiliar
+            }
+
+            if (membroEditando.relatorio?.id) {
+                const { error } = await supabase
+                    .from('relatorios_servico')
+                    .update(payload)
+                    .eq('id', membroEditando.relatorio.id)
+                if (error) throw error
+            } else {
+                const { error } = await supabase
+                    .from('relatorios_servico')
+                    .insert([payload])
+                if (error) throw error
+            }
+
+            toast.success('Relatório salvo com sucesso!')
+            setMembroEditando(null)
+            
+            // Update local state without reload
+            setMembrosGrupo(prev => prev.map(m => {
+                if (m.membro.id === membroEditando.membro.id) {
+                    return {
+                        ...m,
+                        relatorio: {
+                            ...m.relatorio,
+                            ...payload,
+                            id: m.relatorio?.id || 'temp-id'
+                        } as Relatorio
+                    }
+                }
+                return m
+            }))
+        } catch (error) {
+            console.error(error)
+            toast.error('Erro ao salvar o relatório.')
+        } finally {
+            setIsSaving(false)
+        }
+    }
 
     // Se é admin, deve poder escolher o grupo. Por hora vamos fazer pro próprio grupo
     useEffect(() => {
@@ -231,10 +310,14 @@ export default function RelatoriosGrupoPage() {
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
                             {membrosGrupo.map(({ membro, relatorio }) => (
-                                <tr key={membro.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                                <tr 
+                                    key={membro.id} 
+                                    onClick={() => handleOpenModal({ membro, relatorio })}
+                                    className="hover:bg-gray-50/50 dark:hover:bg-slate-800/20 transition-colors cursor-pointer"
+                                >
                                     <td className="py-4 px-6">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-gray-500 text-sm font-medium">
+                                            <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-gray-500 text-sm font-medium shadow-sm">
                                                 {membro.nome_completo.charAt(0)}
                                             </div>
                                             <div>
@@ -296,6 +379,82 @@ export default function RelatoriosGrupoPage() {
                 </div>
             </div>
 
+            {/* Modal de Lançamento Local */}
+            {membroEditando && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="flex justify-between items-start p-6 border-b border-gray-100 dark:border-slate-800">
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Relatório de {membroEditando.membro.nome_completo}</h3>
+                                <p className="text-sm font-medium text-blue-600 dark:text-blue-400 mt-1">
+                                    Referente a <span className="capitalize">{meses.find(m => m.value === mes)?.label}</span>
+                                </p>
+                            </div>
+                            <button onClick={() => setMembroEditando(null)} className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors p-1 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800">
+                                <XCircle className="w-6 h-6" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleSaveRelatorio} className="p-6 space-y-4">
+                            {!membroEditando.membro.is_pioneiro && (
+                                <label className="flex items-center gap-3 p-4 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/50 rounded-xl cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={formRelatorio.is_pioneiro_auxiliar}
+                                        onChange={e => setFormRelatorio(prev => ({ ...prev, is_pioneiro_auxiliar: e.target.checked }))}
+                                        className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500 dark:bg-slate-800 border-gray-300 dark:border-slate-600"
+                                    />
+                                    <span className="font-medium text-blue-900 dark:text-blue-300">Pioneiro Auxiliar neste mês</span>
+                                </label>
+                            )}
+
+                            <label className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors border border-transparent dark:border-slate-700">
+                                <input 
+                                    type="checkbox" 
+                                    checked={formRelatorio.participou}
+                                    onChange={e => setFormRelatorio(prev => ({ ...prev, participou: e.target.checked }))}
+                                    className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500 dark:bg-slate-900 border-gray-300 dark:border-slate-600"
+                                />
+                                <span className="font-medium text-gray-700 dark:text-gray-300">Participou no Ministério</span>
+                            </label>
+
+                            {(membroEditando.membro.is_pioneiro || formRelatorio.is_pioneiro_auxiliar) && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Horas</label>
+                                    <input 
+                                        type="number" 
+                                        min="1"
+                                        required
+                                        value={formRelatorio.horas || ''}
+                                        onChange={e => setFormRelatorio(prev => ({ ...prev, horas: parseInt(e.target.value) || 0 }))}
+                                        className="w-full p-3 bg-white dark:bg-slate-950 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                                        placeholder="Ex: 50"
+                                    />
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Diferentes Estudos Bíblicos Dirigidos</label>
+                                <input 
+                                    type="number" 
+                                    min="0"
+                                    value={formRelatorio.estudos || ''}
+                                    onChange={e => setFormRelatorio(prev => ({ ...prev, estudos: parseInt(e.target.value) || 0 }))}
+                                    className="w-full p-3 bg-white dark:bg-slate-950 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                                    placeholder="Ex: 2"
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={isSaving}
+                                className="w-full py-4 mt-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 disabled:opacity-50 transition-all"
+                            >
+                                {isSaving ? 'Salvando...' : 'Salvar Relatório'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

@@ -149,6 +149,36 @@ export interface Database {
           }
         ]
       }
+      horarios_campo: {
+        Row: {
+          id: string
+          dia: string
+          hora: string
+          local: string
+          obs: string | null
+          ordem: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          dia: string
+          hora: string
+          local: string
+          obs?: string | null
+          ordem: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          dia?: string
+          hora?: string
+          local?: string
+          obs?: string | null
+          ordem?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
       membros: {
         Row: {
           id: string

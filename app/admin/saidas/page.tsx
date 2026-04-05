@@ -1,48 +1,56 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getSaidas, createSaida, updateSaida, deleteSaida, Saida } from '@/app/actions/saidas.actions'
+import { createSaida, deleteSaida, getSaidas, updateSaida, type Saida } from '@/app/actions/saidas.actions'
 
 const DIAS_DA_SEMANA = [
     { nome: 'Segunda', ordem: 1 },
-    { nome: 'Terça', ordem: 2 },
+    { nome: 'Ter\u00e7a', ordem: 2 },
     { nome: 'Quarta', ordem: 3 },
     { nome: 'Quinta', ordem: 4 },
     { nome: 'Sexta', ordem: 5 },
-    { nome: 'Sábado', ordem: 6 },
+    { nome: 'S\u00e1bado', ordem: 6 },
     { nome: 'Domingo', ordem: 7 },
 ]
+
+const FORM_INICIAL = { dia: 'Segunda', hora: '08:00', local: 'Sal\u00e3o', obs: '', ordem: 1 }
 
 export default function AdminSaidasPage() {
     const router = useRouter()
     const [saidas, setSaidas] = useState<Saida[]>([])
     const [loading, setLoading] = useState(true)
-
     const [isEditing, setIsEditing] = useState(false)
     const [currentId, setCurrentId] = useState<string | null>(null)
-    const [formData, setFormData] = useState({ dia: 'Segunda', hora: '08:00', local: 'Salão', obs: '', ordem: 1 })
+    const [formData, setFormData] = useState(FORM_INICIAL)
     const [saving, setSaving] = useState(false)
-
-    useEffect(() => {
-        loadData()
-    }, [])
+    const [deletingId, setDeletingId] = useState<string | null>(null)
 
     const loadData = async () => {
         setLoading(true)
-        const { data, error } = await getSaidas()
-        if (error) {
-            alert(error)
-        } else {
+
+        try {
+            const { data, error } = await getSaidas()
+
+            if (error) {
+                alert(error)
+                return
+            }
+
             setSaidas(data || [])
+        } finally {
+            setLoading(false)
         }
-        setLoading(false)
     }
+
+    useEffect(() => {
+        void loadData()
+    }, [])
 
     const resetForm = () => {
         setIsEditing(false)
         setCurrentId(null)
-        setFormData({ dia: 'Segunda', hora: '08:00', local: 'Salão', obs: '', ordem: 1 })
+        setFormData(FORM_INICIAL)
     }
 
     const handleEdit = (saida: Saida) => {
@@ -53,17 +61,26 @@ export default function AdminSaidasPage() {
             hora: saida.hora,
             local: saida.local,
             obs: saida.obs || '',
-            ordem: saida.ordem
+            ordem: saida.ordem,
         })
     }
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Deseja realmente excluir este horário?')) return
-        const { error } = await deleteSaida(id)
-        if (error) {
-            alert(error)
-        } else {
-            loadData()
+        if (!confirm('Deseja realmente excluir este hor\u00e1rio?')) return
+
+        setDeletingId(id)
+
+        try {
+            const { error } = await deleteSaida(id)
+
+            if (error) {
+                alert(error)
+                return
+            }
+
+            await loadData()
+        } finally {
+            setDeletingId(null)
         }
     }
 
@@ -71,38 +88,37 @@ export default function AdminSaidasPage() {
         e.preventDefault()
         setSaving(true)
 
-        // Find the correct ordem for the selected day
-        const selectedDia = DIAS_DA_SEMANA.find(d => d.nome === formData.dia)
+        const selectedDia = DIAS_DA_SEMANA.find((dia) => dia.nome === formData.dia)
         const dataToSave = { ...formData, ordem: selectedDia?.ordem || 1 }
 
-        if (isEditing && currentId) {
-            const { error } = await updateSaida(currentId, dataToSave)
-            if (error) alert(error)
-            else {
-                resetForm()
-                loadData()
+        try {
+            const result = isEditing && currentId
+                ? await updateSaida(currentId, dataToSave)
+                : await createSaida(dataToSave)
+
+            if (result.error) {
+                alert(result.error)
+                return
             }
-        } else {
-            const { error } = await createSaida(dataToSave)
-            if (error) alert(error)
-            else {
-                resetForm()
-                loadData()
-            }
+
+            resetForm()
+            await loadData()
+        } finally {
+            setSaving(false)
         }
-        setSaving(false)
     }
 
-    if (loading) return <div className="p-8">Carregando horários...</div>
+    if (loading) return <div className="p-8">Carregando hor\u00e1rios...</div>
 
     return (
         <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-8">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Gerenciar Horários de Campo</h1>
-                    <p className="text-slate-500 text-sm mt-1">Adicione, edite ou remova horários fixos de campo.</p>
+                    <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Gerenciar Hor\u00e1rios de Campo</h1>
+                    <p className="text-slate-500 text-sm mt-1">Adicione, edite ou remova hor\u00e1rios fixos de campo.</p>
                 </div>
                 <button
+                    type="button"
                     onClick={() => router.push('/saidas')}
                     className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
@@ -111,9 +127,8 @@ export default function AdminSaidasPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {/* FORM */}
                 <div className="md:col-span-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl p-6 h-fit">
-                    <h2 className="text-lg font-bold mb-4 text-slate-800 dark:text-white">{isEditing ? 'Editar Horário' : 'Novo Horário'}</h2>
+                    <h2 className="text-lg font-bold mb-4 text-slate-800 dark:text-white">{isEditing ? 'Editar Hor\u00e1rio' : 'Novo Hor\u00e1rio'}</h2>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
@@ -123,14 +138,14 @@ export default function AdminSaidasPage() {
                                 onChange={(e) => setFormData({ ...formData, dia: e.target.value })}
                                 className="w-full p-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500"
                             >
-                                {DIAS_DA_SEMANA.map(d => (
-                                    <option key={d.ordem} value={d.nome}>{d.nome}</option>
+                                {DIAS_DA_SEMANA.map((dia) => (
+                                    <option key={dia.ordem} value={dia.nome}>{dia.nome}</option>
                                 ))}
                             </select>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium mb-1 text-slate-600 dark:text-slate-400">Horário</label>
+                            <label className="block text-sm font-medium mb-1 text-slate-600 dark:text-slate-400">Hor\u00e1rio</label>
                             <input
                                 type="time"
                                 required
@@ -145,7 +160,7 @@ export default function AdminSaidasPage() {
                             <input
                                 type="text"
                                 required
-                                placeholder="Ex: Salão, Zoom"
+                                placeholder="Ex: Sal\u00e3o, Zoom"
                                 value={formData.local}
                                 onChange={(e) => setFormData({ ...formData, local: e.target.value })}
                                 className="w-full p-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500"
@@ -153,9 +168,9 @@ export default function AdminSaidasPage() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium mb-1 text-slate-600 dark:text-slate-400">Observação (Opcional)</label>
+                            <label className="block text-sm font-medium mb-1 text-slate-600 dark:text-slate-400">Observa\u00e7\u00e3o (Opcional)</label>
                             <textarea
-                                placeholder="Detalhes, grupos responsáveis, etc."
+                                placeholder="Detalhes, grupos respons\u00e1veis, etc."
                                 value={formData.obs}
                                 onChange={(e) => setFormData({ ...formData, obs: e.target.value })}
                                 className="w-full p-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500 min-h-[80px]"
@@ -183,7 +198,6 @@ export default function AdminSaidasPage() {
                     </form>
                 </div>
 
-                {/* TABLE LIST */}
                 <div className="md:col-span-2">
                     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden">
                         <div className="overflow-x-auto">
@@ -193,7 +207,7 @@ export default function AdminSaidasPage() {
                                         <th className="py-3 px-4 font-bold">Dia</th>
                                         <th className="py-3 px-4 font-bold">Hora</th>
                                         <th className="py-3 px-4 font-bold">Local</th>
-                                        <th className="py-3 px-4 font-bold text-center">Ações</th>
+                                        <th className="py-3 px-4 font-bold text-center">A\u00e7\u00f5es</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -211,6 +225,7 @@ export default function AdminSaidasPage() {
                                             </td>
                                             <td className="py-3 px-4 text-center">
                                                 <button
+                                                    type="button"
                                                     onClick={() => handleEdit(saida)}
                                                     className="text-blue-500 hover:text-blue-700 p-1 mx-1"
                                                     title="Editar"
@@ -218,8 +233,10 @@ export default function AdminSaidasPage() {
                                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                                 </button>
                                                 <button
+                                                    type="button"
                                                     onClick={() => handleDelete(saida.id)}
-                                                    className="text-red-500 hover:text-red-700 p-1 mx-1"
+                                                    disabled={deletingId === saida.id}
+                                                    className="text-red-500 hover:text-red-700 p-1 mx-1 disabled:opacity-50"
                                                     title="Excluir"
                                                 >
                                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
@@ -229,7 +246,7 @@ export default function AdminSaidasPage() {
                                     ))}
                                     {saidas.length === 0 && (
                                         <tr>
-                                            <td colSpan={4} className="py-8 text-center text-slate-500">Nenhum horário cadastrado.</td>
+                                            <td colSpan={4} className="py-8 text-center text-slate-500">Nenhum hor\u00e1rio cadastrado.</td>
                                         </tr>
                                     )}
                                 </tbody>

@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { Database } from '@/types/database.types'
 
 export interface Saida {
     id: string
@@ -11,6 +12,9 @@ export interface Saida {
     obs: string | null
     ordem: number
 }
+
+type SaidaPayload = Omit<Saida, 'id'>
+type PerfilRegistro = Pick<Database['public']['Tables']['membro_perfis']['Row'], 'perfil'>
 
 // Ensure the user has permission to modify
 export async function canEditSaidas() {
@@ -33,14 +37,14 @@ export async function canEditSaidas() {
         .eq('membro_id', member.id)
 
     if (!perfis) return false
-    return perfis.some((p: any) => p.perfil === 'ADMIN' || p.perfil === 'SUPERINTENDENTE_SERVICO')
+    return perfis.some((p: PerfilRegistro) => p.perfil === 'ADMIN' || p.perfil === 'SUPERINTENDENTE_SERVICO')
 }
 
 export async function getSaidas() {
     const supabase = await createClient()
 
     const { data, error } = await supabase
-        .from('horarios_campo' as any)
+        .from('horarios_campo')
         .select('*')
         .order('ordem', { ascending: true })
         .order('hora', { ascending: true })
@@ -50,10 +54,10 @@ export async function getSaidas() {
         return { data: [], error: 'Erro ao buscar horários de campo.' }
     }
 
-    return { data: data as any as Saida[] }
+    return { data: data as Saida[] }
 }
 
-export async function createSaida(saida: Omit<Saida, 'id'>) {
+export async function createSaida(saida: SaidaPayload) {
     const supabase = await createClient()
 
     if (!await canEditSaidas()) {
@@ -61,7 +65,7 @@ export async function createSaida(saida: Omit<Saida, 'id'>) {
     }
 
     const { error } = await supabase
-        .from('horarios_campo' as any)
+        .from('horarios_campo')
         .insert(saida)
 
     if (error) {
@@ -74,7 +78,7 @@ export async function createSaida(saida: Omit<Saida, 'id'>) {
     return { success: true }
 }
 
-export async function updateSaida(id: string, saida: Omit<Saida, 'id'>) {
+export async function updateSaida(id: string, saida: SaidaPayload) {
     const supabase = await createClient()
 
     if (!await canEditSaidas()) {
@@ -82,7 +86,7 @@ export async function updateSaida(id: string, saida: Omit<Saida, 'id'>) {
     }
 
     const { error } = await supabase
-        .from('horarios_campo' as any)
+        .from('horarios_campo')
         .update(saida)
         .eq('id', id)
 
@@ -104,7 +108,7 @@ export async function deleteSaida(id: string) {
     }
 
     const { error } = await supabase
-        .from('horarios_campo' as any)
+        .from('horarios_campo')
         .delete()
         .eq('id', id)
 

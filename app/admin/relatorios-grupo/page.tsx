@@ -97,6 +97,18 @@ export default function RelatoriosGrupoPage() {
                     .from('relatorios_servico')
                     .insert([payload])
                 if (error) throw error
+                
+                // Tenta pegar o ID gerado se for um insert
+                const { data: newRel } = await supabase
+                    .from('relatorios_servico')
+                    .select('*')
+                    .eq('membro_id', payload.membro_id)
+                    .eq('mes', payload.mes)
+                    .maybeSingle()
+                    
+                if (newRel) {
+                    (payload as any).id = newRel.id
+                }
             }
 
             toast.success('Relatório salvo com sucesso!')
@@ -110,7 +122,7 @@ export default function RelatoriosGrupoPage() {
                         relatorio: {
                             ...m.relatorio,
                             ...payload,
-                            id: m.relatorio?.id || 'temp-id'
+                            id: membroEditando.relatorio?.id || (payload as any).id || 'temp-id'
                         } as Relatorio
                     }
                 }
@@ -124,12 +136,16 @@ export default function RelatoriosGrupoPage() {
         }
     }
 
+    const userId = user?.id
+
     // Se é admin, deve poder escolher o grupo. Por hora vamos fazer pro próprio grupo
     useEffect(() => {
-        if (!user) return
+        if (!userId) return
 
         const fetchDados = async () => {
-            setIsLoading(true)
+            // Só mostra loading de tela inteira se for a primeira vez
+            setIsLoading(membrosGrupo.length === 0)
+            
             try {
                 // Descobre de qual grupo o cara logado é dirigente (superintendente) ou ajudante
                 // Por hora, vamos pegar os membros do MESMO grupo_id do usuário logado (Dirigente ou não)
@@ -138,7 +154,7 @@ export default function RelatoriosGrupoPage() {
                 const { data: logadoInfo } = await supabase
                     .from('membros')
                     .select('grupo_id')
-                    .eq('user_id', user.id)
+                    .eq('user_id', userId)
                     .single()
 
                 const grupoId = logadoInfo?.grupo_id
@@ -193,9 +209,10 @@ export default function RelatoriosGrupoPage() {
         }
 
         fetchDados()
-    }, [user, mes])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userId, mes])
 
-    if (isLoading) return <div className="p-8 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
+    if (isLoading && membrosGrupo.length === 0) return <div className="p-8 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
 
     const entregues = membrosGrupo.filter(v => v.relatorio).length
     const total = membrosGrupo.length

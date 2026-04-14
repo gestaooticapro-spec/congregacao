@@ -62,3 +62,19 @@ Gerenciar a semana especial da visita do Superintendente de Circuito (SC), centr
 ---
 > [!IMPORTANT]
 > **ESTE ARQUIVO NÃO DEVE SER APAGADO OU SOBRESCRITO.** Ele contém a memória técnica de funcionalidades essenciais para a operação da congregação.
+
+## 4. Gestão de Pastoreio (Shepherding)
+
+### Objetivo
+Permitir que os Superintendentes de Grupo (SGs) acompanhem e registrem as visitas de pastoreio realizadas aos membros de seus respectivos grupos de serviço.
+
+### Requisitos Funcionais
+- **Acesso Restrito**: O menu e a funcionalidade de "Pastoreio" ficam disponíveis apenas quando o sistema identifica que o ancião logado possui a marcação de SG (`is_sg`).
+- **Filtro por Grupo**: O SG visualiza apenas os membros que pertencem ao seu próprio grupo (`grupo_id`).
+- **Registro de Data**: Exibição da data do "Último Pastoreio" ao lado de cada membro, com campo para atualização rápida.
+
+### Especificações Técnicas
+- **Tabela `membros`**: Adicionar coluna `ultimo_pastoreio` (DATE).
+- **Lógica de Interface**: 
+  - Validar identidade do SG comparando `user_id` do login com a tabela `membros`.
+  - Página dedicada em `/admin/pastoreio` com listagem filtrada por `grupo_id`.

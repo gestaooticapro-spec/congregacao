@@ -45,13 +45,15 @@ const MENU_ITEMS: MenuItem[] = [
     { type: 'link', href: '/saidas', label: 'Horário de Campo', icon: Calendar },
     { type: 'pin-button', label: 'Meu Relatório (PIN)', icon: UserCircle },
 
-    { type: 'separator', label: 'Área Comum', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT', 'IRMAO'] },
+    { type: 'separator', label: 'Área Comum', restricted: true },
     { type: 'link', href: '/admin/meu-login', label: 'Senha e Acesso', icon: ShieldCheck, restricted: true },
     { type: 'link', href: '/admin/agenda', label: 'Agenda e Lembretes', icon: Calendar, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT', 'IRMAO'] },
     { type: 'link', href: '/admin/eventos', label: 'Gerenciar Eventos', icon: PlusCircle, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT', 'IRMAO'] },
     { type: 'link', href: '/admin/pauta-anciaos', label: 'Pauta de Reunião', icon: ClipboardList, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT', 'IRMAO'] },
     { type: 'link', href: '/admin/relatorios', label: 'Relatórios', icon: FileText, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT', 'IRMAO'] },
     { type: 'link', href: '/admin/relatorios-grupo', label: 'Meu Grupo', icon: Users, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT', 'IRMAO'] },
+    { type: 'link', href: '/admin/membros', label: 'Membros', icon: UsersRound, restricted: true },
+    { type: 'link', href: '/admin/meus-temas', label: 'Meus Temas', icon: Mic, restricted: true },
 
     { type: 'separator', label: 'Administração', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT'] },
     { type: 'link', href: '/admin/relatorios-secretaria', label: 'Secretário (Relatórios)', icon: FileText, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO'] },
@@ -62,7 +64,7 @@ const MENU_ITEMS: MenuItem[] = [
     { type: 'link', href: '/admin/limpeza', label: 'Limpeza', icon: Eraser, restricted: true, allowedRoles: ['ADMIN', 'SUPERINTENDENTE_SERVICO'] },
     { type: 'link', href: '/admin/cadastros', label: 'Cadastros', icon: LibraryBig, restricted: true, allowedRoles: ['ADMIN', 'RESP_SABADO'] },
     { type: 'link', href: '/admin/grupos', label: 'Grupos', icon: Users, restricted: true, allowedRoles: ['ADMIN', 'SUPERINTENDENTE_SERVICO'] },
-    { type: 'link', href: '/admin/membros', label: 'Membros', icon: UsersRound, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA'] },
+
     { type: 'link', href: '/admin/territorios', label: 'Gerenciar Territórios', icon: Settings, restricted: true, allowedRoles: ['ADMIN', 'RT'] },
     { type: 'link', href: '/admin/permissoes', label: 'Permissões', icon: UserCheck, restricted: true, allowedRoles: ['ADMIN'] },
 ]

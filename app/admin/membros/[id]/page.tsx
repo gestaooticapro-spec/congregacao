@@ -26,18 +26,7 @@ export default function EditarMembroPage() {
     const [prevMemberId, setPrevMemberId] = useState<string | null>(null)
     const [nextMemberId, setNextMemberId] = useState<string | null>(null)
 
-    // Themes Data
-    const [temasPreparados, setTemasPreparados] = useState<{ id: string, numero: number, titulo: string }[]>([])
-    const [temasDisponiveis, setTemasDisponiveis] = useState<{ id: string, numero: number, titulo: string }[]>([])
-    const [temaSelecionadoId, setTemaSelecionadoId] = useState('')
-    const [addingTema, setAddingTema] = useState(false)
-    const [searchTerm, setSearchTerm] = useState('')
-    const [showResults, setShowResults] = useState(false)
 
-    const filteredTemas = temasDisponiveis.filter(t =>
-        t.numero.toString().includes(searchTerm) ||
-        t.titulo.toLowerCase().includes(searchTerm.toLowerCase())
-    )
 
     useEffect(() => {
         if (id) {
@@ -51,8 +40,6 @@ export default function EditarMembroPage() {
             await Promise.all([
                 fetchMembro(),
                 fetchGrupos(),
-                fetchTemasPreparados(),
-                fetchTemasDisponiveis(),
                 fetchNavigation()
             ])
         } catch (error) {
@@ -101,24 +88,7 @@ export default function EditarMembroPage() {
         }
     }
 
-    const fetchTemasPreparados = async () => {
-        const { data, error } = await supabase
-            .from('membros_temas')
-            .select('tema:temas(id, numero, titulo)')
-            .eq('membro_id', id)
 
-        if (error) {
-            console.error('Erro ao buscar temas:', error)
-        } else {
-            const temas = data.map((item: any) => item.tema).sort((a: any, b: any) => a.numero - b.numero)
-            setTemasPreparados(temas)
-        }
-    }
-
-    const fetchTemasDisponiveis = async () => {
-        const { data } = await supabase.from('temas').select('id, numero, titulo').order('numero')
-        setTemasDisponiveis(data || [])
-    }
 
     const handleChange = (field: keyof MembroUpdate, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }))
@@ -149,51 +119,7 @@ export default function EditarMembroPage() {
         }
     }
 
-    const handleAddTema = async () => {
-        if (!temaSelecionadoId) return
-        setAddingTema(true)
-        try {
-            const { error: linkError } = await supabase
-                .from('membros_temas')
-                .insert({ membro_id: id, tema_id: temaSelecionadoId })
 
-            if (linkError) {
-                if (linkError.code === '23505') {
-                    alert('Este tema já está na lista do orador.')
-                } else {
-                    throw linkError
-                }
-            } else {
-                setTemaSelecionadoId('')
-                setSearchTerm('')
-                fetchTemasPreparados()
-            }
-
-        } catch (error: any) {
-            console.error('Erro ao adicionar tema:', error)
-            alert('Erro ao adicionar tema: ' + error.message)
-        } finally {
-            setAddingTema(false)
-        }
-    }
-
-    const handleRemoveTema = async (temaId: string) => {
-        if (!confirm('Remover este tema da lista do orador?')) return
-
-        try {
-            const { error } = await supabase
-                .from('membros_temas')
-                .delete()
-                .eq('membro_id', id)
-                .eq('tema_id', temaId)
-
-            if (error) throw error
-            fetchTemasPreparados()
-        } catch (error) {
-            console.error('Erro ao remover tema:', error)
-            alert('Erro ao remover tema')
-        }
-    }
 
     if (loading) return <div className="p-8">Carregando...</div>
 
@@ -202,7 +128,6 @@ export default function EditarMembroPage() {
         { id: 'qualificacoes', label: 'Qualificações' },
         { id: 'designacoes', label: 'Designações' },
         { id: 'privilegios', label: 'Privilégios' },
-        ...(formData.is_anciao || formData.is_servo_ministerial ? [{ id: 'temas', label: 'Temas Preparados' }] : [])
     ]
 
     return (
@@ -449,95 +374,7 @@ export default function EditarMembroPage() {
                         </div>
                     )}
 
-                    {/* TEMAS PREPARADOS */}
-                    {activeTab === 'temas' && (
-                        <div className="space-y-6 animate-in fade-in duration-300">
-                            <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-700">
-                                <div className="flex flex-col sm:flex-row gap-4 mb-6 relative z-20">
-                                    <div className="flex-1 relative">
-                                        <input
-                                            type="text"
-                                            value={searchTerm}
-                                            onChange={(e) => {
-                                                setSearchTerm(e.target.value)
-                                                setShowResults(true)
-                                                setTemaSelecionadoId('')
-                                            }}
-                                            onFocus={() => setShowResults(true)}
-                                            placeholder="Digite o número ou nome do tema..."
-                                            className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary outline-none"
-                                        />
 
-                                        {/* Dropdown Results */}
-                                        {showResults && (
-                                            <div className="absolute z-30 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                                                {filteredTemas.length === 0 ? (
-                                                    <div className="p-3 text-slate-500 dark:text-slate-400 text-center">
-                                                        Nenhum tema encontrado
-                                                    </div>
-                                                ) : (
-                                                    filteredTemas.map(t => (
-                                                        <button
-                                                            key={t.id}
-                                                            onClick={() => {
-                                                                setTemaSelecionadoId(t.id)
-                                                                setSearchTerm(`#${t.numero} - ${t.titulo}`)
-                                                                setShowResults(false)
-                                                            }}
-                                                            className="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-b border-slate-100 dark:border-slate-800 last:border-0"
-                                                        >
-                                                            <span className="font-bold text-primary">#{t.numero}</span>
-                                                            <span className="ml-2 text-slate-700 dark:text-slate-300">{t.titulo}</span>
-                                                        </button>
-                                                    ))
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <button
-                                        onClick={handleAddTema}
-                                        disabled={addingTema || !temaSelecionadoId}
-                                        className="px-6 py-2 bg-primary text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-all sm:w-auto w-full"
-                                    >
-                                        {addingTema ? 'Adicionando...' : 'Adicionar'}
-                                    </button>
-                                </div>
-
-                                {/* Overlay to close dropdown when clicking outside */}
-                                {showResults && (
-                                    <div
-                                        className="fixed inset-0 z-10"
-                                        onClick={() => setShowResults(false)}
-                                    ></div>
-                                )}
-
-                                <div className="grid grid-cols-1 gap-2">
-                                    {temasPreparados.length === 0 ? (
-                                        <p className="text-slate-500 dark:text-slate-400 italic">Nenhum tema cadastrado para este orador.</p>
-                                    ) : (
-                                        temasPreparados.map((tema) => (
-                                            <div key={tema.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="w-10 h-10 flex items-center justify-center bg-blue-100 text-blue-700 font-bold rounded-lg text-sm">
-                                                        {tema.numero}
-                                                    </span>
-                                                    <span className="font-medium text-slate-700 dark:text-slate-300">{tema.titulo}</span>
-                                                </div>
-                                                <button
-                                                    onClick={() => handleRemoveTema(tema.id)}
-                                                    className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition-colors"
-                                                    title="Remover tema"
-                                                >
-                                                    🗑️
-                                                </button>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )}
 
                 </div>
             </div>
@@ -589,6 +426,7 @@ export default function EditarMembroPage() {
                     </div>
                 </div>
             </div>
+
         </div>
     )
 }

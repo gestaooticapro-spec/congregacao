@@ -179,10 +179,12 @@ export default function PastoreioPage() {
             <Toaster position="top-right" />
 
             {/* Header */}
-            <div>
-                <h1 className="text-2xl font-bold text-slate-800">Gestão de Pastoreio</h1>
-                <p className="text-sm text-slate-500 mt-1">
-                    Superintendente: <span className="font-medium text-slate-700">{sgNome}</span>
+            <div className="text-center mb-2">
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Gestão de Pastoreio</h1>
+                <div className="h-1 w-20 bg-blue-600 mx-auto rounded-full mb-3" />
+                <p className="text-slate-500 dark:text-slate-400">
+                    Superintendente:{' '}
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">{sgNome}</span>
                     {' · '}
                     {membros.length} membro{membros.length !== 1 ? 's' : ''} no grupo
                 </p>
@@ -313,7 +315,7 @@ export default function PastoreioPage() {
                                                         className={`text-xs border rounded px-2 py-1 ${
                                                             temOverdue
                                                                 ? 'border-red-400 bg-red-50 text-red-700'
-                                                                : 'border-slate-300 bg-white'
+                                                                : 'border-slate-300 bg-white text-slate-800'
                                                         }`}
                                                     />
                                                     <button
@@ -341,7 +343,7 @@ export default function PastoreioPage() {
                                                     <input
                                                         type="date"
                                                         onChange={e => handleDateChange(membro.id, e.target.value)}
-                                                        className="text-xs border border-slate-300 rounded px-2 py-1"
+                                                        className="text-xs border border-slate-300 rounded px-2 py-1 text-slate-800"
                                                     />
                                                     <button
                                                         onClick={() => handleSaveDate(membro)}
@@ -371,7 +373,7 @@ export default function PastoreioPage() {
                                                     }
                                                     placeholder="Registre o que foi conversado..."
                                                     rows={1}
-                                                    className="w-full text-xs border border-slate-300 rounded px-2 py-1 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                    className="w-full text-xs border border-slate-300 rounded px-2 py-1 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-800 placeholder:text-slate-400"
                                                 />
                                                 <button
                                                     onClick={() => handleSalvarVisita(membro)}

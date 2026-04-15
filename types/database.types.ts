@@ -220,6 +220,9 @@ export interface Database {
           ativo: boolean
           genero: 'M' | 'F' | null
           pin: string | null
+          ultima_visita: string | null
+          ultima_visita_obs: string | null
+          proxima_visita: string | null
           created_at: string
           updated_at: string
         }
@@ -263,6 +266,9 @@ export interface Database {
           ativo?: boolean
           genero?: 'M' | 'F' | null
           pin?: string | null
+          ultima_visita?: string | null
+          ultima_visita_obs?: string | null
+          proxima_visita?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -306,6 +312,9 @@ export interface Database {
           ativo?: boolean
           genero?: 'M' | 'F' | null
           pin?: string | null
+          ultima_visita?: string | null
+          ultima_visita_obs?: string | null
+          proxima_visita?: string | null
           created_at?: string
           updated_at?: string
         }

@@ -29,7 +29,8 @@ import {
     Eraser,
     LibraryBig,
     UsersRound,
-    UserCircle
+    UserCircle,
+    HeartHandshake
 } from 'lucide-react'
 
 type MenuItem =
@@ -53,6 +54,7 @@ const MENU_ITEMS: MenuItem[] = [
     { type: 'link', href: '/admin/relatorios', label: 'Relatórios', icon: FileText, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT', 'IRMAO'] },
     { type: 'link', href: '/admin/relatorios-grupo', label: 'Meu Grupo', icon: Users, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT', 'IRMAO'] },
     { type: 'link', href: '/admin/membros', label: 'Membros', icon: UsersRound, restricted: true },
+    { type: 'link', href: '/admin/pastoreio', label: 'Pastoreio', icon: HeartHandshake, restricted: true },
     { type: 'link', href: '/admin/meus-temas', label: 'Meus Temas', icon: Mic, restricted: true },
 
     { type: 'separator', label: 'Administração', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT'] },

@@ -12,11 +12,14 @@ import {
     ChevronDown,
     Shield,
     Clock,
-    Star
+    Star,
+    ArrowLeft
 } from 'lucide-react'
 import { format, startOfMonth, subMonths } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Database } from '@/types/database.types'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { Suspense } from 'react'
 
 type Membro = Database['public']['Tables']['membros']['Row']
 type Relatorio = Database['public']['Tables']['relatorios_servico']['Row']
@@ -39,11 +42,16 @@ const getMonthOptions = () => {
     ]
 }
 
-export default function RelatoriosGrupoPage() {
+function RelatoriosGrupoContent() {
     const { user } = useAuth()
+    const searchParams = useSearchParams()
+    const router = useRouter()
+    const queryMes = searchParams.get('mes')
+    const queryGrupoId = searchParams.get('grupo_id')
+
     const [isLoading, setIsLoading] = useState(true)
     const [meses] = useState(getMonthOptions())
-    const [mes, setMes] = useState(meses[0].value)
+    const [mes, setMes] = useState(queryMes || meses[0].value)
     const [membrosGrupo, setMembrosGrupo] = useState<RelatorioView[]>([])
     const [nomeGrupo, setNomeGrupo] = useState('')
 
@@ -157,10 +165,11 @@ export default function RelatoriosGrupoPage() {
                     .eq('user_id', userId)
                     .single()
 
-                const grupoId = logadoInfo?.grupo_id
+                // Se houver query param, tenta usar ele. Senão, usa o do usuário logado.
+                const grupoId = queryGrupoId || logadoInfo?.grupo_id
 
                 if (!grupoId) {
-                    toast.error('Você não pertence a um grupo de serviço.')
+                    toast.error('Você não pertence a um grupo de serviço e não selecionou nenhum grupo.')
                     setIsLoading(false)
                     return
                 }
@@ -226,6 +235,14 @@ export default function RelatoriosGrupoPage() {
 
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
+                    {queryGrupoId && (
+                        <button 
+                            onClick={() => router.back()}
+                            className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mb-2 transition-colors"
+                        >
+                            <ArrowLeft className="w-4 h-4" /> Voltar
+                        </button>
+                    )}
                     <h1 className="text-2xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
                         <Users className="w-6 h-6 text-blue-600" />
                         Relatórios do {nomeGrupo || 'Grupo'}
@@ -473,5 +490,13 @@ export default function RelatoriosGrupoPage() {
                 </div>
             )}
         </div>
+    )
+}
+
+export default function RelatoriosGrupoPage() {
+    return (
+        <Suspense fallback={<div className="p-8 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>}>
+            <RelatoriosGrupoContent />
+        </Suspense>
     )
 }

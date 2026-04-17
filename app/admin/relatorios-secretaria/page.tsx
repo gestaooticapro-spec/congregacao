@@ -10,10 +10,12 @@ import {
     Clock,
     FileText,
     Star,
-    PieChart
+    PieChart,
+    ArrowRight
 } from 'lucide-react'
 import { format, startOfMonth, subMonths } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import Link from 'next/link'
 
 interface GrupoResumo {
     id: string
@@ -22,6 +24,8 @@ interface GrupoResumo {
     entregues: number
     pendentes: number
     horas: number
+    horasPR: number
+    horasPA: number
     estudos: number
     pioneirosRegulares: number
     pioneirosAuxiliares: number
@@ -41,7 +45,7 @@ const getMonthOptions = () => {
 export default function RelatoriosSecretariaPage() {
     const [isLoading, setIsLoading] = useState(true)
     const [meses] = useState(getMonthOptions())
-    const [mes, setMes] = useState(meses[0].value)
+    const [mes, setMes] = useState(meses.length > 1 ? meses[1].value : meses[0].value)
     const [resumoGrupos, setResumoGrupos] = useState<GrupoResumo[]>([])
 
     // Totais Gerais
@@ -89,6 +93,8 @@ export default function RelatoriosSecretariaPage() {
                     const membrosDoGrupo = (membros || []).filter(m => m.grupo_id === g.id)
                     let entregues = 0
                     let horas = 0
+                    let horasPR = 0
+                    let horasPA = 0
                     let estudos = 0
                     let pr = 0
                     let pa = 0
@@ -107,10 +113,12 @@ export default function RelatoriosSecretariaPage() {
                             if (m.is_pioneiro) {
                                 pr++
                                 prTot++
+                                horasPR += rel.horas || 0
                             }
                             if (!m.is_pioneiro && rel.is_pioneiro_auxiliar) {
                                 pa++
                                 paTot++
+                                horasPA += rel.horas || 0
                             }
                         }
                     })
@@ -122,6 +130,8 @@ export default function RelatoriosSecretariaPage() {
                         entregues,
                         pendentes: membrosDoGrupo.length - entregues,
                         horas,
+                        horasPR,
+                        horasPA,
                         estudos,
                         pioneirosRegulares: pr,
                         pioneirosAuxiliares: pa
@@ -159,7 +169,7 @@ export default function RelatoriosSecretariaPage() {
                 <div>
                     <h1 className="text-2xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
                         <FileText className="w-6 h-6 text-blue-600" />
-                        Secretaria (Relatórios)
+                        Secretário (Relatórios)
                     </h1>
                     <p className="text-gray-500 dark:text-gray-400">
                         Visão consolidada do progresso de todos os grupos da congregação.
@@ -239,8 +249,10 @@ export default function RelatoriosSecretariaPage() {
                                 <th className="py-4 px-6 font-medium text-sm text-gray-500 dark:text-gray-400">Grupo</th>
                                 <th className="py-4 px-6 font-medium text-sm text-gray-500 dark:text-gray-400">Status Entrega</th>
                                 <th className="py-4 px-6 font-medium text-sm text-gray-500 dark:text-gray-400 text-center">PR / PA</th>
-                                <th className="py-4 px-6 font-medium text-sm text-gray-500 dark:text-gray-400 text-right">Horas</th>
+                                <th className="py-4 px-6 font-medium text-sm text-gray-500 dark:text-gray-400 text-right">Horas PR</th>
+                                <th className="py-4 px-6 font-medium text-sm text-gray-500 dark:text-gray-400 text-right">Horas PA</th>
                                 <th className="py-4 px-6 font-medium text-sm text-gray-500 dark:text-gray-400 text-right">Estudos</th>
+                                <th className="py-4 px-6 font-medium text-sm text-gray-500 dark:text-gray-400 text-center">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
@@ -266,11 +278,23 @@ export default function RelatoriosSecretariaPage() {
                                                 <span className="text-xs font-semibold bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 px-2 py-0.5 rounded">{grp.pioneirosAuxiliares}</span>
                                             </div>
                                         </td>
-                                        <td className="py-4 px-6 text-right font-semibold text-gray-900 dark:text-white">
-                                            {grp.horas}
+                                        <td className="py-4 px-6 text-right font-semibold text-amber-600 dark:text-amber-500">
+                                            {grp.horasPR}
+                                        </td>
+                                        <td className="py-4 px-6 text-right font-semibold text-blue-600 dark:text-blue-500">
+                                            {grp.horasPA}
                                         </td>
                                         <td className="py-4 px-6 text-right font-semibold text-gray-900 dark:text-white">
                                             {grp.estudos}
+                                        </td>
+                                        <td className="py-4 px-6 text-center">
+                                            <Link
+                                                href={`/admin/relatorios-grupo?grupo_id=${grp.id}&mes=${mes}`}
+                                                className="inline-flex items-center justify-center p-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-gray-400 transition-colors"
+                                                title="Ver Detalhes do Grupo"
+                                            >
+                                                <ArrowRight className="w-4 h-4" />
+                                            </Link>
                                         </td>
                                     </tr>
                                 )

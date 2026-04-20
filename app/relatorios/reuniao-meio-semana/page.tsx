@@ -210,9 +210,9 @@ function RelatorioContent() {
                                 <div className="font-bold text-slate-900">
                                     {getMemberName(parte.membro_id)}
                                 </div>
-                                {(parte.ajudante_id || (parte.tipo === 'VIDA_CRISTA' && parte.nome.toLowerCase().includes('estudo bíblico') && parte.ajudante_id)) && (
+                                {(parte.ajudante_id) && (
                                     <div className="text-xs text-slate-500 italic">
-                                        {parte.nome.toLowerCase().includes('estudo bíblico') ? 'Leitor: ' : 'Ajudante: '}
+                                        {(parte.tipo === 'VIDA_CRISTA' && parte.nome.toLowerCase().includes('estudo bíblico')) ? 'Leitor: ' : 'Ajudante: '}
                                         {getMemberName(parte.ajudante_id)}
                                     </div>
                                 )}

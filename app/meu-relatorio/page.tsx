@@ -14,7 +14,7 @@ import {
     User,
     Shield
 } from 'lucide-react'
-import { format, startOfMonth, subMonths } from 'date-fns'
+import { format, startOfMonth, subMonths, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 interface SessaoMembro {
@@ -33,8 +33,8 @@ const getMonthOptions = () => {
     const prevMonth = startOfMonth(subMonths(now, 1))
 
     return [
-        { value: format(currentMonth, 'yyyy-MM-dd'), label: format(currentMonth, 'MMMM yyyy', { locale: ptBR }) },
-        { value: format(prevMonth, 'yyyy-MM-dd'), label: format(prevMonth, 'MMMM yyyy', { locale: ptBR }) }
+        { value: format(prevMonth, 'yyyy-MM-dd'), label: format(prevMonth, 'MMMM yyyy', { locale: ptBR }) },
+        { value: format(currentMonth, 'yyyy-MM-dd'), label: format(currentMonth, 'MMMM yyyy', { locale: ptBR }) }
     ]
 }
 
@@ -55,8 +55,9 @@ export default function MeuRelatorioPage() {
     useEffect(() => {
         const stored = localStorage.getItem('membro_sessao')
         if (!stored) {
-            router.replace('/')
             toast('Por favor, acesse através do PIN.', { icon: '🔒' })
+            router.replace('/')
+            setIsLoading(false)
             return
         }
 
@@ -129,10 +130,13 @@ export default function MeuRelatorioPage() {
                 throw new Error(error.message || 'Erro de permissão ou salvamento')
             }
 
-            toast.success('Relatório enviado com sucesso!')
+            const mesNome = format(parseISO(mes), 'MMMM', { locale: ptBR })
+            toast.success(`Parabéns! O relatório de ${mesNome} foi enviado com sucesso.`, {
+                duration: 4000
+            })
             setTimeout(() => {
                 router.push('/')
-            }, 2000)
+            }, 3000)
 
         } catch (err: any) {
             console.error('Erro no Catch:', err)
@@ -271,7 +275,7 @@ export default function MeuRelatorioPage() {
                             Estudos Bíblicos
                         </label>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                            Quantas pessoas diferentes você dirigiu estudos no mês? (Opcional)
+                            Quantas pessoas diferentes você dirigiu estudos no mês?
                         </p>
                         <input
                             type="number"

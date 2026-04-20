@@ -44,7 +44,7 @@ const MENU_ITEMS: MenuItem[] = [
     { type: 'link', href: '/quadro-de-anuncios', label: 'Quadro de Anúncios', icon: LayoutDashboard },
     { type: 'link', href: '/territorios', label: 'Territórios', icon: Map },
     { type: 'link', href: '/saidas', label: 'Horário de Campo', icon: Calendar },
-    { type: 'pin-button', label: 'Meu Relatório (PIN)', icon: UserCircle },
+    { type: 'pin-button', label: 'Meu Relatório', icon: UserCircle },
 
     { type: 'separator', label: 'Área Comum', restricted: true },
     { type: 'link', href: '/admin/meu-login', label: 'Senha e Acesso', icon: ShieldCheck, restricted: true },

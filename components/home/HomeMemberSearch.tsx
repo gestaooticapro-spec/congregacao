@@ -8,7 +8,7 @@ import { ptBR } from 'date-fns/locale'
 import { useRouter } from 'next/navigation'
 
 
-type Membro = Pick<Database['public']['Tables']['membros']['Row'], 'id' | 'nome_completo' | 'nome_civil' | 'grupo_id' | 'is_anciao'>
+type Membro = Pick<Database['public']['Tables']['membros']['Row'], 'id' | 'nome_completo' | 'nome_civil' | 'grupo_id' | 'is_anciao' | 'is_pioneiro' | 'pin'>
 
 type Designacao = {
     tipo: 'REUNIAO' | 'SUPORTE' | 'LIMPEZA' | 'CAMPO' | 'DISCURSO' | 'AGENDA'
@@ -72,7 +72,7 @@ export default function HomeMemberSearch(): React.ReactNode {
         try {
             const { data, error } = await supabase
                 .from('membros')
-                .select('id, nome_completo, nome_civil, grupo_id, is_anciao')
+                .select('id, nome_completo, nome_civil, grupo_id, is_anciao, is_pioneiro, pin')
                 .eq('ativo', true)
                 .order('nome_completo')
 
@@ -126,6 +126,24 @@ export default function HomeMemberSearch(): React.ReactNode {
         setLoading(true)
         setDiasDesignacoes([])
         setError(null)
+
+        // Automatic Login: Save session to localStorage
+        try {
+            localStorage.setItem('membro_sessao', JSON.stringify({
+                id: membro.id,
+                nome: membro.nome_completo,
+                grupo_id: membro.grupo_id,
+                is_pioneiro: membro.is_pioneiro,
+                pin: membro.pin || '',
+                timestamp: Date.now()
+            }))
+            
+            // Activate session state immediately
+            setIsSessaoMembroAtiva(true)
+            setNomeSessao(membro.nome_completo)
+        } catch (err) {
+            console.error('Erro ao salvar sessão automática:', err)
+        }
 
         try {
             const hoje = format(new Date(), 'yyyy-MM-dd')
@@ -465,7 +483,7 @@ export default function HomeMemberSearch(): React.ReactNode {
                         setShowResults(false)
                         setSelectedMembro(null)
                     }}
-                    placeholder="Digite seu nome e veja seus compromissos"
+                    placeholder="Digite seu nome para LOGAR"
                     className="w-full p-4 text-lg border-2 border-slate-200 dark:border-slate-700 rounded-xl shadow-lg focus:ring-4 focus:ring-primary/20 focus:border-primary outline-none transition-all bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400"
                 />
 

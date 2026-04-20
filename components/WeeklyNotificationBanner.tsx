@@ -210,7 +210,7 @@ export default function WeeklyNotificationBanner() {
                     <div className="flex-shrink-0 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
                         <Bell className="w-4 h-4 text-white" />
                     </div>
-                    <p className="text-sm md:text-base font-medium truncate">
+                    <p className="text-sm md:text-base font-medium leading-snug">
                         📢 {message}
                     </p>
                 </div>

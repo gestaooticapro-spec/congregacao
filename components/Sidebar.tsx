@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState, useMemo, memo } from 'react'
+import { useState, useMemo, memo, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthProvider'
 import { useSidebar } from '@/contexts/SidebarContext'
 import { PerfilAcesso } from '@/types/database.types'
@@ -30,12 +30,14 @@ import {
     LibraryBig,
     UsersRound,
     UserCircle,
-    HeartHandshake
+    HeartHandshake,
+    Clock
 } from 'lucide-react'
 
 type MenuItem =
     | { type: 'link'; href: string; label: string; icon: LucideIcon; restricted?: boolean; allowedRoles?: PerfilAcesso[] }
     | { type: 'pin-button'; label: string; icon: LucideIcon; restricted?: boolean; allowedRoles?: PerfilAcesso[] }
+    | { type: 'pioneer-button'; label: string; icon: LucideIcon; restricted?: boolean; allowedRoles?: PerfilAcesso[] }
     | { type: 'separator'; label?: string; restricted?: boolean; allowedRoles?: PerfilAcesso[] }
 
 // Static definition outside component to avoid recreation
@@ -45,6 +47,7 @@ const MENU_ITEMS: MenuItem[] = [
     { type: 'link', href: '/territorios', label: 'Territórios', icon: Map },
     { type: 'link', href: '/saidas', label: 'Horário de Campo', icon: Calendar },
     { type: 'pin-button', label: 'Meu Relatório', icon: UserCircle },
+    { type: 'pioneer-button', label: 'Painel do Pioneiro', icon: Clock },
 
     { type: 'separator', label: 'Área Comum', restricted: true },
     { type: 'link', href: '/admin/meu-login', label: 'Senha e Acesso', icon: ShieldCheck, restricted: true },
@@ -78,6 +81,19 @@ function Sidebar() {
     const [isPinModalOpen, setIsPinModalOpen] = useState(false)
     const { isCollapsed, toggleCollapsed } = useSidebar()
     const { user, roles, hasRole, loading, signOut } = useAuth()
+    const [isPioneiroSession, setIsPioneiroSession] = useState(false)
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const session = localStorage.getItem('membro_sessao')
+            if (session) {
+                try {
+                    const parsed = JSON.parse(session)
+                    setIsPioneiroSession(!!parsed.is_pioneiro)
+                } catch (e) {}
+            }
+        }
+    }, [])
 
     const isActive = (path: string) => {
         if (path === '/' && pathname !== '/') return false
@@ -170,6 +186,30 @@ function Sidebar() {
                                     title={isCollapsed ? item.label : undefined}
                                 >
                                     <Icon className="w-5 h-5 shrink-0 text-gray-400 dark:text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
+                                    <span className={cn("truncate transition-opacity", isCollapsed && "md:hidden")}>
+                                        {item.label}
+                                    </span>
+                                </button>
+                            )
+                        }
+
+                        if (item.type === 'pioneer-button') {
+                            if (!isPioneiroSession) return null
+                            const Icon = item.icon
+                            return (
+                                <button
+                                    key="pioneer-button-item"
+                                    onClick={() => {
+                                        router.push('/painel-pioneiro')
+                                        setIsMobileOpen(false)
+                                    }}
+                                    className={cn(
+                                        "w-full flex items-center gap-3 py-2.5 px-3 rounded-lg transition-all duration-200 font-medium group",
+                                        "text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                                    )}
+                                    title={isCollapsed ? item.label : undefined}
+                                >
+                                    <Icon className="w-5 h-5 shrink-0" />
                                     <span className={cn("truncate transition-opacity", isCollapsed && "md:hidden")}>
                                         {item.label}
                                     </span>

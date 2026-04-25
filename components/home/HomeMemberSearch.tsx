@@ -6,6 +6,7 @@ import { Database, Json } from '@/types/database.types'
 import { format, parseISO, startOfWeek, endOfWeek, isSameMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useRouter } from 'next/navigation'
+import PioneerDashboard from '../pioneer/PioneerDashboard'
 
 
 type Membro = Pick<Database['public']['Tables']['membros']['Row'], 'id' | 'nome_completo' | 'nome_civil' | 'grupo_id' | 'is_anciao' | 'is_pioneiro' | 'pin'>
@@ -540,7 +541,6 @@ export default function HomeMemberSearch(): React.ReactNode {
                             <span>📅</span> Designações para {selectedMembro.nome_completo}
                         </h2>
                     )}
-
                     {loading ? (
                         <div className="text-center py-8 text-slate-500">
                             <div className="animate-pulse">Carregando designações...</div>
@@ -557,7 +557,7 @@ export default function HomeMemberSearch(): React.ReactNode {
                         </div>
                     ) : diasDesignacoes.length > 0 ? (
                         diasDesignacoes.map((dia, idx) => (
-                            <div key={idx} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                            <div key={idx} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden text-left">
                                 {/* Header do Dia */}
                                 <div className="bg-slate-50 dark:bg-slate-700/50 p-3 px-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
                                     <span className="font-bold text-slate-700 dark:text-slate-200 capitalize">
@@ -573,22 +573,17 @@ export default function HomeMemberSearch(): React.ReactNode {
                                 {/* Lista de Designações do Dia */}
                                 <div className="divide-y divide-slate-100 dark:divide-slate-700">
                                     {dia.itens.map((desig, itemIdx) => {
-                                        // Logic to determine if card is clickable and where to go
                                         let destination = ''
                                         if (desig.tipo === 'SUPORTE') {
                                             destination = `/relatorios/mecanicas?data=${desig.data}`
                                         } else if (desig.tipo === 'AGENDA') {
                                             destination = '/admin/agenda'
                                         } else if (desig.tipo === 'REUNIAO') {
-                                            // Check if it's Midweek (Wed=3 or Thu=4)
-                                            // The `desig.data` is YYYY-MM-DD string.
                                             const dateObj = parseISO(desig.data)
-                                            const dayOfWeek = dateObj.getDay() // 0=Sun, 1=Mon, ...
-                                            // Assuming Midweek is Wed(3) or Thu(4)
+                                            const dayOfWeek = dateObj.getDay()
                                             if (dayOfWeek === 3 || dayOfWeek === 4) {
                                                 destination = `/relatorios/reuniao-meio-semana?data=${desig.data}`
                                             }
-                                            // Weekend (Sat=6, Sun=0) -> No link as requested
                                         }
 
                                         return (
@@ -601,7 +596,6 @@ export default function HomeMemberSearch(): React.ReactNode {
                                                 `}
                                                 role={destination ? 'button' : undefined}
                                             >
-                                                {/* Ícone / Indicador Visual */}
                                                 <div className={`
                                                 w-1 rounded-full self-stretch
                                                 ${desig.tipo === 'LIMPEZA' ? 'bg-green-500' :
@@ -613,7 +607,7 @@ export default function HomeMemberSearch(): React.ReactNode {
 
                                                 <div className="flex-1">
                                                     <div className="flex items-start justify-between gap-2">
-                                                        <h3 className="font-bold text-slate-900 dark:text-white">
+                                                        <h3 className="font-bold text-slate-900 dark:text-white text-left">
                                                             {desig.descricao}
                                                         </h3>
                                                         <span className={`
@@ -629,7 +623,7 @@ export default function HomeMemberSearch(): React.ReactNode {
                                                         </span>
                                                     </div>
                                                     {desig.detalhe && (
-                                                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                                                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 text-left">
                                                             {desig.detalhe}
                                                         </p>
                                                     )}

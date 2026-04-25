@@ -23,9 +23,10 @@ interface GrupoResumo {
     totalMembros: number
     entregues: number
     pendentes: number
-    horas: number
     horasPR: number
     horasPA: number
+    abonoPR: number
+    abonoPA: number
     estudos: number
     pioneirosRegulares: number
     pioneirosAuxiliares: number
@@ -92,9 +93,10 @@ export default function RelatoriosSecretariaPage() {
                 const resumo: GrupoResumo[] = (grupos || []).map(g => {
                     const membrosDoGrupo = (membros || []).filter(m => m.grupo_id === g.id)
                     let entregues = 0
-                    let horas = 0
                     let horasPR = 0
                     let horasPA = 0
+                    let abonoPR = 0
+                    let abonoPA = 0
                     let estudos = 0
                     let pr = 0
                     let pa = 0
@@ -105,7 +107,6 @@ export default function RelatoriosSecretariaPage() {
                         if (rel) {
                             entregues++
                             eTot++
-                            horas += rel.horas || 0
                             hTot += rel.horas || 0
                             estudos += rel.estudos || 0
                             esTot += rel.estudos || 0
@@ -114,11 +115,13 @@ export default function RelatoriosSecretariaPage() {
                                 pr++
                                 prTot++
                                 horasPR += rel.horas || 0
+                                abonoPR += rel.horas_abono || 0
                             }
                             if (!m.is_pioneiro && rel.is_pioneiro_auxiliar) {
                                 pa++
                                 paTot++
                                 horasPA += rel.horas || 0
+                                abonoPA += rel.horas_abono || 0
                             }
                         }
                     })
@@ -129,9 +132,10 @@ export default function RelatoriosSecretariaPage() {
                         totalMembros: membrosDoGrupo.length,
                         entregues,
                         pendentes: membrosDoGrupo.length - entregues,
-                        horas,
                         horasPR,
                         horasPA,
+                        abonoPR,
+                        abonoPA,
                         estudos,
                         pioneirosRegulares: pr,
                         pioneirosAuxiliares: pa
@@ -251,6 +255,7 @@ export default function RelatoriosSecretariaPage() {
                                 <th className="py-4 px-6 font-medium text-sm text-gray-500 dark:text-gray-400 text-center">PR / PA</th>
                                 <th className="py-4 px-6 font-medium text-sm text-gray-500 dark:text-gray-400 text-right">Horas PR</th>
                                 <th className="py-4 px-6 font-medium text-sm text-gray-500 dark:text-gray-400 text-right">Horas PA</th>
+                                <th className="py-4 px-6 font-medium text-sm text-purple-500 dark:text-purple-400 text-right">Abonos</th>
                                 <th className="py-4 px-6 font-medium text-sm text-gray-500 dark:text-gray-400 text-right">Estudos</th>
                                 <th className="py-4 px-6 font-medium text-sm text-gray-500 dark:text-gray-400 text-center">Ações</th>
                             </tr>
@@ -283,6 +288,9 @@ export default function RelatoriosSecretariaPage() {
                                         </td>
                                         <td className="py-4 px-6 text-right font-semibold text-blue-600 dark:text-blue-500">
                                             {grp.horasPA}
+                                        </td>
+                                        <td className="py-4 px-6 text-right font-semibold text-purple-600 dark:text-purple-500">
+                                            {grp.abonoPR + grp.abonoPA}
                                         </td>
                                         <td className="py-4 px-6 text-right font-semibold text-gray-900 dark:text-white">
                                             {grp.estudos}

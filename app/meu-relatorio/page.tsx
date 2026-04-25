@@ -48,6 +48,7 @@ export default function MeuRelatorioPage() {
     // Formulário
     const [mes, setMes] = useState(meses[0].value)
     const [horas, setHoras] = useState<string>('')
+    const [horasAbono, setHorasAbono] = useState<string>('')
     const [estudos, setEstudos] = useState<string>('')
     const [trabalhou, setTrabalhou] = useState(true)
     const [isPioneiroAuxiliar, setIsPioneiroAuxiliar] = useState(false)
@@ -61,34 +62,50 @@ export default function MeuRelatorioPage() {
             return
         }
 
-        const validate = async () => {
+        const validateAndFetchDrafts = async () => {
             try {
                 const parsed: SessaoMembro = JSON.parse(stored)
-
-                // Se não tiver PIN na sessão, força logout
                 if (!parsed.pin) {
-                    console.warn('Sessão antiga detectada (sem PIN). Forçando logout.')
                     handleLogout()
-                    return
-                }
-
-                // Valida com o servidor se o PIN ainda é válido
-                const { data, error } = await supabase.rpc('verificar_pin', { p_pin: parsed.pin })
-
-                if (error || !data || data.length === 0) {
-                    console.warn('PIN inválido ou alterado. Forçando logout.')
-                    localStorage.removeItem('membro_sessao')
-                    toast('Seu PIN foi atualizado. Por favor, insira o novo PIN.', { icon: '🔑', duration: 5000 })
-                    router.replace('/')
                     return
                 }
 
                 setSessao(parsed)
 
-                // Prefill para publicadores
+                // 2. Fetch Logs from Pioneer Panel to use as draft
+                if (parsed.is_pioneiro) {
+                    const startOfMonth = mes
+                    const endOfMonth = format(new Date(new Date(mes).getFullYear(), new Date(mes).getMonth() + 1, 0), 'yyyy-MM-dd')
+                    
+                    const { data: logs } = await supabase
+                        .from('ministerio_logs')
+                        .select('minutos, categoria')
+                        .eq('membro_id', parsed.id)
+                        .gte('data', startOfMonth)
+                        .lte('data', endOfMonth)
+
+                    if (logs && logs.length > 0) {
+                        let totalMin = 0
+                        let abonoMin = 0
+                        logs.forEach(l => {
+                            if (l.categoria === 'LDC') abonoMin += (l.minutos || 0)
+                            else totalMin += (l.minutos || 0)
+                        })
+                        
+                        setHoras(Math.floor(totalMin / 60).toString())
+                        setHorasAbono(Math.floor(abonoMin / 60).toString())
+                        
+                        if (totalMin > 0 || abonoMin > 0) {
+                            toast('Dados importados do seu Painel do Pioneiro!', { icon: '✨', duration: 3000 })
+                        }
+                    }
+                }
+
+                // Prefill for normal publishers
                 if (!parsed.is_pioneiro) {
                     setTrabalhou(true)
                 }
+
             } catch (e) {
                 handleLogout()
             } finally {
@@ -96,8 +113,8 @@ export default function MeuRelatorioPage() {
             }
         }
 
-        validate()
-    }, [router])
+        validateAndFetchDrafts()
+    }, [router, mes])
 
     const handleLogout = () => {
         localStorage.removeItem('membro_sessao')
@@ -115,6 +132,7 @@ export default function MeuRelatorioPage() {
                 p_pin: sessao.pin,
                 p_mes: mes,
                 p_horas: (sessao.is_pioneiro || isPioneiroAuxiliar) ? (parseInt(horas) || 0) : null,
+                p_horas_abono: (sessao.is_pioneiro || isPioneiroAuxiliar) ? (parseInt(horasAbono) || 0) : 0,
                 p_estudos: parseInt(estudos) || 0,
                 p_trabalhou: (!sessao.is_pioneiro && !isPioneiroAuxiliar) ? trabalhou : true,
                 p_is_pioneiro_auxiliar: isPioneiroAuxiliar
@@ -251,20 +269,35 @@ export default function MeuRelatorioPage() {
 
                     {/* Horas (Only for pioneers) */}
                     {mostraHoras && (
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                                <Clock className="w-4 h-4 text-gray-400" />
-                                Horas Totais
-                            </label>
-                            <input
-                                type="number"
-                                min="1"
-                                required
-                                value={horas}
-                                onChange={e => setHoras(e.target.value)}
-                                placeholder="0"
-                                className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-                            />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                                    <Clock className="w-4 h-4 text-gray-400" />
+                                    Horas Reais
+                                </label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    required
+                                    value={horas}
+                                    onChange={e => setHoras(e.target.value)}
+                                    placeholder="0"
+                                    className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-purple-700 dark:text-purple-400 flex items-center gap-2">
+                                    Abono (LDC)
+                                </label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={horasAbono}
+                                    onChange={e => setHorasAbono(e.target.value)}
+                                    placeholder="0"
+                                    className="w-full h-12 px-4 rounded-xl border border-purple-200 dark:border-purple-900/50 bg-white dark:bg-slate-900 text-purple-900 dark:text-purple-100 placeholder:text-purple-300 focus:ring-2 focus:ring-purple-500 transition-all font-medium"
+                                />
+                            </div>
                         </div>
                     )}
 

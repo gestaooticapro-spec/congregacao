@@ -101,3 +101,13 @@ Instrumentar logs no código para capturar error.code, status, message nas consu
 
 ## Documentação Adicional
 - [DOC_FUNCIONALIDADES_FUTURAS.md](file:///c:/Users/Usuario/.gemini/antigravity/scratch/congregation-manager/DOC_FUNCIONALIDADES_FUTURAS.md): Planejamento detalhado das funcionalidades de Ausências (Indisponibilidades) e Acesso via PIN.
+
+## Atualização (2026-04-24)
+
+### Funcionalidades Implementadas
+- **Identificação e Acesso via PIN**: Implementado conforme planejado em `DOC_FUNCIONALIDADES_FUTURAS.md`.
+- **Gestão de Pastoreio (Shepherding)**: Implementado conforme planejado em `DOC_FUNCIONALIDADES_FUTURAS.md`.
+
+### Status do Projeto
+- O sistema agora permite acesso rápido via PIN para membros e acompanhamento de visitas de pastoreio pelos SGs.
+- Próximas prioridades: Gestão de Ausências e Preparação para Multi-Tenant.

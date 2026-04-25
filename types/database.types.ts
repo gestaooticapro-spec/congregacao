@@ -17,6 +17,8 @@ export type PerfilAcesso =
   | 'IRMAO'
 
 export type TipoReuniao = 'QUINTA' | 'SABADO'
+export type CategoriaMinisterio = 'CAMPO' | 'ESTUDO' | 'CARTA' | 'PUBLICO' | 'INFORMAL' | 'OUTROS' | 'LDC'
+
 
 export interface Database {
   public: {
@@ -110,6 +112,52 @@ export interface Database {
           {
             foreignKeyName: "escalas_campo_dirigente_id_fkey"
             columns: ["dirigente_id"]
+            referencedRelation: "membros"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      ministerio_logs: {
+        Row: {
+          id: string
+          membro_id: string
+          data: string
+          minutos: number
+          categoria: CategoriaMinisterio
+          comentarios: string | null
+          start_time: string | null
+          end_time: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          membro_id: string
+          data?: string
+          minutos?: number
+          categoria?: CategoriaMinisterio | string
+          comentarios?: string | null
+          start_time?: string | null
+          end_time?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          membro_id?: string
+          data?: string
+          minutos?: number
+          categoria?: CategoriaMinisterio | string
+          comentarios?: string | null
+          start_time?: string | null
+          end_time?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ministerio_logs_membro_id_fkey"
+            columns: ["membro_id"]
             referencedRelation: "membros"
             referencedColumns: ["id"]
           }
@@ -223,6 +271,7 @@ export interface Database {
           ultima_visita: string | null
           ultima_visita_obs: string | null
           proxima_visita: string | null
+          saldo_inicial_pioneiro: Json | null
           created_at: string
           updated_at: string
         }
@@ -269,6 +318,7 @@ export interface Database {
           ultima_visita?: string | null
           ultima_visita_obs?: string | null
           proxima_visita?: string | null
+          saldo_inicial_pioneiro?: Json | null
           created_at?: string
           updated_at?: string
         }
@@ -315,6 +365,7 @@ export interface Database {
           ultima_visita?: string | null
           ultima_visita_obs?: string | null
           proxima_visita?: string | null
+          saldo_inicial_pioneiro?: Json | null
           created_at?: string
           updated_at?: string
         }
@@ -852,6 +903,7 @@ export interface Database {
           estudos: number | null
           trabalhou: boolean | null
           is_pioneiro_auxiliar: boolean | null
+          horas_abono: number | null
           criado_em: string
           atualizado_em: string
         }
@@ -863,6 +915,7 @@ export interface Database {
           estudos?: number | null
           trabalhou?: boolean | null
           is_pioneiro_auxiliar?: boolean | null
+          horas_abono?: number | null
           criado_em?: string
           atualizado_em?: string
         }
@@ -874,6 +927,7 @@ export interface Database {
           estudos?: number | null
           trabalhou?: boolean | null
           is_pioneiro_auxiliar?: boolean | null
+          horas_abono?: number | null
           criado_em?: string
           atualizado_em?: string
         }

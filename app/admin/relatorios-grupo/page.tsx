@@ -62,6 +62,7 @@ function RelatoriosGrupoContent() {
         participou: true,
         estudos: 0,
         horas: 0,
+        horas_abono: 0,
         is_pioneiro_auxiliar: false
     })
 
@@ -71,6 +72,7 @@ function RelatoriosGrupoContent() {
             participou: view.relatorio ? (view.relatorio.trabalhou ?? true) : true,
             estudos: view.relatorio?.estudos || 0,
             horas: view.relatorio?.horas || 0,
+            horas_abono: view.relatorio?.horas_abono || 0,
             is_pioneiro_auxiliar: view.relatorio?.is_pioneiro_auxiliar || false
         })
     }
@@ -91,6 +93,7 @@ function RelatoriosGrupoContent() {
                 trabalhou: formRelatorio.participou,
                 estudos: formRelatorio.estudos,
                 horas: isPioneiro ? formRelatorio.horas : (formRelatorio.horas > 0 ? formRelatorio.horas : null),
+                horas_abono: isPioneiro ? formRelatorio.horas_abono : null,
                 is_pioneiro_auxiliar: isAuxiliar
             }
 
@@ -338,7 +341,8 @@ function RelatoriosGrupoContent() {
                                 <th className="py-4 px-6 font-medium text-sm text-gray-500 dark:text-gray-400">Publicador</th>
                                 <th className="py-4 px-6 font-medium text-sm text-gray-500 dark:text-gray-400 text-center">PIN</th>
                                 <th className="py-4 px-6 font-medium text-sm text-gray-500 dark:text-gray-400">Status</th>
-                                <th className="py-4 px-6 font-medium text-sm text-gray-500 dark:text-gray-400">Horas</th>
+                                <th className="py-4 px-6 font-medium text-sm text-gray-500 dark:text-gray-400">Horas Reais</th>
+                                <th className="py-4 px-6 font-medium text-sm text-gray-500 dark:text-gray-400 text-purple-600 dark:text-purple-400">Abono (LDC)</th>
                                 <th className="py-4 px-6 font-medium text-sm text-gray-500 dark:text-gray-400">Estudos</th>
                             </tr>
                         </thead>
@@ -389,11 +393,14 @@ function RelatoriosGrupoContent() {
                                     </td>
                                     <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-300">
                                         {relatorio ? (
-                                            // Se for normal, ver se trabalhou ou não (se trabalhou vai aparecer check, se não, traço)
+                                            // Se for normal, ver se trabalhou ou não
                                             (membro.is_pioneiro || relatorio.is_pioneiro_auxiliar)
                                                 ? <span className="font-semibold text-gray-900 dark:text-white">{relatorio.horas || 0}</span>
                                                 : (relatorio.trabalhou ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : '-')
                                         ) : '-'}
+                                    </td>
+                                    <td className="py-4 px-6 text-sm text-purple-600 dark:text-purple-400 font-semibold">
+                                        {(relatorio && (membro.is_pioneiro || relatorio.is_pioneiro_auxiliar)) ? (relatorio.horas_abono || 0) : '-'}
                                     </td>
                                     <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-300">
                                         {relatorio ? (
@@ -452,17 +459,30 @@ function RelatoriosGrupoContent() {
                             </label>
 
                             {(membroEditando.membro.is_pioneiro || formRelatorio.is_pioneiro_auxiliar) && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Horas</label>
-                                    <input 
-                                        type="number" 
-                                        min="1"
-                                        required
-                                        value={formRelatorio.horas || ''}
-                                        onChange={e => setFormRelatorio(prev => ({ ...prev, horas: parseInt(e.target.value) || 0 }))}
-                                        className="w-full p-3 bg-white dark:bg-slate-950 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
-                                        placeholder="Ex: 50"
-                                    />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Horas Reais</label>
+                                        <input 
+                                            type="number" 
+                                            min="0"
+                                            required
+                                            value={formRelatorio.horas === null ? '' : formRelatorio.horas}
+                                            onChange={e => setFormRelatorio(prev => ({ ...prev, horas: parseInt(e.target.value) || 0 }))}
+                                            className="w-full p-3 bg-white dark:bg-slate-950 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                                            placeholder="Ex: 50"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-purple-700 dark:text-purple-400 mb-1">Abono (LDC)</label>
+                                        <input 
+                                            type="number" 
+                                            min="0"
+                                            value={formRelatorio.horas_abono === null ? '' : formRelatorio.horas_abono}
+                                            onChange={e => setFormRelatorio(prev => ({ ...prev, horas_abono: parseInt(e.target.value) || 0 }))}
+                                            className="w-full p-3 bg-white dark:bg-slate-950 border border-purple-200 dark:border-purple-900/50 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all text-purple-900 dark:text-purple-100 placeholder:text-purple-300"
+                                            placeholder="Ex: 10"
+                                        />
+                                    </div>
                                 </div>
                             )}
 

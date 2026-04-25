@@ -19,7 +19,7 @@ Permitir que os membros notifiquem períodos em que estarão ausentes, garantind
 
 ---
 
-## 2. Identificação e Acesso via PIN
+## 2. Identificação e Acesso via PIN [CONCLUÍDO]
 
 ### Objetivo
 Prover uma forma de identificação simples para membros que não possuem login completo por e-mail, permitindo que acessem suas informações e realizem ações (como enviar relatórios) de forma rastreada.
@@ -63,7 +63,7 @@ Gerenciar a semana especial da visita do Superintendente de Circuito (SC), centr
 > [!IMPORTANT]
 > **ESTE ARQUIVO NÃO DEVE SER APAGADO OU SOBRESCRITO.** Ele contém a memória técnica de funcionalidades essenciais para a operação da congregação.
 
-## 4. Gestão de Pastoreio (Shepherding)
+## 4. Gestão de Pastoreio (Shepherding) [CONCLUÍDO]
 
 ### Objetivo
 Permitir que os Superintendentes de Grupo (SGs) acompanhem e registrem as visitas de pastoreio realizadas aos membros de seus respectivos grupos de serviço.

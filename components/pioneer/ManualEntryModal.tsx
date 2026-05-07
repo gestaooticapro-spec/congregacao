@@ -72,8 +72,10 @@ export default function ManualEntryModal({ isOpen, onClose, onSave, initialMinut
             setComentarios('')
             setCategoria('CAMPO')
             setData(new Date().toISOString().split('T')[0])
-        } catch {
-            setError("Não foi possível salvar. Tente novamente.")
+        } catch (err: any) {
+            console.error('[ManualEntry] Save error:', err)
+            const msg = err?.message || "Não foi possível salvar. Tente novamente."
+            setError(msg)
         } finally {
             setIsSaving(false)
         }

@@ -61,6 +61,7 @@ const MENU_ITEMS: MenuItem[] = [
     { type: 'link', href: '/admin/meus-temas', label: 'Meus Temas', icon: Mic, restricted: true },
 
     { type: 'separator', label: 'Administração', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT'] },
+    { type: 'link', href: '/admin/visita', label: 'Visita do Supte.', icon: ClipboardList, restricted: true, allowedRoles: ['ADMIN', 'SUPERINTENDENTE_SERVICO', 'RQA', 'SECRETARIO', 'RESP_QUINTA'] },
     { type: 'link', href: '/admin/relatorios-secretaria', label: 'Secretário (Relatórios)', icon: FileText, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO'] },
     { type: 'link', href: '/programacao', label: 'Reunião de Quarta', icon: BookOpen, restricted: true, allowedRoles: ['ADMIN', 'RESP_QUINTA'] },
     { type: 'link', href: '/admin/discursos', label: 'Discursos', icon: Mic, restricted: true, allowedRoles: ['ADMIN', 'RESP_SABADO'] },

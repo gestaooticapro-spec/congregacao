@@ -55,6 +55,21 @@ export default function ProgramacaoForm({ initialData, isEditing = false }: Prog
         }
     }, [initialData])
 
+    const handleEventoTipoChange = (novoTipo: string) => {
+        setEventoTipo(novoTipo as any);
+        if (novoTipo === 'visita spte') {
+            setPartes(prev => prev.filter(p => !p.nome.toLowerCase().includes('estudo bíblico')));
+        } else if (eventoTipo === 'visita spte' && novoTipo !== 'visita spte') {
+            // Se voltar para normal, adiciona o estudo bíblico se não existir
+            setPartes(prev => {
+                if (!prev.some(p => p.nome.toLowerCase().includes('estudo bíblico'))) {
+                    return [...prev, { id: Math.random().toString(36).substr(2, 9), tipo: 'VIDA_CRISTA', nome: 'Estudo Bíblico de Congregação', tempo: 30 }];
+                }
+                return prev;
+            });
+        }
+    }
+
     const addParte = (tipo: TipoParte) => {
         const newParte: Parte = {
             id: Math.random().toString(36).substr(2, 9),
@@ -234,7 +249,7 @@ export default function ProgramacaoForm({ initialData, isEditing = false }: Prog
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo de Evento</label>
                     <select
                         value={eventoTipo}
-                        onChange={(e) => setEventoTipo(e.target.value as any)}
+                        onChange={(e) => handleEventoTipoChange(e.target.value)}
                         className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                     >
                         <option value="normal">Normal</option>
@@ -245,6 +260,18 @@ export default function ProgramacaoForm({ initialData, isEditing = false }: Prog
                     </select>
                 </div>
             </div>
+
+            {eventoTipo === 'visita spte' && (
+                <div className="mb-6 p-4 bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 rounded-lg flex items-start gap-3 shadow-sm">
+                    <span className="text-teal-600 dark:text-teal-400 text-xl">📌</span>
+                    <div>
+                        <h3 className="text-teal-800 dark:text-teal-300 font-bold">Semana de Visita do Superintendente</h3>
+                        <p className="text-teal-700 dark:text-teal-400 text-sm mt-1">
+                            O Estudo Bíblico de Congregação foi removido automaticamente. Após salvar a programação, o Coordenador poderá usar o <strong>Painel da Visita</strong> para configurar os horários especiais de campo, pastoreios e almoços.
+                        </p>
+                    </div>
+                </div>
+            )}
 
             {/* Treasures Section */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 mb-6">

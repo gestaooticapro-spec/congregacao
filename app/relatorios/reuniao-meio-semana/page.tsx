@@ -250,7 +250,7 @@ function RelatorioContent() {
                         </p>
                     </div>
 
-                    {programacao?.evento_tipo === 'normal' ? (
+                    {['normal', 'visita spte'].includes(programacao?.evento_tipo || '') ? (
                         <>
                             {/* Top Roles */}
                             <div className="grid grid-cols-2 gap-8 mb-8">
@@ -363,7 +363,7 @@ function RelatorioContent() {
                         )}
                     </div>
 
-                    {programacao?.evento_tipo === 'normal' ? (
+                    {['normal', 'visita spte'].includes(programacao?.evento_tipo || '') ? (
                         <>
                             {/* Top Roles */}
                             <div className="grid grid-cols-2 gap-8 mb-8 bg-slate-50 p-4 rounded-lg border border-slate-200">

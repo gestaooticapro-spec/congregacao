@@ -1,10 +1,15 @@
+-- Add missing columns to relatorios_servico
+ALTER TABLE relatorios_servico
+  ADD COLUMN IF NOT EXISTS horas_abono integer DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS atualizado_em timestamptz DEFAULT now();
+
 -- Update RPC function to accept p_horas_abono
 CREATE OR REPLACE FUNCTION public.enviar_relatorio_viapin(
-    p_pin text, 
-    p_mes text, 
-    p_horas integer, 
-    p_estudos integer, 
-    p_trabalhou boolean, 
+    p_pin text,
+    p_mes text,
+    p_horas integer,
+    p_estudos integer,
+    p_trabalhou boolean,
     p_is_pioneiro_auxiliar boolean,
     p_horas_abono integer DEFAULT 0
 )
@@ -26,24 +31,24 @@ BEGIN
 
   -- 2. Insere ou Atualiza (Upsert) ignorando rls
   INSERT INTO relatorios_servico (
-    membro_id, 
-    mes, 
-    horas, 
-    estudos, 
-    trabalhou, 
+    membro_id,
+    mes,
+    horas,
+    estudos,
+    trabalhou,
     is_pioneiro_auxiliar,
     horas_abono
   )
   VALUES (
-    v_membro_id, 
-    p_mes, 
-    p_horas, 
-    p_estudos, 
-    p_trabalhou, 
+    v_membro_id,
+    p_mes::date,
+    p_horas,
+    p_estudos,
+    p_trabalhou,
     p_is_pioneiro_auxiliar,
     p_horas_abono
   )
-  ON CONFLICT (membro_id, mes) 
+  ON CONFLICT (membro_id, mes)
   DO UPDATE SET
     horas = EXCLUDED.horas,
     estudos = EXCLUDED.estudos,
@@ -55,3 +60,5 @@ BEGIN
   RETURN true;
 END;
 $function$;
+
+GRANT EXECUTE ON FUNCTION public.enviar_relatorio_viapin(text, text, integer, integer, boolean, boolean, integer) TO anon, authenticated;

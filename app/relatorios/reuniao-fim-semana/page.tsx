@@ -104,19 +104,26 @@ export default function ReuniaoFimSemanaPage() {
 
             const { data: specialEventData } = await supabase
                 .from('programacao_semanal')
-                .select('evento_tipo')
+                .select('id, evento_tipo')
                 .gte('data_reuniao', weekStartStr)
                 .lte('data_reuniao', weekEndStr)
-                .in('evento_tipo', ['assembleia', 'congresso'])
+                .in('evento_tipo', ['assembleia', 'congresso', 'visita spte'])
                 .limit(1)
 
             const isSpecialEvent = specialEventData && specialEventData.length > 0;
+            let visitTheme = null;
+
+            if (isSpecialEvent && specialEventData[0].evento_tipo === 'visita spte') {
+                const { data: config } = await (supabase as any).from('visita_config').select('weekend_discurso_tema').eq('programacao_id', specialEventData[0].id).maybeSingle()
+                if (config) visitTheme = config.weekend_discurso_tema;
+            }
 
             setData({
                 talk: talkData,
                 assignments: assignmentsData || [],
                 displayDate: activeDateStr,
-                specialEventType: isSpecialEvent ? specialEventData[0].evento_tipo : null
+                specialEventType: isSpecialEvent ? specialEventData[0].evento_tipo : null,
+                visitTheme: visitTheme
             })
 
         } catch (error) {
@@ -160,7 +167,7 @@ export default function ReuniaoFimSemanaPage() {
 
             {loading ? (
                 <div className="text-center py-12 text-slate-500">Carregando...</div>
-            ) : data?.specialEventType ? (
+            ) : data?.specialEventType && data.specialEventType !== 'visita spte' ? (
                 <div className="bg-white dark:bg-slate-800 p-12 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center">
                     <h2 className="text-3xl uppercase tracking-wider text-slate-800 dark:text-white font-bold text-center">
                         {data.specialEventType}
@@ -194,14 +201,18 @@ export default function ReuniaoFimSemanaPage() {
                                 </div>
                                 <div>
                                     <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">
-                                        {data?.talk?.tema?.numero ? `#${data.talk.tema.numero} - ` : ''}
-                                        {data?.talk?.tema?.titulo || 'Tema não definido'}
+                                        {data?.visitTheme ? data.visitTheme : (
+                                            <>
+                                                {data?.talk?.tema?.numero ? `#${data.talk.tema.numero} - ` : ''}
+                                                {data?.talk?.tema?.titulo || 'Tema não definido'}
+                                            </>
+                                        )}
                                     </h3>
                                     <div className="flex flex-col gap-1 mt-2">
                                         <p className="font-medium text-slate-700 dark:text-slate-300">
-                                            {data?.talk?.orador_local?.nome_completo || data?.talk?.orador_visitante?.nome || 'Orador não definido'}
+                                            {data?.visitTheme ? 'Superintendente de Circuito' : (data?.talk?.orador_local?.nome_completo || data?.talk?.orador_visitante?.nome || 'Orador não definido')}
                                         </p>
-                                        {data?.talk?.orador_visitante && (
+                                        {!data?.visitTheme && data?.talk?.orador_visitante && (
                                             <p className="text-sm text-slate-500">
                                                 {data.talk.orador_visitante.congregacao}
                                             </p>
@@ -213,20 +224,22 @@ export default function ReuniaoFimSemanaPage() {
                     </div>
 
                     {/* Watchtower Reader Card */}
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                        <h2 className="text-sm uppercase tracking-wide text-slate-500 font-semibold mb-4">Estudo de A Sentinela</h2>
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400 text-xl">
-                                📖
-                            </div>
-                            <div>
-                                <p className="text-lg font-bold text-slate-900 dark:text-white">
-                                    {getAssignment('LEITOR_SENTINELA')}
-                                </p>
-                                <p className="text-sm text-slate-500">Leitor de A Sentinela</p>
+                    {data?.specialEventType !== 'visita spte' && (
+                        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                            <h2 className="text-sm uppercase tracking-wide text-slate-500 font-semibold mb-4">Estudo de A Sentinela</h2>
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400 text-xl">
+                                    📖
+                                </div>
+                                <div>
+                                    <p className="text-lg font-bold text-slate-900 dark:text-white">
+                                        {getAssignment('LEITOR_SENTINELA')}
+                                    </p>
+                                    <p className="text-sm text-slate-500">Leitor de A Sentinela</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             )}
         </div>

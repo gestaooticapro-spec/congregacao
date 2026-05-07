@@ -29,6 +29,7 @@ export async function canEditSaidas() {
         .eq('user_id', user.id)
         .single()
 
+
     if (!member) return false
 
     const { data: perfis } = await supabase
@@ -43,6 +44,45 @@ export async function canEditSaidas() {
 export async function getSaidas() {
     const supabase = await createClient()
 
+    // 1. Check if there's a visit week active (e.g. from 3 days ago up to 7 days in future)
+    const now = new Date()
+    const past = new Date(now)
+    past.setDate(past.getDate() - 4)
+    const future = new Date(now)
+    future.setDate(future.getDate() + 7)
+
+    const { data: visitProg } = await supabase
+        .from('programacao_semanal')
+        .select('id')
+        .eq('evento_tipo', 'visita spte')
+        .gte('data_reuniao', past.toISOString().split('T')[0])
+        .lte('data_reuniao', future.toISOString().split('T')[0])
+        .limit(1)
+        .maybeSingle()
+
+    if (visitProg) {
+        const { data } = await (supabase as any)
+            .from('visita_config')
+            .select('saidas_campo')
+            .eq('programacao_id', visitProg.id)
+            .maybeSingle()
+            
+        const config = data as any;
+        
+        if (config?.saidas_campo && config.saidas_campo.length > 0) {
+            const saidasVisita = config.saidas_campo.map((s: any, idx: number) => ({
+                id: s.id || `visit-${idx}`,
+                dia: s.dia,
+                hora: s.hora,
+                local: s.local,
+                obs: 'Semana de Visita do Superintendente',
+                ordem: idx
+            }));
+            return { data: saidasVisita as Saida[], isVisitWeek: true };
+        }
+    }
+
+    // 2. Fetch standard schedule
     const { data, error } = await supabase
         .from('horarios_campo')
         .select('*')
@@ -51,10 +91,10 @@ export async function getSaidas() {
 
     if (error) {
         console.error('Error fetching saidas:', error)
-        return { data: [], error: 'Erro ao buscar horários de campo.' }
+        return { data: [], isVisitWeek: false, error: 'Erro ao buscar horários de campo.' }
     }
 
-    return { data: data as Saida[] }
+    return { data: data as Saida[], isVisitWeek: false }
 }
 
 export async function createSaida(saida: SaidaPayload) {
@@ -67,7 +107,6 @@ export async function createSaida(saida: SaidaPayload) {
     const { error } = await supabase
         .from('horarios_campo')
         .insert(saida)
-
     if (error) {
         console.error('Error creating saida:', error)
         return { error: 'Erro ao criar horário: ' + error.message }

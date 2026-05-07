@@ -30,6 +30,8 @@ export default function PioneerDashboard({ membroId, nome }: PioneerDashboardPro
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isConfigOpen, setIsConfigOpen] = useState(false)
     const [initialTimerMinutes, setInitialTimerMinutes] = useState(0)
+    const [initialStartTime, setInitialStartTime] = useState<string | null>(null)
+    const [initialEndTime, setInitialEndTime] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
 
     // Service Year Bounds
@@ -139,12 +141,15 @@ export default function PioneerDashboard({ membroId, nome }: PioneerDashboardPro
         }
     }
 
-    const handleSaveManualEntry = async (data: string, minutos: number, categoria: CategoriaMinisterio, comment: string) => {
+    const handleSaveManualEntry = async (data: string, minutos: number, categoria: CategoriaMinisterio, comment: string, startTime?: string | null, endTime?: string | null) => {
         const { error } = await supabase.from('ministerio_logs').insert({
             membro_id: membroId,
-            data, minutos, categoria, comentarios: comment
+            data, minutos, categoria, comentarios: comment,
+            start_time: startTime || null,
+            end_time: endTime || null
         })
         if (error) throw error
+        toast.success('Tempo registrado com sucesso!')
         await fetchAllData()
     }
 
@@ -220,8 +225,8 @@ export default function PioneerDashboard({ membroId, nome }: PioneerDashboardPro
                 <div className="lg:col-span-4">
                     <TimerCard 
                         membroId={membroId} 
-                        onManualEntry={() => { setInitialTimerMinutes(0); setIsModalOpen(true); }}
-                        onTimerStop={(min) => { setInitialTimerMinutes(min); setIsModalOpen(true); }}
+                        onManualEntry={() => { setInitialTimerMinutes(0); setInitialStartTime(null); setInitialEndTime(null); setIsModalOpen(true); }}
+                        onTimerStop={(min, start, end) => { setInitialTimerMinutes(min); setInitialStartTime(start); setInitialEndTime(end); setIsModalOpen(true); }}
                     />
                 </div>
             </div>
@@ -311,7 +316,9 @@ export default function PioneerDashboard({ membroId, nome }: PioneerDashboardPro
                 isOpen={isModalOpen} 
                 onClose={() => setIsModalOpen(false)} 
                 onSave={handleSaveManualEntry} 
-                initialMinutes={initialTimerMinutes} 
+                initialMinutes={initialTimerMinutes}
+                initialStartTime={initialStartTime}
+                initialEndTime={initialEndTime}
             />
         </div>
     )

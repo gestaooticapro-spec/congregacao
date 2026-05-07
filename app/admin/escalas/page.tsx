@@ -14,6 +14,9 @@ type SupportAssignment = Database['public']['Tables']['designacoes_suporte']['Ro
     membro: {
         nome_completo: string
     } | null
+    programacao: {
+        evento_tipo: string
+    } | null
 }
 
 export default function EscalasSuportePage() {
@@ -80,7 +83,8 @@ export default function EscalasSuportePage() {
                 .from('designacoes_suporte')
                 .select(`
                     *,
-                    membro:membros(nome_completo)
+                    membro:membros(nome_completo),
+                    programacao:programacao_semanal(evento_tipo)
                 `)
                 .gte('data', startDate)
                 .lte('data', endDate)
@@ -301,7 +305,7 @@ export default function EscalasSuportePage() {
                                         </div>
 
                                         <div className="space-y-2">
-                                            {assignments.slice(0, 3).map((assignment, idx) => (
+                                            {assignments.filter(a => !(a.funcao === 'LEITOR_SENTINELA' && a.programacao?.evento_tipo === 'visita spte')).slice(0, 3).map((assignment, idx) => (
                                                 <div key={idx} className="flex justify-between items-center text-xs">
                                                     <span className="text-slate-500 font-medium truncate max-w-[80px]" title={assignment.funcao}>
                                                         {assignment.funcao.replace('_', ' ')}
@@ -311,9 +315,9 @@ export default function EscalasSuportePage() {
                                                     </span>
                                                 </div>
                                             ))}
-                                            {assignments.length > 3 && (
+                                            {assignments.filter(a => !(a.funcao === 'LEITOR_SENTINELA' && a.programacao?.evento_tipo === 'visita spte')).length > 3 && (
                                                 <div className="text-xs text-center text-primary font-bold pt-1">
-                                                    + {assignments.length - 3} designações
+                                                    + {assignments.filter(a => !(a.funcao === 'LEITOR_SENTINELA' && a.programacao?.evento_tipo === 'visita spte')).length - 3} designações
                                                 </div>
                                             )}
                                         </div>
@@ -375,6 +379,8 @@ export default function EscalasSuportePage() {
                         return name1 || name2 || ''
                     }
 
+                    const isVisitWeek = weekAssignments.some(a => a.programacao?.evento_tipo === 'visita spte')
+
                     return (
                         <div key={mondayStr} className="break-inside-avoid">
                             <div className="border border-black text-center font-bold text-base uppercase bg-slate-100 py-1">
@@ -404,15 +410,17 @@ export default function EscalasSuportePage() {
                                         </td>
                                     </tr>
                                     {/* Leitor */}
-                                    <tr>
-                                        <td className="border border-black p-0.5 pl-2">LEITOR</td>
-                                        <td className="border border-black p-0.5 text-center font-bold">
-                                            {formatName(getMidweek('LEITOR_SENTINELA')?.membro?.nome_completo)}
-                                        </td>
-                                        <td className="border border-black p-0.5 text-center font-bold">
-                                            {formatName(getWeekend('LEITOR_SENTINELA')?.membro?.nome_completo)}
-                                        </td>
-                                    </tr>
+                                    {!isVisitWeek && (
+                                        <tr>
+                                            <td className="border border-black p-0.5 pl-2">LEITOR</td>
+                                            <td className="border border-black p-0.5 text-center font-bold">
+                                                {formatName(getMidweek('LEITOR_SENTINELA')?.membro?.nome_completo)}
+                                            </td>
+                                            <td className="border border-black p-0.5 text-center font-bold">
+                                                {formatName(getWeekend('LEITOR_SENTINELA')?.membro?.nome_completo)}
+                                            </td>
+                                        </tr>
+                                    )}
                                     {/* Som (Anfitrião) */}
                                     <tr>
                                         <td className="border border-black p-0.5 pl-2">SOM</td>

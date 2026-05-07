@@ -8,6 +8,7 @@ export default function SaidasPage() {
     const [selectedObs, setSelectedObs] = useState<string | null>(null);
     const [schedule, setSchedule] = useState<Saida[]>([]);
     const [canEdit, setCanEdit] = useState(false);
+    const [isVisitWeek, setIsVisitWeek] = useState(false);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
@@ -20,6 +21,9 @@ export default function SaidasPage() {
 
             if (!scheduleRes.error && scheduleRes.data) {
                 setSchedule(scheduleRes.data);
+                if (scheduleRes.isVisitWeek) {
+                    setIsVisitWeek(true);
+                }
             }
             setCanEdit(editRes);
             setLoading(false);
@@ -31,10 +35,22 @@ export default function SaidasPage() {
 
     return (
         <div className="p-6 max-w-4xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Horário de Campo Especial</h1>
+            {isVisitWeek && (
+                <div className="mb-6 p-4 bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 rounded-lg flex items-center gap-3">
+                    <span className="text-teal-600 dark:text-teal-400 text-2xl">📌</span>
+                    <div>
+                        <h3 className="text-teal-800 dark:text-teal-300 font-bold">Semana da Visita do Superintendente</h3>
+                        <p className="text-teal-700 dark:text-teal-400 text-sm">Os horários abaixo são especiais para esta semana e substituem a grade padrão.</p>
+                    </div>
+                </div>
+            )}
 
-                {canEdit && (
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold text-slate-800 dark:text-white">
+                    {isVisitWeek ? 'Arranjos de Campo (Visita)' : 'Horário de Campo'}
+                </h1>
+
+                {canEdit && !isVisitWeek && (
                     <button
                         onClick={() => router.push('/admin/saidas')}
                         className="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-blue-200 dark:hover:bg-blue-800/40 transition-colors"

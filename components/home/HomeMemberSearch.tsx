@@ -643,7 +643,6 @@ export default function HomeMemberSearch(): React.ReactNode {
                         ))
                     ) : (
                         <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
-                            <div className="text-4xl mb-2">🎉</div>
                             <p className="text-slate-600 dark:text-slate-400 font-medium">Nenhuma designação encontrada para os próximos dias.</p>
                         </div>
                     )}

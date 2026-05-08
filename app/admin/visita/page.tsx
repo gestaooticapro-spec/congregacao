@@ -37,17 +37,9 @@ export default function VisitasListPage() {
 
     return (
         <div className="max-w-4xl mx-auto p-8">
-            <div className="flex justify-between items-center mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Visitas do Superintendente</h1>
-                    <p className="text-slate-600 mt-1">Selecione uma visita para gerenciar as atividades e horários.</p>
-                </div>
-                <button
-                    onClick={() => router.push('/programacao')}
-                    className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
-                >
-                    Nova Programação
-                </button>
+            <div className="mb-8">
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Visitas do Superintendente</h1>
+                <p className="text-slate-600 mt-1">Selecione uma visita para gerenciar as atividades e horários.</p>
             </div>
 
             {visitas.length === 0 ? (

@@ -3,10 +3,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Database, Json } from '@/types/database.types'
-import { format, parseISO, startOfWeek, endOfWeek, isSameMonth } from 'date-fns'
+import { addDays, format, parseISO, startOfWeek, endOfWeek, isSameMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useRouter } from 'next/navigation'
-import PioneerDashboard from '../pioneer/PioneerDashboard'
 
 
 type Membro = Pick<Database['public']['Tables']['membros']['Row'], 'id' | 'nome_completo' | 'nome_civil' | 'grupo_id' | 'is_anciao' | 'is_pioneiro' | 'pin'>
@@ -16,6 +15,10 @@ type Designacao = {
     data: string
     descricao: string
     detalhe?: string
+}
+
+type EscalaLimpezaComGrupo = Pick<Database['public']['Tables']['escala_limpeza']['Row'], 'id' | 'data_inicio' | 'grupo_id'> & {
+    grupos_servico?: { nome: string | null } | null
 }
 
 type MembroSessao = {
@@ -149,6 +152,7 @@ export default function HomeMemberSearch(): React.ReactNode {
         try {
             const hoje = format(new Date(), 'yyyy-MM-dd')
             const dataInicioSemanaLocal = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd')
+            const limiteLimpeza = format(endOfWeek(addDays(new Date(), 56), { weekStartsOn: 1 }), 'yyyy-MM-dd')
             const novasDesignacoes: Designacao[] = []
 
             // Parallelize all requests
@@ -181,9 +185,10 @@ export default function HomeMemberSearch(): React.ReactNode {
                 membro.grupo_id
                     ? supabase
                         .from('escala_limpeza')
-                        .select('*')
+                        .select('id, data_inicio, grupo_id, grupos_servico(nome)')
                         .eq('grupo_id', membro.grupo_id)
                         .gte('data_inicio', dataInicioSemanaLocal)
+                        .lte('data_inicio', limiteLimpeza)
                         .order('data_inicio')
                     : Promise.resolve({ data: [] }),
 
@@ -312,8 +317,14 @@ export default function HomeMemberSearch(): React.ReactNode {
 
             // Process 3: Limpeza
             if (limpeza) {
-                limpeza.forEach(esc => {
+                const escalasDoGrupo = (limpeza as EscalaLimpezaComGrupo[])
+                    .filter(esc => esc.grupo_id === membro.grupo_id)
+
+                escalasDoGrupo.forEach(esc => {
                     const dataInicio = parseISO(esc.data_inicio)
+                    const detalheLimpeza = esc.grupos_servico?.nome
+                        ? `${esc.grupos_servico.nome} - ${formatWeekRange(esc.data_inicio)}`
+                        : formatWeekRange(esc.data_inicio)
 
                     // Quarta-feira (Monday + 2 days)
                     const quarta = new Date(dataInicio)
@@ -332,7 +343,7 @@ export default function HomeMemberSearch(): React.ReactNode {
                             tipo: 'LIMPEZA',
                             data: quartaStr,
                             descricao: 'Limpeza do Salão (Quarta)',
-                            detalhe: formatWeekRange(esc.data_inicio)
+                            detalhe: detalheLimpeza
                         })
                     }
 
@@ -342,7 +353,7 @@ export default function HomeMemberSearch(): React.ReactNode {
                             tipo: 'LIMPEZA',
                             data: sabadoStr,
                             descricao: 'Limpeza do Salão (Sábado)',
-                            detalhe: formatWeekRange(esc.data_inicio)
+                            detalhe: detalheLimpeza
                         })
                     }
                 })

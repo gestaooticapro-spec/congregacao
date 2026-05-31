@@ -58,7 +58,7 @@ export default function VisitaAcompanharPage() {
             setProgramacao(progData)
 
             // 2. Fetch Config
-            const { data: configData, error: configError } = await supabase
+            const { data: configData, error: configError } = await (supabase as any)
                 .from('visita_config')
                 .select('*')
                 .eq('programacao_id', id)

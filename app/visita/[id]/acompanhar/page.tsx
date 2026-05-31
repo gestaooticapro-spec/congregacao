@@ -23,8 +23,8 @@ import {
 interface Membro {
     id: string
     nome_completo: string
-    contato?: string
-    endereco?: string
+    contato?: string | null
+    endereco?: string | null
 }
 
 type TabType = 'almoco' | 'pastoreio' | 'estudo'

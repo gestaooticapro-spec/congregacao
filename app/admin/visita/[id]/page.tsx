@@ -234,9 +234,29 @@ export default function PainelVisitaPage() {
     return (
         <div className="max-w-6xl mx-auto p-4 md:p-8 pb-32">
             {/* Header */}
-            <div className="mb-6">
-                <p className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-1">Painel da Visita</p>
-                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Semana de {new Date(programacao.data_reuniao + 'T00:00:00').toLocaleDateString('pt-BR')}</h1>
+            <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <p className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-1">Painel da Visita</p>
+                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Semana de {new Date(programacao.data_reuniao + 'T00:00:00').toLocaleDateString('pt-BR')}</h1>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                    <button
+                        onClick={() => {
+                            const link = `${window.location.origin}/visita/${id}/acompanhar`
+                            navigator.clipboard.writeText(link)
+                            alert('Link de acompanhamento copiado!')
+                        }}
+                        className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow-md hover:-translate-y-0.5 transition-all text-sm flex items-center gap-2"
+                    >
+                        <span>📲</span> Copiar Link do Superintendente
+                    </button>
+                    <button
+                        onClick={() => router.push(`/visita/${id}`)}
+                        className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg font-semibold border dark:border-slate-700 text-sm flex items-center gap-2"
+                    >
+                        <span>🖨️</span> Ver Versão de Impressão
+                    </button>
+                </div>
             </div>
 
             {/* Tab Navigation */}

@@ -152,7 +152,8 @@ export default function HomeMemberSearch(): React.ReactNode {
         try {
             const hoje = format(new Date(), 'yyyy-MM-dd')
             const dataInicioSemanaLocal = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd')
-            const limiteLimpeza = format(endOfWeek(addDays(new Date(), 56), { weekStartsOn: 1 }), 'yyyy-MM-dd')
+            const limiteLimpeza = format(endOfWeek(addDays(new Date(), 21), { weekStartsOn: 1 }), 'yyyy-MM-dd')
+            const limiteProgramacao = format(addDays(new Date(), 21), 'yyyy-MM-dd')
             const novasDesignacoes: Designacao[] = []
 
             // Parallelize all requests
@@ -166,11 +167,12 @@ export default function HomeMemberSearch(): React.ReactNode {
                 { data: discursosFora },
                 { data: agendaAnciaos }
             ] = await Promise.all([
-                // 1. Programação Semanal
+                // 1. Programação Semanal (limitada às 3 próximas semanas)
                 supabase
                     .from('programacao_semanal')
                     .select('*')
                     .gte('data_reuniao', hoje)
+                    .lte('data_reuniao', limiteProgramacao)
                     .order('data_reuniao'),
 
                 // 2. Designações de Suporte

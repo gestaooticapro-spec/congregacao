@@ -262,10 +262,18 @@ export default function EditarDesignacoesPage() {
     const handleSave = async () => {
         setSaving(true)
         try {
+            const cleanedPartes = partes.map(p => {
+                const isEligible = p.tipo === 'MINISTERIO' || (p.tipo === 'VIDA_CRISTA' && p.nome.toLowerCase().includes('estudo bíblico'));
+                return {
+                    ...p,
+                    ajudante_id: isEligible ? p.ajudante_id || null : null
+                };
+            });
+
             const { error } = await supabase
                 .from('programacao_semanal')
                 .update({
-                    partes: partes as any,
+                    partes: cleanedPartes as any,
                     presidente_id: presidenteId || null,
                     oracao_inicial_id: oracaoInicialId || null,
                     oracao_final_id: oracaoFinalId || null
@@ -286,7 +294,7 @@ export default function EditarDesignacoesPage() {
             if (oracaoInicialId) historyEntries.push({ membro_id: oracaoInicialId, programacao_id: id, data_reuniao: dataReuniao, parte_descricao: 'Oração Inicial' })
             if (oracaoFinalId) historyEntries.push({ membro_id: oracaoFinalId, programacao_id: id, data_reuniao: dataReuniao, parte_descricao: 'Oração Final' })
 
-            partes.forEach(p => {
+            cleanedPartes.forEach(p => {
                 if (p.membro_id) historyEntries.push({ membro_id: p.membro_id, programacao_id: id, data_reuniao: dataReuniao, parte_descricao: p.nome })
                 if (p.ajudante_id) historyEntries.push({ membro_id: p.ajudante_id, programacao_id: id, data_reuniao: dataReuniao, parte_descricao: p.nome + ' (Ajudante)' })
             })

@@ -6,7 +6,7 @@ import { Database } from '@/types/database.types'
 import { useRouter } from 'next/navigation'
 import { format, subDays, parseISO, isValid } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import toast, { Toaster } from 'react-hot-toast'
+import toast from 'react-hot-toast'
 import { Info, AlertTriangle, Loader2 } from 'lucide-react'
 
 type Membro = Database['public']['Tables']['membros']['Row']
@@ -63,7 +63,7 @@ export default function PastoreioPage() {
                 .single()
 
             if (sgError || !sgData || !sgData.is_sg) {
-                toast.error('Acesso restrito a Superintendentes de Grupo.')
+                toast.error('Acesso restrito a Superintendentes de Grupo.', { duration: 4000 })
                 router.push('/')
                 return
             }
@@ -71,7 +71,7 @@ export default function PastoreioPage() {
             setSgNome(sgData.nome_completo)
 
             if (!sgData.grupo_id) {
-                toast.error('Este SG não possui grupo de serviço vinculado.')
+                toast.error('Este SG não possui grupo de serviço vinculado.', { duration: 4000 })
                 setLoading(false)
                 return
             }
@@ -176,8 +176,6 @@ export default function PastoreioPage() {
 
     return (
         <div className="max-w-5xl mx-auto space-y-6 p-4">
-            <Toaster position="top-right" />
-
             {/* Header */}
             <div className="text-center mb-2">
                 <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Gestão de Pastoreio</h1>

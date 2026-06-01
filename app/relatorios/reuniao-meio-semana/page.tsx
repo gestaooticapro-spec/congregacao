@@ -28,6 +28,8 @@ function RelatorioContent() {
     const [currentIndex, setCurrentIndex] = useState<number>(-1)
     const [programacao, setProgramacao] = useState<Programacao | null>(null)
     const [membros, setMembros] = useState<Membro[]>([])
+    const [visitaConfig, setVisitaConfig] = useState<any>(null)
+    const [colaboradores, setColaboradores] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
@@ -110,6 +112,26 @@ function RelatorioContent() {
                 setMembros([])
             }
 
+            // 4. Fetch visita_config and colaboradores if it's a visit week
+            if (progData.evento_tipo === 'visita spte') {
+                const { data: configData } = await (supabase as any)
+                    .from('visita_config')
+                    .select('*')
+                    .eq('programacao_id', progData.id)
+                    .maybeSingle()
+                
+                setVisitaConfig(configData || null)
+
+                const { data: colabData } = await (supabase as any)
+                    .from('colaboradores_externos')
+                    .select('id, nome, funcao')
+                
+                setColaboradores(colabData || [])
+            } else {
+                setVisitaConfig(null)
+                setColaboradores([])
+            }
+
         } catch (error) {
             console.error('Erro ao carregar programação:', error)
             alert('Erro ao carregar relatório.')
@@ -131,7 +153,9 @@ function RelatorioContent() {
     const getMemberName = (id: string | undefined | null) => {
         if (!id) return '______________________'
         const membro = membros.find(m => m.id === id)
-        return membro ? membro.nome_completo : 'Membro não encontrado'
+        if (membro) return membro.nome_completo
+        const colab = colaboradores.find(c => c.id === id)
+        return colab ? colab.nome : 'Membro não encontrado'
     }
 
     const getWeekRange = (dateString: string) => {
@@ -144,6 +168,23 @@ function RelatorioContent() {
         const endStr = format(end, "d 'de' MMMM", { locale: ptBR })
 
         return `Semana de ${startStr} a ${endStr}`
+    }
+
+    const getDiscursoStartTime = () => {
+        if (!programacao) return ''
+        const rawPartes = (programacao.partes as any as Parte[]) || []
+        const calculatedPartes = calculatePartTimes(rawPartes, programacao.data_reuniao)
+        const allVidaCrista = calculatedPartes.filter(p => p.tipo === 'VIDA_CRISTA')
+        const vidaCristaPartes = allVidaCrista.filter(p => !p.nome.toLowerCase().includes('estudo bíblico'))
+        
+        if (vidaCristaPartes.length === 0) return ''
+        const lastPart = vidaCristaPartes[vidaCristaPartes.length - 1]
+        
+        const [h, m] = (lastPart as any).startTime.split(':').map(Number)
+        const totalMin = h * 60 + m + (lastPart.tempo || 0)
+        const newH = Math.floor(totalMin / 60)
+        const newM = totalMin % 60
+        return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`
     }
 
     const renderBoldTime = (text: string) => {
@@ -264,15 +305,65 @@ function RelatorioContent() {
                                 </div>
                             </div>
 
+                            {/* Cântico Inicial if visit week */}
+                            {programacao?.evento_tipo === 'visita spte' && visitaConfig?.cantico_inicial_meio_semana && (
+                                <div className="mb-4 text-sm font-bold border-b border-slate-200 pb-2 text-slate-900 dark:text-slate-900">
+                                    Cântico {visitaConfig.cantico_inicial_meio_semana}
+                                </div>
+                            )}
+
                             {/* Sections */}
                             {renderPartSection('Tesouros da Palavra de Deus', 'TESOUROS', 'text-slate-700')}
                             {renderPartSection('Faça Seu Melhor no Ministério', 'MINISTERIO', 'text-yellow-700')}
+
+                            {/* Cântico do Meio if visit week */}
+                            {programacao?.evento_tipo === 'visita spte' && visitaConfig?.cantico_meio_meio_semana && (
+                                <div className="my-4 text-sm font-bold border-b border-slate-200 pb-2 text-slate-900 dark:text-slate-900 break-inside-avoid">
+                                    Cântico {visitaConfig.cantico_meio_meio_semana}
+                                </div>
+                            )}
+
                             {renderPartSection('Nossa Vida Cristã', 'VIDA_CRISTA', 'text-red-700')}
+
+                            {/* Discurso do Superintendente if visit week */}
+                            {programacao?.evento_tipo === 'visita spte' && visitaConfig?.midweek_discurso_tema && (
+                                <div className="mb-6 break-inside-avoid">
+                                    <div className="grid grid-cols-12 gap-2 items-start text-sm">
+                                        <div className="col-span-2 font-bold text-slate-500">
+                                            <span className="text-slate-900 mr-2">{getDiscursoStartTime()}</span>
+                                        </div>
+                                        <div className="col-span-6 font-medium text-slate-900 dark:text-slate-900">
+                                            {renderBoldTime("10. Discurso de Serviço (30 min)")}
+                                            <div className="text-base font-bold text-slate-900 dark:text-slate-900 mt-1">
+                                                "{visitaConfig.midweek_discurso_tema}"
+                                            </div>
+                                        </div>
+                                        <div className="col-span-4 text-right">
+                                            <div className="font-bold text-slate-900 dark:text-slate-900">
+                                                {colaboradores.find(c => c.funcao?.toLowerCase().includes('superintendente') || c.funcao?.toLowerCase().includes('circuito'))?.nome || 'Superintendente de Circuito'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Cântico Final if visit week */}
+                            {programacao?.evento_tipo === 'visita spte' && visitaConfig?.cantico_final_meio_semana && (
+                                <div className="my-4 text-sm font-bold border-b border-slate-200 pb-2 text-slate-900 dark:text-slate-900 break-inside-avoid">
+                                    Cântico {visitaConfig.cantico_final_meio_semana}
+                                </div>
+                            )}
 
                             {/* Closing Prayer */}
                             <div className="mt-8 pt-4 border-t border-slate-300 flex justify-between items-center">
                                 <span className="font-bold uppercase text-sm text-slate-500">Oração Final</span>
-                                <span className="text-lg font-bold text-slate-900">{getMemberName(programacao?.oracao_final_id)}</span>
+                                <span className="text-lg font-bold text-slate-900">
+                                    {getMemberName(
+                                        (programacao?.evento_tipo === 'visita spte' && visitaConfig?.oracao_final_meio_semana_id)
+                                            ? visitaConfig.oracao_final_meio_semana_id
+                                            : programacao?.oracao_final_id
+                                    )}
+                                </span>
                             </div>
                         </>
                     ) : (
@@ -377,15 +468,65 @@ function RelatorioContent() {
                                 </div>
                             </div>
 
+                            {/* Cântico Inicial if visit week */}
+                            {programacao?.evento_tipo === 'visita spte' && visitaConfig?.cantico_inicial_meio_semana && (
+                                <div className="mb-4 text-sm font-bold border-b border-slate-200 pb-2 text-slate-900 dark:text-slate-900">
+                                    Cântico {visitaConfig.cantico_inicial_meio_semana}
+                                </div>
+                            )}
+
                             {/* Sections */}
                             {renderPartSection('Tesouros da Palavra de Deus', 'TESOUROS', 'text-slate-700')}
                             {renderPartSection('Faça Seu Melhor no Ministério', 'MINISTERIO', 'text-yellow-700')}
+
+                            {/* Cântico do Meio if visit week */}
+                            {programacao?.evento_tipo === 'visita spte' && visitaConfig?.cantico_meio_meio_semana && (
+                                <div className="my-4 text-sm font-bold border-b border-slate-200 pb-2 text-slate-900 dark:text-slate-900 break-inside-avoid">
+                                    Cântico {visitaConfig.cantico_meio_meio_semana}
+                                </div>
+                            )}
+
                             {renderPartSection('Nossa Vida Cristã', 'VIDA_CRISTA', 'text-red-700')}
+
+                            {/* Discurso do Superintendente if visit week */}
+                            {programacao?.evento_tipo === 'visita spte' && visitaConfig?.midweek_discurso_tema && (
+                                <div className="mb-6 break-inside-avoid">
+                                    <div className="grid grid-cols-12 gap-2 items-start text-sm">
+                                        <div className="col-span-2 font-bold text-slate-500">
+                                            <span className="text-slate-900 mr-2">{getDiscursoStartTime()}</span>
+                                        </div>
+                                        <div className="col-span-6 font-medium text-slate-900 dark:text-slate-900">
+                                            {renderBoldTime("10. Discurso de Serviço (30 min)")}
+                                            <div className="text-base font-bold text-slate-900 dark:text-slate-900 mt-1">
+                                                "{visitaConfig.midweek_discurso_tema}"
+                                            </div>
+                                        </div>
+                                        <div className="col-span-4 text-right">
+                                            <div className="font-bold text-slate-900 dark:text-slate-900">
+                                                {colaboradores.find(c => c.funcao?.toLowerCase().includes('superintendente') || c.funcao?.toLowerCase().includes('circuito'))?.nome || 'Superintendente de Circuito'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Cântico Final if visit week */}
+                            {programacao?.evento_tipo === 'visita spte' && visitaConfig?.cantico_final_meio_semana && (
+                                <div className="my-4 text-sm font-bold border-b border-slate-200 pb-2 text-slate-900 dark:text-slate-900 break-inside-avoid">
+                                    Cântico {visitaConfig.cantico_final_meio_semana}
+                                </div>
+                            )}
 
                             {/* Closing Prayer */}
                             <div className="mt-8 pt-4 border-t border-slate-300 flex justify-between items-center">
                                 <span className="font-bold uppercase text-sm text-slate-500">Oração Final</span>
-                                <span className="text-lg font-bold text-slate-900">{getMemberName(programacao?.oracao_final_id)}</span>
+                                <span className="text-lg font-bold text-slate-900">
+                                    {getMemberName(
+                                        (programacao?.evento_tipo === 'visita spte' && visitaConfig?.oracao_final_meio_semana_id)
+                                            ? visitaConfig.oracao_final_meio_semana_id
+                                            : programacao?.oracao_final_id
+                                    )}
+                                </span>
                             </div>
                         </>
                     ) : (

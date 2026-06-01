@@ -112,10 +112,18 @@ export default function ReuniaoFimSemanaPage() {
 
             const isSpecialEvent = specialEventData && specialEventData.length > 0;
             let visitTheme = null;
+            let visitConfig = null;
 
             if (isSpecialEvent && specialEventData[0].evento_tipo === 'visita spte') {
-                const { data: config } = await (supabase as any).from('visita_config').select('weekend_discurso_tema').eq('programacao_id', specialEventData[0].id).maybeSingle()
-                if (config) visitTheme = config.weekend_discurso_tema;
+                const { data: config } = await (supabase as any)
+                    .from('visita_config')
+                    .select('*')
+                    .eq('programacao_id', specialEventData[0].id)
+                    .maybeSingle()
+                if (config) {
+                    visitTheme = config.weekend_discurso_tema;
+                    visitConfig = config;
+                }
             }
 
             setData({
@@ -123,7 +131,8 @@ export default function ReuniaoFimSemanaPage() {
                 assignments: assignmentsData || [],
                 displayDate: activeDateStr,
                 specialEventType: isSpecialEvent ? specialEventData[0].evento_tipo : null,
-                visitTheme: visitTheme
+                visitTheme: visitTheme,
+                visitConfig: visitConfig
             })
 
         } catch (error) {
@@ -217,11 +226,49 @@ export default function ReuniaoFimSemanaPage() {
                                                 {data.talk.orador_visitante.congregacao}
                                             </p>
                                         )}
+                                        {data?.specialEventType === 'visita spte' && data?.visitConfig?.cantico_inicial_fim_semana && (
+                                            <div className="mt-2">
+                                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400 border border-amber-200/50 dark:border-amber-800/30">
+                                                    🎵 Cântico {data.visitConfig.cantico_inicial_fim_semana}
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    {/* Discurso Final Card (Visita) */}
+                    {data?.specialEventType === 'visita spte' && data?.visitConfig?.weekend_discurso_final_tema && (
+                        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                            <h2 className="text-sm uppercase tracking-wide text-slate-500 font-semibold mb-4">Discurso Final</h2>
+                            <div className="space-y-4">
+                                <div className="flex items-start gap-4">
+                                    <div className="w-12 h-12 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400 text-xl shrink-0">
+                                        🎤
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">
+                                            {data.visitConfig.weekend_discurso_final_tema}
+                                        </h3>
+                                        <div className="flex flex-col gap-1 mt-2">
+                                            <p className="font-medium text-slate-700 dark:text-slate-300">
+                                                Superintendente de Circuito
+                                            </p>
+                                            {data.visitConfig.cantico_final_fim_semana && (
+                                                <div className="mt-2">
+                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400 border border-amber-200/50 dark:border-amber-800/30">
+                                                        🎵 Cântico {data.visitConfig.cantico_final_fim_semana}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Watchtower Reader Card */}
                     {data?.specialEventType !== 'visita spte' && (

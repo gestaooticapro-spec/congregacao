@@ -62,6 +62,7 @@ export default function PainelVisitaPage() {
     })
 
     const [weekendPresidente, setWeekendPresidente] = useState<string | null>(null)
+    const [weekendPresidenteId, setWeekendPresidenteId] = useState<string | null>(null)
 
     useEffect(() => {
         if (id) fetchData()
@@ -79,13 +80,22 @@ export default function PainelVisitaPage() {
                 
                 if (data?.membros?.nome_completo) {
                     setWeekendPresidente(data.membros.nome_completo)
+                    setWeekendPresidenteId(data.membro_id || null)
                 } else {
                     setWeekendPresidente(null)
+                    setWeekendPresidenteId(null)
                 }
             }
         }
         fetchPresidente()
     }, [config.reuniao_ls?.data])
+
+    // Automatically prefill initial prayer with president if not set
+    useEffect(() => {
+        if (weekendPresidenteId && !config.oracao_inicial_fim_semana_id) {
+            updateConfig('oracao_inicial_fim_semana_id', weekendPresidenteId)
+        }
+    }, [weekendPresidenteId, config.oracao_inicial_fim_semana_id])
 
     const fetchData = async () => {
         try {
@@ -112,14 +122,71 @@ export default function PainelVisitaPage() {
 
             if (configError) throw configError
 
+            const defaultMidweek = progData.data_reuniao
+            const baseDate = new Date(progData.data_reuniao + 'T12:00:00')
+            const day = baseDate.getDay()
+            const diff = 7 - (day === 0 ? 7 : day)
+            
+            // Calculate Saturday and Sunday of this week
+            const saturdayStr = new Date(baseDate.getTime() + (diff - 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+            const sundayStr = new Date(baseDate.getTime() + diff * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+
+            // Fetch any PRESIDENTE assignments for this weekend (Saturday or Sunday)
+            const { data: presList } = await (supabase as any)
+                .from('designacoes_suporte')
+                .select('data, membro_id, membros(nome_completo)')
+                .in('data', [saturdayStr, sundayStr])
+                .eq('funcao', 'PRESIDENTE')
+
+            let presidentDate = null
+            if (presList && presList.length > 0) {
+                presidentDate = presList[0].data
+            }
+
+            let selectedWeekendDay = saturdayStr // default fallback to Saturday
+            if (configData) {
+                const savedWeekendDay = configData.reuniao_ls?.data
+                if (savedWeekendDay) {
+                    // Smart prefill: if a president is found on a specific weekend day,
+                    // but the saved date is different AND the saved date has NO president assigned,
+                    // automatically shift the weekend date to the president's date!
+                    if (presidentDate && savedWeekendDay !== presidentDate) {
+                        const savedHasPresident = (presList || []).some((p: any) => p.data === savedWeekendDay)
+                        if (!savedHasPresident) {
+                            selectedWeekendDay = presidentDate
+                        } else {
+                            selectedWeekendDay = savedWeekendDay
+                        }
+                    } else {
+                        selectedWeekendDay = savedWeekendDay
+                    }
+                } else if (presidentDate) {
+                    selectedWeekendDay = presidentDate
+                }
+            } else if (presidentDate) {
+                selectedWeekendDay = presidentDate
+            }
+
             if (configData) {
                 setConfigId(configData.id)
                 setConfig({
-                    analise_arquivos: configData.analise_arquivos || { data: '', hora: '', local: 'Salão do Reino' },
-                    reuniao_terca: configData.reuniao_terca || { data: '', hora: '', local: 'Salão do Reino' },
-                    reuniao_ls: configData.reuniao_ls || { data: '', hora: '', local: 'Salão do Reino' },
-                    reuniao_pioneiros: configData.reuniao_pioneiros || { data: '', hora: '', local: 'Salão do Reino' },
-                    reuniao_anciaos: configData.reuniao_anciaos || { data: '', hora: '', local: 'Salão do Reino' },
+                    analise_arquivos: {
+                        data: configData.analise_arquivos?.data || defaultMidweek,
+                        hora: configData.analise_arquivos?.hora || '14:00',
+                        local: configData.analise_arquivos?.local || 'Hospedagem'
+                    },
+                    reuniao_terca: {
+                        data: configData.reuniao_terca?.data || defaultMidweek,
+                        hora: configData.reuniao_terca?.hora || '19:30',
+                        local: configData.reuniao_terca?.local || 'Salão do Reino'
+                    },
+                    reuniao_ls: {
+                        data: selectedWeekendDay,
+                        hora: configData.reuniao_ls?.hora || '18:00',
+                        local: configData.reuniao_ls?.local || 'Salão do Reino'
+                    },
+                    reuniao_pioneiros: configData.reuniao_pioneiros || { data: '', hora: '19:30', local: 'Salão do Reino' },
+                    reuniao_anciaos: configData.reuniao_anciaos || { data: '', hora: '19:30', local: 'Salão do Reino' },
                     saidas_campo: configData.saidas_campo || [],
                     pastoreios: configData.pastoreios || [],
                     almocos: configData.almocos || [],
@@ -139,6 +206,13 @@ export default function PainelVisitaPage() {
                     dirigente_sentinela_fim_semana_id: configData.dirigente_sentinela_fim_semana_id || '',
                     weekend_discurso_final_tema: configData.weekend_discurso_final_tema || ''
                 })
+            } else {
+                setConfig(prev => ({
+                    ...prev,
+                    analise_arquivos: { data: defaultMidweek, hora: '14:00', local: 'Hospedagem' },
+                    reuniao_terca: { data: defaultMidweek, hora: '19:30', local: 'Salão do Reino' },
+                    reuniao_ls: { data: selectedWeekendDay, hora: '18:00', local: 'Salão do Reino' }
+                }))
             }
 
             const { data: membData, error: membError } = await supabase
@@ -152,7 +226,7 @@ export default function PainelVisitaPage() {
 
             const { data: colabData } = await (supabase as any)
                 .from('colaboradores_externos')
-                .select('id, nome, funcao')
+                .select('id, nome, contato, funcao')
             
             if (colabData) {
                 setColaboradores(colabData.filter((c: any) => 
@@ -217,6 +291,33 @@ export default function PainelVisitaPage() {
         }
     }
 
+    const handleShareLink = () => {
+        const link = `${window.location.origin}/visita/${id}/acompanhar`
+        
+        // Find the superintendente (first collaborator from colaboradores list)
+        const superInst = colaboradores?.[0]
+        const rawPhone = superInst?.contato || ''
+        
+        if (rawPhone) {
+            const cleanPhone = rawPhone.replace(/\D/g, '')
+            if (cleanPhone) {
+                // Prefix country code (55) if it's 10 or 11 digits and doesn't start with 55
+                const phoneWithCountry = (cleanPhone.length === 11 || cleanPhone.length === 10) && !cleanPhone.startsWith('55')
+                    ? `55${cleanPhone}`
+                    : cleanPhone
+                
+                const message = `Olá! Segue o link para acompanhar a programação da visita: ${link}`
+                const url = `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`
+                window.open(url, '_blank')
+                return
+            }
+        }
+        
+        // Fallback: Copy to clipboard if phone is not registered
+        navigator.clipboard.writeText(link)
+        alert('Superintendente sem celular cadastrado. O link foi copiado para a área de transferência!')
+    }
+
     const updateConfig = (key: string, value: any) => {
         setConfig(prev => ({ ...prev, [key]: value }))
     }
@@ -241,14 +342,10 @@ export default function PainelVisitaPage() {
                 </div>
                 <div className="flex gap-2 shrink-0">
                     <button
-                        onClick={() => {
-                            const link = `${window.location.origin}/visita/${id}/acompanhar`
-                            navigator.clipboard.writeText(link)
-                            alert('Link de acompanhamento copiado!')
-                        }}
+                        onClick={handleShareLink}
                         className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow-md hover:-translate-y-0.5 transition-all text-sm flex items-center gap-2"
                     >
-                        <span>📲</span> Copiar Link do Superintendente
+                        <span>💬</span> Enviar Roteiro via WhatsApp
                     </button>
                     <button
                         onClick={() => router.push(`/visita/${id}`)}

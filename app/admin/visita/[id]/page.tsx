@@ -300,6 +300,14 @@ export default function PainelVisitaPage() {
         alert('Superintendente sem celular cadastrado. O link foi copiado para a área de transferência!')
     }
 
+    const handleShareLinkEsposa = () => {
+        const link = `${window.location.origin}/visita/${id}/acompanhar?perfil=esposa`
+        const message = `Olá! Segue o link para acompanhar os arranjos da visita: ${link}`
+        // wa.me/ without a number opens the WhatsApp picker
+        const url = `https://wa.me/?text=${encodeURIComponent(message)}`
+        window.open(url, '_blank')
+    }
+
     const updateConfig = (key: string, value: any) => {
         setConfig(prev => ({ ...prev, [key]: value }))
     }
@@ -328,6 +336,12 @@ export default function PainelVisitaPage() {
                         className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow-md hover:-translate-y-0.5 transition-all text-sm flex items-center gap-2"
                     >
                         <span>💬</span> Enviar Roteiro via WhatsApp
+                    </button>
+                    <button
+                        onClick={handleShareLinkEsposa}
+                        className="px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-bold shadow-md hover:-translate-y-0.5 transition-all text-sm flex items-center gap-2"
+                    >
+                        <span>👩</span> Enviar para Esposa
                     </button>
                     <button
                         onClick={() => router.push(`/visita/${id}`)}

@@ -56,6 +56,11 @@ export default function VisitaAcompanharPage() {
     const [activeTab, setActiveTab] = useState<TabType>('almoco')
     const [outrosView, setOutrosView] = useState<'menu' | 'vida_ministerio' | 'publica' | 'campo' | 'especiais'>('menu')
     const [copiedId, setCopiedId] = useState<string | null>(null)
+    const [isEsposa, setIsEsposa] = useState(false)
+
+    useEffect(() => {
+        setIsEsposa(new URLSearchParams(window.location.search).get('perfil') === 'esposa')
+    }, [])
 
     useEffect(() => {
         if (id) fetchData()
@@ -174,6 +179,13 @@ export default function VisitaAcompanharPage() {
     const getWeekendAssignment = (role: string) => {
         const assignment = weekendAssignments.find(a => a.funcao === role)
         return assignment ? getMemberName(assignment.membro_id) : 'Não designado'
+    }
+
+    const handleShareLinkEsposa = () => {
+        const link = `${window.location.origin}/visita/${id}/acompanhar?perfil=esposa`
+        const message = `Olá! Segue o link para acompanhar os arranjos da visita: ${link}`
+        const url = `https://wa.me/?text=${encodeURIComponent(message)}`
+        window.open(url, '_blank')
     }
 
     const renderTabelaNome = (nome: string) => {
@@ -317,12 +329,21 @@ export default function VisitaAcompanharPage() {
                     </button>
                     <div className="flex-1 min-w-0">
                         <span className="text-[10px] font-bold tracking-widest text-emerald-600 dark:text-emerald-400 uppercase">
-                            SEMANA DA VISITA - CONGREGAÇÃO GUAÍRA
+                            SEMANA DA VISITA - CONGREGAÇÃO GUAÍRA {isEsposa ? '- ESPOSA DO SUPERINTENDENTE' : ''}
                         </span>
                         <h1 className="text-base font-bold text-slate-900 dark:text-white truncate">
                             {formatWeekDateRange(programacao.data_reuniao)}
                         </h1>
                     </div>
+                    {!isEsposa && (
+                        <button
+                            onClick={handleShareLinkEsposa}
+                            className="w-10 h-10 flex items-center justify-center bg-teal-50 hover:bg-teal-100 dark:bg-teal-900/20 dark:hover:bg-teal-900/40 text-teal-700 dark:text-teal-400 rounded-full transition-colors shrink-0 border border-teal-200/50 dark:border-teal-800/50"
+                            title="Enviar link para a Esposa"
+                        >
+                            <span className="text-lg">👩</span>
+                        </button>
+                    )}
                 </div>
 
                 {/* Mobile Bottom-Thumb Tab Bar inside header */}
@@ -338,17 +359,19 @@ export default function VisitaAcompanharPage() {
                         <Utensils className="w-5 h-5" />
                         <span>Almoços</span>
                     </button>
-                    <button 
-                        onClick={() => setActiveTab('pastoreio')}
-                        className={`flex-1 py-3 text-center border-b-2 font-bold text-xs flex flex-col items-center gap-1 transition-all ${
-                            activeTab === 'pastoreio' 
-                                ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' 
-                                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                        }`}
-                    >
-                        <HeartHandshake className="w-5 h-5" />
-                        <span>Pastoreios</span>
-                    </button>
+                    {!isEsposa && (
+                        <button 
+                            onClick={() => setActiveTab('pastoreio')}
+                            className={`flex-1 py-3 text-center border-b-2 font-bold text-xs flex flex-col items-center gap-1 transition-all ${
+                                activeTab === 'pastoreio' 
+                                    ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' 
+                                    : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                            }`}
+                        >
+                            <HeartHandshake className="w-5 h-5" />
+                            <span>Pastoreios</span>
+                        </button>
+                    )}
                     <button 
                         onClick={() => setActiveTab('estudo')}
                         className={`flex-1 py-3 text-center border-b-2 font-bold text-xs flex flex-col items-center gap-1 transition-all ${
@@ -360,17 +383,19 @@ export default function VisitaAcompanharPage() {
                         <BookOpen className="w-5 h-5" />
                         <span>Estudos</span>
                     </button>
-                    <button 
-                        onClick={() => setActiveTab('outros')}
-                        className={`flex-1 py-3 text-center border-b-2 font-bold text-xs flex flex-col items-center gap-1 transition-all ${
-                            activeTab === 'outros' 
-                                ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' 
-                                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                        }`}
-                    >
-                        <MoreHorizontal className="w-5 h-5" />
-                        <span>Outros</span>
-                    </button>
+                    {!isEsposa && (
+                        <button 
+                            onClick={() => setActiveTab('outros')}
+                            className={`flex-1 py-3 text-center border-b-2 font-bold text-xs flex flex-col items-center gap-1 transition-all ${
+                                activeTab === 'outros' 
+                                    ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' 
+                                    : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                            }`}
+                        >
+                            <MoreHorizontal className="w-5 h-5" />
+                            <span>Outros</span>
+                        </button>
+                    )}
                 </div>
             </header>
 
@@ -597,7 +622,20 @@ export default function VisitaAcompanharPage() {
                         </div>
 
                         {(config?.arranjos_estudo || []).length > 0 ? (
-                            config.arranjos_estudo.map((tabela: any) => (
+                            [...config.arranjos_estudo].sort((a: any, b: any) => {
+                                const aName = (a.nome_tabela || '').toLowerCase()
+                                const bName = (b.nome_tabela || '').toLowerCase()
+                                
+                                if (isEsposa) {
+                                    const aHasRaquel = aName.includes('raquel') ? 1 : 0
+                                    const bHasRaquel = bName.includes('raquel') ? 1 : 0
+                                    return bHasRaquel - aHasRaquel
+                                } else {
+                                    const aHasEliel = aName.includes('eliel') ? 1 : 0
+                                    const bHasEliel = bName.includes('eliel') ? 1 : 0
+                                    return bHasEliel - aHasEliel
+                                }
+                            }).map((tabela: any) => (
                                 <div key={tabela.id} className="space-y-3">
                                     <h3 className="font-bold text-sm text-slate-500 dark:text-slate-400 uppercase tracking-wider px-1">
                                         {renderTabelaNome(tabela.nome_tabela)}
@@ -892,9 +930,11 @@ export default function VisitaAcompanharPage() {
 
                                     {/* Cantico Intermediario */}
                                     <div className="font-bold text-sm text-slate-800 dark:text-slate-200 mb-6 border-b border-slate-200 dark:border-slate-700 pb-2 mt-4">
-                                        {weekendProg?.cantico_meio 
-                                            ? `Cântico ${weekendProg.cantico_meio}` 
-                                            : 'Cântico Intermediário'}
+                                        {(programacao?.evento_tipo === 'visita spte' && config?.cantico_meio_fim_semana)
+                                            ? `Cântico ${config.cantico_meio_fim_semana}`
+                                            : weekendProg?.cantico_meio 
+                                                ? `Cântico ${weekendProg.cantico_meio}` 
+                                                : 'Cântico Intermediário'}
                                     </div>
 
                                     {/* Estudo de A Sentinela Section */}

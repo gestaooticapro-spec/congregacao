@@ -145,22 +145,8 @@ export default function PainelVisitaPage() {
 
             let selectedWeekendDay = saturdayStr // default fallback to Saturday
             if (configData) {
-                const savedWeekendDay = configData.reuniao_ls?.data
-                if (savedWeekendDay) {
-                    // Smart prefill: if a president is found on a specific weekend day,
-                    // but the saved date is different AND the saved date has NO president assigned,
-                    // automatically shift the weekend date to the president's date!
-                    if (presidentDate && savedWeekendDay !== presidentDate) {
-                        const savedHasPresident = (presList || []).some((p: any) => p.data === savedWeekendDay)
-                        if (!savedHasPresident) {
-                            selectedWeekendDay = presidentDate
-                        } else {
-                            selectedWeekendDay = savedWeekendDay
-                        }
-                    } else {
-                        selectedWeekendDay = savedWeekendDay
-                    }
-                } else if (presidentDate) {
+                // If there's a president on saturday or sunday, prefer that day
+                if (presidentDate) {
                     selectedWeekendDay = presidentDate
                 }
             } else if (presidentDate) {
@@ -180,11 +166,7 @@ export default function PainelVisitaPage() {
                         hora: configData.reuniao_terca?.hora || '19:30',
                         local: configData.reuniao_terca?.local || 'Salão do Reino'
                     },
-                    reuniao_ls: {
-                        data: selectedWeekendDay,
-                        hora: configData.reuniao_ls?.hora || '18:00',
-                        local: configData.reuniao_ls?.local || 'Salão do Reino'
-                    },
+                    reuniao_ls: configData.reuniao_ls || { data: '', hora: '', local: '' },
                     reuniao_pioneiros: configData.reuniao_pioneiros || { data: '', hora: '19:30', local: 'Salão do Reino' },
                     reuniao_anciaos: configData.reuniao_anciaos || { data: '', hora: '19:30', local: 'Salão do Reino' },
                     saidas_campo: configData.saidas_campo || [],
@@ -211,7 +193,7 @@ export default function PainelVisitaPage() {
                     ...prev,
                     analise_arquivos: { data: defaultMidweek, hora: '14:00', local: 'Hospedagem' },
                     reuniao_terca: { data: defaultMidweek, hora: '19:30', local: 'Salão do Reino' },
-                    reuniao_ls: { data: selectedWeekendDay, hora: '18:00', local: 'Salão do Reino' }
+                    reuniao_ls: { data: '', hora: '', local: '' }
                 }))
             }
 

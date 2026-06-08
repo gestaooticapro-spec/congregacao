@@ -68,6 +68,35 @@ export default function VisitaRelatorioPage() {
     }
 
     if (loading) return <div className="p-8 text-center text-slate-500">Carregando relatório da visita...</div>
+    const formatTitleDate = () => {
+        if (!programacao?.data_reuniao) return ''
+        const baseDate = new Date(programacao.data_reuniao + 'T12:00:00')
+        const day = baseDate.getDay()
+        const diff = 7 - (day === 0 ? 7 : day)
+        const endDate = new Date(baseDate.getTime() + diff * 24 * 60 * 60 * 1000)
+
+        const startDay = baseDate.getDate()
+        const startMonth = format(baseDate, 'MMMM', { locale: ptBR })
+        const endDay = endDate.getDate()
+        const endMonth = format(endDate, 'MMMM', { locale: ptBR })
+
+        if (startMonth === endMonth) {
+            return `Visita de ${startDay}-${endDay} de ${endMonth} - Congr. Guaíra`
+        } else {
+            return `Visita de ${startDay} de ${startMonth} a ${endDay} de ${endMonth} - Congr. Guaíra`
+        }
+    }
+
+    const getWeekendDate = () => {
+        if (!programacao?.data_reuniao) return null
+        const baseDate = new Date(programacao.data_reuniao + 'T12:00:00')
+        const day = baseDate.getDay()
+        const diff = 7 - (day === 0 ? 7 : day)
+        return new Date(baseDate.getTime() + diff * 24 * 60 * 60 * 1000)
+    }
+
+    const weekendDate = getWeekendDate()
+
     if (!programacao) return <div className="p-8 text-center text-red-500">Programação não encontrada.</div>
 
     return (
@@ -105,204 +134,251 @@ export default function VisitaRelatorioPage() {
                         Programa de Atividades para a Semana da Visita
                     </h1>
                     <p className="text-lg font-medium mt-1">
-                        {programacao.data_reuniao ? `Semana de ${format(parseISO(programacao.data_reuniao), "dd 'de' MMMM", { locale: ptBR })}` : ''}
+                        {formatTitleDate()}
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 print:grid-cols-2 print:gap-4 mb-8">
-                    {/* Left Column: Meetings */}
-                    <div>
-                        <h2 className="text-lg font-bold border-b border-slate-300 mb-3 uppercase">Reuniões Especiais</h2>
-                        <table className="w-full text-sm mb-6 border-collapse">
-                            <tbody>
-                                <tr className="border-b border-slate-200">
-                                    <td className="py-2 pr-2 font-medium">Análise dos Arquivos</td>
-                                    <td className="py-2 px-2 text-slate-600">{config?.analise_arquivos?.data ? format(parseISO(config.analise_arquivos.data), 'eeee', { locale: ptBR }) : ''}</td>
-                                    <td className="py-2 px-2 text-slate-600">{config?.analise_arquivos?.hora}</td>
-                                    <td className="py-2 pl-2 text-right text-slate-600">{config?.analise_arquivos?.local}</td>
-                                </tr>
-                                <tr className="border-b border-slate-200">
-                                    <td className="py-2 pr-2 font-medium">Reunião de Terça</td>
-                                    <td className="py-2 px-2 text-slate-600">{config?.reuniao_terca?.data ? format(parseISO(config.reuniao_terca.data), 'eeee', { locale: ptBR }) : ''}</td>
-                                    <td className="py-2 px-2 text-slate-600">{config?.reuniao_terca?.hora}</td>
-                                    <td className="py-2 pl-2 text-right text-slate-600">{config?.reuniao_terca?.local}</td>
-                                </tr>
-                                <tr className="border-b border-slate-200">
-                                    <td className="py-2 pr-2 font-medium">Reunião com Grupo LS</td>
-                                    <td className="py-2 px-2 text-slate-600">{config?.reuniao_ls?.data ? format(parseISO(config.reuniao_ls.data), 'eeee', { locale: ptBR }) : ''}</td>
-                                    <td className="py-2 px-2 text-slate-600">{config?.reuniao_ls?.hora}</td>
-                                    <td className="py-2 pl-2 text-right text-slate-600">{config?.reuniao_ls?.local}</td>
-                                </tr>
-                                <tr className="border-b border-slate-200">
-                                    <td className="py-2 pr-2 font-medium">Reunião Pioneiros</td>
-                                    <td className="py-2 px-2 text-slate-600">{config?.reuniao_pioneiros?.data ? format(parseISO(config.reuniao_pioneiros.data), 'eeee', { locale: ptBR }) : ''}</td>
-                                    <td className="py-2 px-2 text-slate-600">{config?.reuniao_pioneiros?.hora}</td>
-                                    <td className="py-2 pl-2 text-right text-slate-600">{config?.reuniao_pioneiros?.local}</td>
-                                </tr>
-                                <tr>
-                                    <td className="py-2 pr-2 font-medium">Reunião Anciãos e SM</td>
-                                    <td className="py-2 px-2 text-slate-600">{config?.reuniao_anciaos?.data ? format(parseISO(config.reuniao_anciaos.data), 'eeee', { locale: ptBR }) : ''}</td>
-                                    <td className="py-2 px-2 text-slate-600">{config?.reuniao_anciaos?.hora}</td>
-                                    <td className="py-2 pl-2 text-right text-slate-600">{config?.reuniao_anciaos?.local}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* Right Column: Field Service & Lunches */}
-                    <div>
-                        <h2 className="text-lg font-bold border-b border-slate-300 mb-3 uppercase">Atividade de Campo</h2>
-                        <table className="w-full text-sm mb-6 border-collapse">
-                            <tbody>
-                                {(config?.saidas_campo || []).map((saida: any) => (
-                                    <tr key={saida.id} className="border-b border-slate-200 last:border-0">
-                                        <td className="py-1.5 pr-2 font-medium capitalize">{saida.dia}</td>
-                                        <td className="py-1.5 px-2 text-slate-600">{saida.hora}</td>
-                                        <td className="py-1.5 pl-2 text-right text-slate-600">{saida.local}</td>
-                                    </tr>
-                                ))}
-                                {(!config?.saidas_campo || config.saidas_campo.length === 0) && (
-                                    <tr><td colSpan={3} className="py-2 italic text-slate-500">Não cadastrado</td></tr>
-                                )}
-                            </tbody>
-                        </table>
-
-                        <h2 className="text-lg font-bold border-b border-slate-300 mb-3 uppercase">Arranjos para Almoço</h2>
-                        <table className="w-full text-sm mb-6 border-collapse">
-                            <tbody>
-                                {(config?.almocos || []).map((almoco: any) => {
-                                    const membro = getMembro(almoco.membro_id)
-                                    return (
-                                        <tr key={almoco.id} className="border-b border-slate-200 last:border-0">
-                                            <td className="py-1.5 pr-2 font-medium capitalize w-1/4">{almoco.dia}</td>
-                                            <td className="py-1.5 px-2 text-slate-900 font-medium">
-                                                {membro.nome_completo?.split(' ')[0]}
-                                                <span className="block text-xs font-normal text-slate-500">{membro.endereco || ''}</span>
-                                            </td>
-                                            <td className="py-1.5 pl-2 text-right text-slate-600 text-xs">
-                                                {formatPhone(membro.telefone || membro.celular)}
-                                            </td>
-                                        </tr>
-                                    )
-                                })}
-                                {(!config?.almocos || config.almocos.length === 0) && (
-                                    <tr><td colSpan={3} className="py-2 italic text-slate-500">Não cadastrado</td></tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                {/* Table 1: Reuniões para a Semana da Visita */}
+                <div className="mb-8 break-inside-avoid">
+                    <table className="w-full text-sm border-collapse border border-slate-300">
+                        <thead>
+                            <tr className="bg-[#4a86e8] text-white print:bg-[#4a86e8] print:text-white">
+                                <th className="border border-slate-300 p-2 text-left font-bold w-1/2">Reuniões para a Semana da Visita</th>
+                                <th className="border border-slate-300 p-2 text-center font-bold">Dia e Hora</th>
+                                <th className="border border-slate-300 p-2 text-center font-bold">Local</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr className="border border-slate-300 bg-white">
+                                <td className="border border-slate-300 p-2 font-medium">Análise dos Cartões e Arquivos</td>
+                                <td className="border border-slate-300 p-2 text-center capitalize">{config?.analise_arquivos?.data ? format(parseISO(config.analise_arquivos.data), 'eeee', { locale: ptBR }) : ''} - {config?.analise_arquivos?.hora}</td>
+                                <td className="border border-slate-300 p-2 text-center font-bold">{config?.analise_arquivos?.local || 'Farei sozinho'}</td>
+                            </tr>
+                            <tr className="border border-slate-300 bg-blue-50/50 print:bg-[#e8f0fe]">
+                                <td className="border border-slate-300 p-2 font-medium">Reunião Vida e Ministério (60 min) / Discurso de Serviço (30 min)</td>
+                                <td className="border border-slate-300 p-2 text-center capitalize">{config?.reuniao_terca?.data ? format(parseISO(config.reuniao_terca.data), 'eeee', { locale: ptBR }) : ''} - {config?.reuniao_terca?.hora}</td>
+                                <td className="border border-slate-300 p-2 text-center font-bold">{config?.reuniao_terca?.local || 'Salão do Reino'}</td>
+                            </tr>
+                            <tr className="border border-slate-300 bg-white">
+                                <td className="border border-slate-300 p-2 font-medium">Discurso Público (30 min)/Estudo de A Sentinela (30 min)/Discurso de Serviço (30 min)</td>
+                                <td className="border border-slate-300 p-2 text-center capitalize">{weekendDate ? format(weekendDate, 'eeee', { locale: ptBR }) : ''} - 19:00</td>
+                                <td className="border border-slate-300 p-2 text-center font-bold">Salão do Reino</td>
+                            </tr>
+                            <tr className="border border-slate-300 bg-blue-50/50 print:bg-[#e8f0fe]">
+                                <td className="border border-slate-300 p-2 font-medium">Reunião com Grupo LS</td>
+                                <td className="border border-slate-300 p-2 text-center capitalize">{config?.reuniao_ls?.data ? format(parseISO(config.reuniao_ls.data), 'eeee', { locale: ptBR }) : ''} - {config?.reuniao_ls?.hora}</td>
+                                <td className="border border-slate-300 p-2 text-center font-bold">{config?.reuniao_ls?.local || 'Salão do Reino'}</td>
+                            </tr>
+                            <tr className="border border-slate-300 bg-white">
+                                <td className="border border-slate-300 p-2 font-medium">Reunião com os Pioneiros Auxiliares, Regulares, Especiais e Missionários em Campo</td>
+                                <td className="border border-slate-300 p-2 text-center capitalize">{config?.reuniao_pioneiros?.data ? format(parseISO(config.reuniao_pioneiros.data), 'eeee', { locale: ptBR }) : ''} - {config?.reuniao_pioneiros?.hora}</td>
+                                <td className="border border-slate-300 p-2 text-center font-bold">{config?.reuniao_pioneiros?.local || 'Local'}</td>
+                            </tr>
+                            <tr className="border border-slate-300 bg-blue-50/50 print:bg-[#e8f0fe]">
+                                <td className="border border-slate-300 p-2 font-medium">Reunião com os Anciãos e Servos Ministeriais</td>
+                                <td className="border border-slate-300 p-2 text-center capitalize">{config?.reuniao_anciaos?.data ? format(parseISO(config.reuniao_anciaos.data), 'eeee', { locale: ptBR }) : ''} - {config?.reuniao_anciaos?.hora}</td>
+                                <td className="border border-slate-300 p-2 text-center font-bold">{config?.reuniao_anciaos?.local || 'Local'}</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
 
-                {/* Arranjos de Estudo */}
-                {config?.arranjos_estudo && config.arranjos_estudo.length > 0 && (
-                    <div className="mb-8 break-inside-avoid">
-                        <h2 className="text-xl font-bold border-b-2 border-black mb-4 uppercase text-center bg-slate-100 py-1">
-                            Arranjos de Estudo e Revisita
-                        </h2>
-                        
-                        <div className="space-y-6">
-                            {config.arranjos_estudo.map((tabela: any) => (
-                                <div key={tabela.id} className="break-inside-avoid">
-                                    <h3 className="font-bold text-md mb-2 bg-slate-50 p-2 border-l-4 border-slate-800">{tabela.nome_tabela}</h3>
-                                    <table className="w-full text-sm border-collapse border border-slate-300">
-                                        <thead>
-                                            <tr className="bg-slate-100">
-                                                <th className="border border-slate-300 p-1.5 text-left">Dia</th>
-                                                <th className="border border-slate-300 p-1.5 text-left">Hora</th>
-                                                <th className="border border-slate-300 p-1.5 text-left">Irmão(ã)</th>
-                                                <th className="border border-slate-300 p-1.5 text-left">Estudante</th>
-                                                <th className="border border-slate-300 p-1.5 text-left">Publicação</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {tabela.linhas.map((linha: any) => {
-                                                const membro = getMembro(linha.membro_id)
+                {/* Table 2: Consideração antes do serviço de pregação */}
+                <div className="mb-8 break-inside-avoid">
+                    <table className="w-full text-sm border-collapse border border-slate-300">
+                        <thead>
+                            <tr className="bg-[#2b4c8a] text-white print:bg-[#2b4c8a] print:text-white">
+                                <th colSpan={3} className="border border-slate-300 p-2 text-left font-bold">Consideração antes do serviço de pregação e Estudos</th>
+                            </tr>
+                            <tr className="bg-[#4a86e8] text-white print:bg-[#4a86e8] print:text-white">
+                                <th className="border border-slate-300 p-2 text-left font-bold w-1/4">Atividade de Campo</th>
+                                <th className="border border-slate-300 p-2 text-center font-bold w-1/4">Horário</th>
+                                <th className="border border-slate-300 p-2 text-center font-bold w-1/2">Locais de reuniões</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {(config?.saidas_campo || []).map((saida: any, idx: number) => (
+                                <tr key={saida.id} className={`border border-slate-300 ${idx % 2 === 0 ? 'bg-blue-50/30 print:bg-[#e8f0fe]' : 'bg-white'}`}>
+                                    <td className="border border-slate-300 p-2 capitalize font-medium">{saida.dia}</td>
+                                    <td className="border border-slate-300 p-2 text-center text-[#4a86e8] font-bold">{saida.hora}</td>
+                                    <td className="border border-slate-300 p-2 text-center">{saida.local}</td>
+                                </tr>
+                            ))}
+                            {(!config?.saidas_campo || config.saidas_campo.length === 0) && (
+                                <tr>
+                                    <td colSpan={3} className="border border-slate-300 p-4 text-center italic text-slate-500">Nenhuma atividade de campo cadastrada.</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Table 3: Visitas de Pastoreio */}
+                {config?.pastoreios && config.pastoreios.length > 0 && (
+                    <div className="mb-8 break-before-page">
+                        <table className="w-full text-sm border-collapse border border-slate-300 mb-0">
+                            <thead>
+                                <tr className="bg-[#4a86e8] text-white print:bg-[#4a86e8] print:text-white">
+                                    <th className="border border-slate-300 p-2 text-left font-bold">Visitas de Pastoreio</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td className="border border-slate-300 p-0">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0">
+                                            {config.pastoreios.map((pastoreio: any, idx: number) => {
+                                                const membro = getMembro(pastoreio.membro_id)
+                                                const anciao = getMembro(pastoreio.anciao_id)
                                                 return (
-                                                    <tr key={linha.id}>
-                                                        <td className="border border-slate-300 p-1.5 capitalize">{linha.dia}</td>
-                                                        <td className="border border-slate-300 p-1.5">{linha.hora}</td>
-                                                        <td className="border border-slate-300 p-1.5 font-medium">
-                                                            {membro.nome_completo?.split(' ')[0] || ''}
-                                                            {membro.telefone && <span className="block text-xs font-normal text-slate-500">{membro.telefone}</span>}
-                                                        </td>
-                                                        <td className="border border-slate-300 p-1.5">{linha.estudante}</td>
-                                                        <td className="border border-slate-300 p-1.5 text-xs">{linha.publicacao}</td>
-                                                    </tr>
+                                                    <div key={pastoreio.id} className="p-4 border-b md:border-b-0 md:border-r border-slate-300 last:border-b-0 last:border-r-0">
+                                                        <h3 className="font-bold text-[#4a86e8] mb-2">{idx + 1}ª Visita:</h3>
+                                                        <div className="flex gap-4 mb-2">
+                                                            <div><span className="font-bold">Data:</span> {pastoreio.data ? format(parseISO(pastoreio.data), 'dd/MM') : ''}</div>
+                                                            <div><span className="font-bold">Horário:</span> {pastoreio.hora}</div>
+                                                        </div>
+                                                        <div className="mb-4 min-h-[60px]">
+                                                            <span className="font-bold block mb-1">Breve descrição:</span>
+                                                            {pastoreio.memo}
+                                                        </div>
+                                                        <div className="bg-[#e8f0fe] p-2 border border-slate-300 rounded">
+                                                            <div className="mb-2"><span className="font-bold block">Irmão(ã) ou Família:</span> {membro.nome_completo}</div>
+                                                            <div className="border-t border-blue-200 pt-2 mt-2"><span className="font-bold block">Ancião ou SM que me acompanhará:</span> {anciao.nome_completo?.split(' ')[0] || ''}</div>
+                                                        </div>
+                                                    </div>
                                                 )
                                             })}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            ))}
-                        </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 )}
 
-                {/* Pastoreios */}
-                {config?.pastoreios && config.pastoreios.length > 0 && (
-                    <div className="mb-8 break-before-page">
-                        <h2 className="text-xl font-bold border-b-2 border-black mb-4 uppercase text-center bg-slate-100 py-1">
-                            Arranjos de Pastoreio
-                        </h2>
-                        
-                        <div className="space-y-4">
-                            {config.pastoreios.map((pastoreio: any) => {
-                                const membro = getMembro(pastoreio.membro_id)
-                                const anciao = getMembro(pastoreio.anciao_id)
+                {/* Table 4: Arranjos para os almoços */}
+                <div className="mb-8 break-inside-avoid">
+                    <table className="w-full text-sm border-collapse border border-slate-300">
+                        <thead>
+                            <tr className="bg-[#4a86e8] text-white print:bg-[#4a86e8] print:text-white">
+                                <th colSpan={4} className="border border-slate-300 p-2 text-left font-bold">Arranjos para os almoços:</th>
+                            </tr>
+                            <tr className="bg-[#c9daf8] text-black print:bg-[#c9daf8] print:text-black">
+                                <th className="border border-slate-300 p-2 text-center font-bold">Dias</th>
+                                <th className="border border-slate-300 p-2 text-center font-bold w-1/3">Nomes: Irmão(ã) ou Família:</th>
+                                <th className="border border-slate-300 p-2 text-center font-bold w-1/3">Endereço:</th>
+                                <th className="border border-slate-300 p-2 text-center font-bold">Telefone:</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {(config?.almocos || []).map((almoco: any, idx: number) => {
+                                const membro = getMembro(almoco.membro_id)
                                 return (
-                                    <div key={pastoreio.id} className="border border-slate-300 rounded p-3 break-inside-avoid">
-                                        <div className="flex justify-between items-start mb-2 border-b border-slate-200 pb-2">
-                                            <div>
-                                                <h3 className="font-bold text-lg">{membro.nome_completo}</h3>
-                                                <p className="text-sm text-slate-600">{membro.endereco || 'Endereço não cadastrado'}</p>
-                                                <p className="text-sm font-medium text-blue-600">{formatPhone(membro.telefone || membro.celular)}</p>
+                                    <tr key={almoco.id} className={`border border-slate-300 ${idx % 2 === 0 ? 'bg-white' : 'bg-[#e8f0fe] print:bg-[#e8f0fe]'}`}>
+                                        <td className="border border-slate-300 p-2 text-center font-medium capitalize">{almoco.dia}</td>
+                                        <td className="border border-slate-300 p-2 text-center font-bold text-[#cc0000] uppercase">
+                                            {membro.nome_completo || almoco.membro_id || ''}
+                                        </td>
+                                        <td className="border border-slate-300 p-2 text-center">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <span>{membro.endereco || ''}</span>
+                                                {membro.endereco && <span>📍</span>}
                                             </div>
-                                            <div className="text-right">
-                                                <p className="font-bold text-slate-800 bg-slate-100 px-2 py-1 rounded">
-                                                    {pastoreio.data ? format(parseISO(pastoreio.data), 'dd/MM/yyyy') : ''} às {pastoreio.hora}
-                                                </p>
-                                                <p className="text-xs text-slate-500 mt-1">Acompanhante: <span className="font-medium text-slate-700">{anciao.nome_completo?.split(' ')[0] || '-'}</span></p>
-                                            </div>
-                                        </div>
-                                        <p className="text-sm text-slate-700 italic">
-                                            <span className="font-bold not-italic">Contexto: </span>
-                                            {pastoreio.memo || 'Sem observações.'}
-                                        </p>
-                                    </div>
+                                        </td>
+                                        <td className="border border-slate-300 p-2 text-center">
+                                            {formatPhone(membro.contato)}
+                                        </td>
+                                    </tr>
                                 )
                             })}
-                        </div>
+                            {(!config?.almocos || config.almocos.length === 0) && (
+                                <tr>
+                                    <td colSpan={4} className="border border-slate-300 p-4 text-center italic text-slate-500">Nenhum arranjo de almoço cadastrado.</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Tables 5: Arranjos de Estudo */}
+                {config?.arranjos_estudo && config.arranjos_estudo.length > 0 && (
+                    <div className="space-y-8 break-inside-avoid">
+                        {config.arranjos_estudo.map((tabela: any) => (
+                            <table key={tabela.id} className="w-full text-sm border-collapse border border-slate-300 break-inside-avoid">
+                                <thead>
+                                    <tr className="bg-[#4a86e8] text-white print:bg-[#4a86e8] print:text-white">
+                                        <th colSpan={4} className="border border-slate-300 p-2 text-left font-bold">{tabela.nome_tabela}</th>
+                                    </tr>
+                                    <tr className="bg-[#c9daf8] text-black print:bg-[#c9daf8] print:text-black">
+                                        <th className="border border-slate-300 p-2 text-center font-bold">Dias da Semana:</th>
+                                        <th className="border border-slate-300 p-2 text-center font-bold">Horários:</th>
+                                        <th className="border border-slate-300 p-2 text-center font-bold">Nome do Acompanhante e Número de Telefone:</th>
+                                        <th className="border border-slate-300 p-2 text-center font-bold">Publicação usada no estudo:</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {tabela.linhas.map((linha: any, idx: number) => {
+                                        const membro = getMembro(linha.membro_id)
+                                        return (
+                                            <tr key={linha.id} className={`border border-slate-300 ${idx % 2 === 0 ? 'bg-white' : 'bg-[#e8f0fe] print:bg-[#e8f0fe]'}`}>
+                                                <td className="border border-slate-300 p-2 text-center font-bold capitalize text-[#cc0000]">
+                                                    {linha.dia}
+                                                </td>
+                                                <td className="border border-slate-300 p-2 text-center text-[#4a86e8] font-bold">
+                                                    {linha.hora}
+                                                </td>
+                                                <td className="border border-slate-300 p-2 text-center">
+                                                    {membro.nome_completo}
+                                                    {membro.contato && <span className="block text-xs mt-1 text-slate-600">{formatPhone(membro.contato)}</span>}
+                                                </td>
+                                                <td className="border border-slate-300 p-2 text-center">
+                                                    {linha.publicacao}
+                                                </td>
+                                            </tr>
+                                        )
+                                    })}
+                                </tbody>
+                            </table>
+                        ))}
                     </div>
                 )}
 
                 {/* Pauta Anciãos */}
                 {config?.pauta_anciaos_visita && config.pauta_anciaos_visita.length > 0 && (
-                    <div className="mb-8 break-before-page">
-                        <h2 className="text-xl font-bold border-b-2 border-black mb-4 uppercase text-center bg-slate-100 py-1">
-                            Pauta para Reunião com Anciãos
-                        </h2>
-                        
-                        <div className="space-y-4">
-                            {config.pauta_anciaos_visita.map((pauta: any, idx: number) => {
-                                const anciao = getMembro(pauta.anciao_id)
-                                return (
-                                    <div key={pauta.id} className="border border-slate-300 rounded p-4 break-inside-avoid">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <h3 className="font-bold text-md text-slate-900">
-                                                <span className="text-slate-400 mr-2">{idx + 1}.</span>
-                                                {pauta.assunto}
-                                            </h3>
-                                            <span className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600 border border-slate-200">
-                                                Sugerido por: <strong>{anciao.nome_completo?.split(' ')[0] || '-'}</strong>
-                                            </span>
+                    <div className="mb-8 break-before-page mt-8">
+                        <table className="w-full text-sm border-collapse border border-slate-300">
+                            <thead>
+                                <tr className="bg-[#4a86e8] text-white print:bg-[#4a86e8] print:text-white">
+                                    <th className="border border-slate-300 p-2 text-left font-bold">Pauta para Reunião com Anciãos</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td className="border border-slate-300 p-4">
+                                        <div className="space-y-4">
+                                            {config.pauta_anciaos_visita.map((pauta: any, idx: number) => {
+                                                const anciao = getMembro(pauta.anciao_id)
+                                                return (
+                                                    <div key={pauta.id} className="border border-slate-300 rounded p-4 break-inside-avoid bg-white">
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <h3 className="font-bold text-md text-slate-900">
+                                                                <span className="text-slate-400 mr-2">{idx + 1}.</span>
+                                                                {pauta.assunto}
+                                                            </h3>
+                                                            <span className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600 border border-slate-200">
+                                                                Sugerido por: <strong>{anciao.nome_completo?.split(' ')[0] || '-'}</strong>
+                                                            </span>
+                                                        </div>
+                                                        <div className="mt-2 text-sm text-slate-700 bg-slate-50 p-3 rounded border border-slate-100 whitespace-pre-wrap">
+                                                            {pauta.memo}
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })}
                                         </div>
-                                        <div className="mt-2 text-sm text-slate-700 bg-slate-50 p-3 rounded border border-slate-100 whitespace-pre-wrap">
-                                            {pauta.memo}
-                                        </div>
-                                    </div>
-                                )
-                            })}
-                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 )}
             </div>

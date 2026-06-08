@@ -133,7 +133,7 @@ function Sidebar() {
 
             <aside
                 className={cn(
-                    "fixed top-0 left-0 h-full bg-white dark:bg-slate-950 border-r dark:border-slate-800 z-50 transition-all duration-300 ease-in-out",
+                    "fixed top-0 left-0 h-full bg-white dark:bg-slate-950 border-r dark:border-slate-800 z-50 transition-all duration-300 ease-in-out print:hidden",
                     isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
                     isCollapsed ? "md:w-16" : "md:w-64",
                     "w-64 flex flex-col"

@@ -113,6 +113,10 @@ function Sidebar() {
 
     const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ')
 
+    if (pathname && pathname.includes('/acompanhar')) {
+        return null
+    }
+
     return (
         <>
             <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white dark:bg-slate-950 border-b dark:border-slate-800 flex items-center px-4 z-40 shadow-sm print:hidden">

@@ -19,8 +19,10 @@ type DiscursoFora = Database['public']['Tables']['agenda_discursos_fora']['Row']
     orador: { nome_completo: string }
 }
 
+import TemasPreparadosTab from './TemasPreparadosTab'
+
 export default function DiscursosPage() {
-    const [activeTab, setActiveTab] = useState<'LOCAIS' | 'FORA'>('LOCAIS')
+    const [activeTab, setActiveTab] = useState<'LOCAIS' | 'FORA' | 'TEMAS_PREPARADOS'>('LOCAIS')
     const [loading, setLoading] = useState(true)
 
     // Data Lists
@@ -97,6 +99,15 @@ export default function DiscursosPage() {
                     >
                         ✈️ Discursos Fora
                     </button>
+                    <button
+                        onClick={() => setActiveTab('TEMAS_PREPARADOS')}
+                        className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'TEMAS_PREPARADOS'
+                            ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                            }`}
+                    >
+                        📚 Temas Preparados
+                    </button>
                 </div>
             </div>
 
@@ -108,8 +119,10 @@ export default function DiscursosPage() {
                     <>
                         {activeTab === 'LOCAIS' ? (
                             <DiscursosLocaisList discursos={discursosLocais} onUpdate={fetchData} />
-                        ) : (
+                        ) : activeTab === 'FORA' ? (
                             <DiscursosForaList discursos={discursosFora} onUpdate={fetchData} />
+                        ) : (
+                            <TemasPreparadosTab />
                         )}
                     </>
                 )}

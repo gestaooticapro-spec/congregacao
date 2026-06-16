@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuth } from '@/contexts/AuthProvider'
 
-type Tema = { id: string; numero: number; titulo: string }
+type Tema = { id: string; numero: number; titulo: string; membro_tema_id?: string; is_paused?: boolean }
 
 export default function MeusTemasPage() {
     const { user, loading: authLoading } = useAuth()
@@ -91,13 +91,19 @@ export default function MeusTemasPage() {
         if (!membroId) return
         const { data, error } = await supabase
             .from('membros_temas')
-            .select('tema:temas(id, numero, titulo)')
+            .select('id, is_paused, tema:temas(id, numero, titulo)')
             .eq('membro_id', membroId)
 
         if (error) {
             console.error('Erro ao buscar temas:', error)
         } else {
-            const temas = data.map((item: any) => item.tema).sort((a: any, b: any) => a.numero - b.numero)
+            const temas = data.map((item: any) => ({
+                id: item.tema.id,
+                numero: item.tema.numero,
+                titulo: item.tema.titulo,
+                membro_tema_id: item.id,
+                is_paused: item.is_paused
+            })).sort((a: any, b: any) => a.numero - b.numero)
             setTemasPreparados(temas)
         }
     }, [membroId])
@@ -181,6 +187,21 @@ export default function MeusTemasPage() {
         } catch (error) {
             console.error('Erro ao remover tema:', error)
             alert('Erro ao remover tema')
+        }
+    }
+
+    const handleTogglePause = async (membroTemaId: string, currentStatus: boolean) => {
+        try {
+            const { error } = await supabase
+                .from('membros_temas')
+                .update({ is_paused: !currentStatus })
+                .eq('id', membroTemaId)
+
+            if (error) throw error
+            fetchTemasPreparados()
+        } catch (error) {
+            console.error('Erro ao pausar/despausar tema:', error)
+            alert('Erro ao atualizar status do tema')
         }
     }
 
@@ -369,20 +390,32 @@ export default function MeusTemasPage() {
                             </div>
                         ) : (
                             temasPreparados.map((tema) => (
-                                <div key={tema.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 transition-colors">
+                                <div key={tema.id} className={`flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 transition-colors ${tema.is_paused ? 'opacity-60' : ''}`}>
                                     <div className="flex items-center gap-3">
-                                        <span className="w-10 h-10 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-bold rounded-lg text-sm">
+                                        <span className={`w-10 h-10 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-bold rounded-lg text-sm ${tema.is_paused ? 'grayscale' : ''}`}>
                                             {tema.numero}
                                         </span>
-                                        <span className="font-medium text-slate-700 dark:text-slate-300">{tema.titulo}</span>
+                                        <span className={`font-medium text-slate-700 dark:text-slate-300 ${tema.is_paused ? 'line-through' : ''}`}>{tema.titulo}</span>
+                                        {tema.is_paused && (
+                                            <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-bold">Pausado</span>
+                                        )}
                                     </div>
-                                    <button
-                                        onClick={() => handleRemoveTema(tema.id)}
-                                        className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
-                                        title="Remover tema"
-                                    >
-                                        🗑️
-                                    </button>
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            onClick={() => handleTogglePause(tema.membro_tema_id!, tema.is_paused!)}
+                                            className="text-slate-500 hover:text-orange-600 p-2 hover:bg-orange-50 dark:hover:bg-orange-900/10 rounded-lg transition-colors"
+                                            title={tema.is_paused ? "Retomar tema" : "Pausar tema"}
+                                        >
+                                            {tema.is_paused ? '▶️' : '⏸️'}
+                                        </button>
+                                        <button
+                                            onClick={() => handleRemoveTema(tema.id)}
+                                            className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
+                                            title="Remover tema"
+                                        >
+                                            🗑️
+                                        </button>
+                                    </div>
                                 </div>
                             ))
                         )}
@@ -412,10 +445,11 @@ export default function MeusTemasPage() {
                                 <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Selecione os temas para enviar</label>
                                 <div className="space-y-2 max-h-48 overflow-y-auto p-1">
                                     {temasPreparados.map(t => (
-                                        <label key={t.id} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors">
+                                        <label key={t.id} className={`flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl transition-colors ${t.is_paused ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-100'}`}>
                                             <input
                                                 type="checkbox"
-                                                checked={selectedSpeechesIds.includes(t.id)}
+                                                disabled={t.is_paused}
+                                                checked={!t.is_paused && selectedSpeechesIds.includes(t.id)}
                                                 onChange={(e) => {
                                                     if (e.target.checked) {
                                                         setSelectedSpeechesIds(prev => [...prev, t.id])
@@ -427,6 +461,7 @@ export default function MeusTemasPage() {
                                             />
                                             <span className="text-sm font-bold text-primary">#{t.numero}</span>
                                             <span className="text-sm text-slate-700 dark:text-slate-300">{t.titulo}</span>
+                                            {t.is_paused && <span className="text-xs text-orange-600 font-bold ml-auto">(Pausado)</span>}
                                         </label>
                                     ))}
                                 </div>

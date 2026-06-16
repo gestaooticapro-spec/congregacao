@@ -666,18 +666,21 @@ export interface Database {
           membro_id: string
           tema_id: string
           created_at: string
+          is_paused: boolean
         }
         Insert: {
           id?: string
           membro_id: string
           tema_id: string
           created_at?: string
+          is_paused?: boolean
         }
         Update: {
           id?: string
           membro_id?: string
           tema_id?: string
           created_at?: string
+          is_paused?: boolean
         }
         Relationships: [
           {

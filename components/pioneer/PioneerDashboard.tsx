@@ -6,33 +6,36 @@ import { CategoriaMinisterio, Database } from '@/types/database.types'
 import RadialProgress from './RadialProgress'
 import TimerCard from './TimerCard'
 import ManualEntryModal from './ManualEntryModal'
-import { Trash2, Edit3, History, Settings2, Sparkles, AlertCircle } from 'lucide-react'
+import { Trash2, History, Settings2, Sparkles } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { toast } from 'react-hot-toast'
 
 interface PioneerDashboardProps {
     membroId: string;
-    nome: string;
+    onOnboardingCompleted?: () => void;
 }
 
 type LogEntry = Database['public']['Tables']['ministerio_logs']['Row']
 
-export default function PioneerDashboard({ membroId, nome }: PioneerDashboardProps) {
+export default function PioneerDashboard({ membroId, onOnboardingCompleted }: PioneerDashboardProps) {
     const [stats, setStats] = useState({
-        mesReal: 0,
-        mesAbono: 0,
-        anoReal: 0,
-        anoAbono: 0
+        mesRealMin: 0,
+        mesAbonoMin: 0,
+        anoRealMin: 0,
+        anoAbonoMin: 0
     })
     const [logs, setLogs] = useState<LogEntry[]>([])
     const [saldoInicial, setSaldoInicial] = useState<number>(0)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isConfigOpen, setIsConfigOpen] = useState(false)
+    const [isWelcomeOpen, setIsWelcomeOpen] = useState(false)
+    const [isCompletingWelcome, setIsCompletingWelcome] = useState(false)
+    const [pioneerStartDate, setPioneerStartDate] = useState<string | null>(null)
     const [initialTimerMinutes, setInitialTimerMinutes] = useState(0)
     const [initialStartTime, setInitialStartTime] = useState<string | null>(null)
     const [initialEndTime, setInitialEndTime] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
+    const [editingLog, setEditingLog] = useState<LogEntry | null>(null)
 
     // Service Year Bounds
     const getServiceYearRange = () => {
@@ -48,8 +51,29 @@ export default function PioneerDashboard({ membroId, nome }: PioneerDashboardPro
 
     const { start: yearStart, end: yearEnd, label: yearLabel } = getServiceYearRange()
 
+    const getMonthsFromStart = (startDate: string | null) => {
+        if (!startDate) return 12
+
+        const start = parseISO(startDate)
+        const serviceStart = parseISO(yearStart)
+        const serviceEnd = parseISO(yearEnd)
+        if (start < serviceStart || start > serviceEnd) return 12
+
+        return (serviceEnd.getFullYear() - start.getFullYear()) * 12
+            + serviceEnd.getMonth() - start.getMonth() + 1
+    }
+
+    const getMonthsElapsed = (startDate: string | null) => {
+        const referenceStart = startDate && parseISO(startDate) > parseISO(yearStart)
+            ? parseISO(startDate)
+            : parseISO(yearStart)
+        const now = new Date()
+
+        return Math.max(1, (now.getFullYear() - referenceStart.getFullYear()) * 12
+            + now.getMonth() - referenceStart.getMonth() + 1)
+    }
+
     const fetchAllData = useCallback(async () => {
-        setIsLoading(true)
         try {
             // 1. Fetch Logs
             const { data: logsData, error: logsError } = await supabase
@@ -63,16 +87,29 @@ export default function PioneerDashboard({ membroId, nome }: PioneerDashboardPro
             if (logsError) throw logsError
             setLogs(logsData || [])
 
+            const { data: anyPioneerLog, error: pioneerLogError } = await supabase
+                .from('ministerio_logs')
+                .select('id')
+                .eq('membro_id', membroId)
+                .limit(1)
+            if (pioneerLogError) throw pioneerLogError
+
             // 2. Fetch Saldo Inicial from membro
             const { data: membroData } = await supabase
                 .from('membros')
-                .select('saldo_inicial_pioneiro')
+                .select('saldo_inicial_pioneiro, pioneiro_onboarding_concluido, inicio_pioneiro_ano_servico')
                 .eq('id', membroId)
                 .single()
             
             const saldoJson = membroData?.saldo_inicial_pioneiro as Record<string, number> || {}
             const currentYearSaldo = saldoJson[yearLabel] || 0
             setSaldoInicial(currentYearSaldo)
+            const startDates = membroData?.inicio_pioneiro_ano_servico as Record<string, string> || {}
+            setPioneerStartDate(startDates[yearLabel] || null)
+
+            if (!membroData?.pioneiro_onboarding_concluido && (anyPioneerLog?.length || 0) === 0) {
+                setIsWelcomeOpen(true)
+            }
 
             // 3. Calculate Stats
             let anoRealMin = currentYearSaldo * 60 // Initial balance is in hours
@@ -98,16 +135,14 @@ export default function PioneerDashboard({ membroId, nome }: PioneerDashboardPro
             })
 
             setStats({
-                mesReal: Math.floor(mesRealMin / 60),
-                mesAbono: Math.floor(mesAbonoMin / 60),
-                anoReal: Math.floor(anoRealMin / 60),
-                anoAbono: Math.floor(anoAbonoMin / 60),
+                mesRealMin,
+                mesAbonoMin,
+                anoRealMin,
+                anoAbonoMin,
             })
 
         } catch (err) {
             console.error("Error fetching pioneer data:", err)
-        } finally {
-            setIsLoading(false)
         }
     }, [membroId, yearStart, yearEnd, yearLabel])
 
@@ -118,10 +153,11 @@ export default function PioneerDashboard({ membroId, nome }: PioneerDashboardPro
     const handleDeleteLog = async (id: string) => {
         if (!confirm('Deseja realmente excluir este registro?')) return
         try {
-            await supabase.from('ministerio_logs').delete().eq('id', id)
+            const { error } = await supabase.from('ministerio_logs').delete().eq('id', id)
+            if (error) throw error
             toast.success('Registro excluído')
             await fetchAllData()
-        } catch (e) {
+        } catch {
             toast.error('Erro ao excluir')
         }
     }
@@ -132,38 +168,92 @@ export default function PioneerDashboard({ membroId, nome }: PioneerDashboardPro
             const currentSaldo = currentMembro?.saldo_inicial_pioneiro as Record<string, number> || {}
             const updatedSaldo = { ...currentSaldo, [yearLabel]: horas }
             
-            await supabase.from('membros').update({ saldo_inicial_pioneiro: updatedSaldo }).eq('id', membroId)
+            const { error } = await supabase
+                .from('membros')
+                .update({ saldo_inicial_pioneiro: updatedSaldo, pioneiro_onboarding_concluido: true })
+                .eq('id', membroId)
+            if (error) throw error
             toast.success('Saldo inicial atualizado')
             setIsConfigOpen(false)
             await fetchAllData()
-        } catch (e) {
+            if (isCompletingWelcome) onOnboardingCompleted?.()
+        } catch {
             toast.error('Erro ao salvar saldo')
         }
     }
 
-    const handleSaveManualEntry = async (data: string, minutos: number, categoria: CategoriaMinisterio, comment: string, startTime?: string | null, endTime?: string | null) => {
-        const { error } = await supabase.from('ministerio_logs').insert({
-            membro_id: membroId,
-            data, minutos, categoria, comentarios: comment,
+    const handleWelcomeChoice = async (isStartingNow: boolean) => {
+        try {
+            if (!isStartingNow) {
+                setIsWelcomeOpen(false)
+                setIsCompletingWelcome(true)
+                setIsConfigOpen(true)
+                return
+            }
+
+            const updates: Database['public']['Tables']['membros']['Update'] = {
+                pioneiro_onboarding_concluido: true
+            }
+
+            const { data: currentMembro, error: fetchConfigError } = await supabase
+                .from('membros')
+                .select('inicio_pioneiro_ano_servico')
+                .eq('id', membroId)
+                .single()
+            if (fetchConfigError) throw fetchConfigError
+
+            const currentStartDates = currentMembro?.inicio_pioneiro_ano_servico as Record<string, string> || {}
+            updates.inicio_pioneiro_ano_servico = {
+                ...currentStartDates,
+                [yearLabel]: format(new Date(), 'yyyy-MM-dd')
+            }
+
+            const { error: saveConfigError } = await supabase.from('membros').update(updates).eq('id', membroId)
+            if (saveConfigError) throw saveConfigError
+
+            setIsWelcomeOpen(false)
+            toast.success('Sua meta foi ajustada para este ano de serviço.')
+            await fetchAllData()
+            onOnboardingCompleted?.()
+        } catch (error) {
+            console.error('Error saving pioneer onboarding:', error)
+            toast.error('Não foi possível salvar essa configuração.')
+        }
+    }
+
+    const handleSaveManualEntry = async (data: string, minutos: number, categoria: CategoriaMinisterio, comment: string, startTime?: string | null, endTime?: string | null, logId?: string) => {
+        const entry = {
+            data,
+            minutos,
+            categoria,
+            comentarios: comment,
             start_time: startTime || null,
             end_time: endTime || null
-        })
+        }
+        const { error } = logId
+            ? await supabase.from('ministerio_logs').update(entry).eq('id', logId).eq('membro_id', membroId)
+            : await supabase.from('ministerio_logs').insert({ membro_id: membroId, ...entry })
         if (error) throw error
-        toast.success('Tempo registrado com sucesso!')
+        toast.success(logId ? 'Atividade atualizada com sucesso!' : 'Tempo registrado com sucesso!')
         await fetchAllData()
     }
 
     const targetMes = 50
-    const targetAno = 600
+    const targetAno = getMonthsFromStart(pioneerStartDate) * targetMes
+    const formatMinutes = (totalMinutes: number) => {
+        const hours = Math.floor(totalMinutes / 60)
+        const minutes = totalMinutes % 60
+        return `${hours}h ${minutes.toString().padStart(2, '0')}min`
+    }
 
     // Color logic
-    const currentMonthIndex = new Date().getMonth()
-    const monthsElapsed = currentMonthIndex >= 8 ? (currentMonthIndex - 8 + 1) : (currentMonthIndex + 4 + 1)
+    const monthsElapsed = Math.min(getMonthsElapsed(pioneerStartDate), getMonthsFromStart(pioneerStartDate))
     const expected = monthsElapsed * targetMes
     
-    const totalAnoCalculado = stats.anoReal + stats.anoAbono
-    const diff = expected - totalAnoCalculado
-    const isAnoOnTrack = diff <= 0
+    const totalAnoCalculadoMin = stats.anoRealMin + stats.anoAbonoMin
+    const expectedMin = expected * 60
+    const diffMin = expectedMin - totalAnoCalculadoMin
+    const isAnoOnTrack = diffMin <= 0
     const colorClass = isAnoOnTrack ? 'text-emerald-500' : 'text-orange-500'
 
     return (
@@ -188,16 +278,16 @@ export default function PioneerDashboard({ membroId, nome }: PioneerDashboardPro
 
                     <div className="grid grid-cols-2 gap-4">
                         <RadialProgress 
-                            current={stats.mesReal} 
+                            currentMinutes={stats.mesRealMin}
                             target={targetMes} 
-                            abono={stats.mesAbono}
+                            abonoMinutes={stats.mesAbonoMin}
                             label="Meta Mensal"
                             colorClass="text-blue-600"
                         />
                         <RadialProgress 
-                            current={stats.anoReal} 
+                            currentMinutes={stats.anoRealMin}
                             target={targetAno} 
-                            abono={stats.anoAbono}
+                            abonoMinutes={stats.anoAbonoMin}
                             label="Meta Anual"
                             colorClass={colorClass}
                         />
@@ -211,11 +301,11 @@ export default function PioneerDashboard({ membroId, nome }: PioneerDashboardPro
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-                                Feitas: <span className="font-bold text-slate-800 dark:text-white">{totalAnoCalculado}h</span>
+                                Feitas: <span className="font-bold text-slate-800 dark:text-white">{formatMinutes(totalAnoCalculadoMin)}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <span className={`w-1.5 h-1.5 rounded-full ${diff > 0 ? 'bg-orange-400' : 'bg-emerald-400'}`}></span>
-                                {diff > 0 ? 'Faltam' : 'Sobrando'}: <span className={`font-bold ${diff > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-emerald-600 dark:text-emerald-400'}`}>{Math.abs(diff)}h</span>
+                                <span className={`w-1.5 h-1.5 rounded-full ${diffMin > 0 ? 'bg-orange-400' : 'bg-emerald-400'}`}></span>
+                                {diffMin > 0 ? 'Faltam' : 'Sobrando'}: <span className={`font-bold ${diffMin > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-emerald-600 dark:text-emerald-400'}`}>{formatMinutes(Math.abs(diffMin))}</span>
                             </div>
                         </div>
                     </div>
@@ -225,8 +315,8 @@ export default function PioneerDashboard({ membroId, nome }: PioneerDashboardPro
                 <div className="lg:col-span-4">
                     <TimerCard 
                         membroId={membroId} 
-                        onManualEntry={() => { setInitialTimerMinutes(0); setInitialStartTime(null); setInitialEndTime(null); setIsModalOpen(true); }}
-                        onTimerStop={(min, start, end) => { setInitialTimerMinutes(min); setInitialStartTime(start); setInitialEndTime(end); setIsModalOpen(true); }}
+                        onManualEntry={() => { setEditingLog(null); setInitialTimerMinutes(0); setInitialStartTime(null); setInitialEndTime(null); setIsModalOpen(true); }}
+                        onTimerStop={(min, start, end) => { setEditingLog(null); setInitialTimerMinutes(min); setInitialStartTime(start); setInitialEndTime(end); setIsModalOpen(true); }}
                     />
                 </div>
             </div>
@@ -245,7 +335,30 @@ export default function PioneerDashboard({ membroId, nome }: PioneerDashboardPro
                 
                 <div className="divide-y divide-slate-50 dark:divide-slate-800">
                     {logs.length > 0 ? logs.slice(0, 10).map((log) => (
-                        <div key={log.id} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                        <div
+                            key={log.id}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => {
+                                setEditingLog(log)
+                                setInitialTimerMinutes(0)
+                                setInitialStartTime(log.start_time)
+                                setInitialEndTime(log.end_time)
+                                setIsModalOpen(true)
+                            }}
+                            onKeyDown={(event) => {
+                                if (event.key === 'Enter' || event.key === ' ') {
+                                    event.preventDefault()
+                                    setEditingLog(log)
+                                    setInitialTimerMinutes(0)
+                                    setInitialStartTime(log.start_time)
+                                    setInitialEndTime(log.end_time)
+                                    setIsModalOpen(true)
+                                }
+                            }}
+                            className="cursor-pointer p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
+                            title="Editar atividade"
+                        >
                             <div className="flex items-center gap-4">
                                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs ${
                                     log.categoria === 'LDC' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
@@ -263,7 +376,10 @@ export default function PioneerDashboard({ membroId, nome }: PioneerDashboardPro
                             </div>
                             <div className="flex items-center gap-2">
                                 <button 
-                                    onClick={() => handleDeleteLog(log.id)}
+                                    onClick={(event) => {
+                                        event.stopPropagation()
+                                        void handleDeleteLog(log.id)
+                                    }}
                                     className="p-2 text-slate-300 hover:text-red-500 transition-colors"
                                 >
                                     <Trash2 className="w-4 h-4" />
@@ -280,6 +396,33 @@ export default function PioneerDashboard({ membroId, nome }: PioneerDashboardPro
             </div>
 
             {/* Config Modal for Initial Balance */}
+            {isWelcomeOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
+                        <h3 className="text-xl font-bold mb-2 dark:text-white">Bem-vindo ao Painel do Pioneiro</h3>
+                        <p className="text-sm text-slate-500 mb-6 font-medium leading-relaxed">
+                            Para preparar sua meta deste ano de serviço, escolha a opção que descreve sua situação.
+                        </p>
+                        <div className="space-y-3">
+                            <button
+                                onClick={() => void handleWelcomeChoice(false)}
+                                className="w-full text-left p-4 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
+                            >
+                                <span className="block font-bold text-slate-800 dark:text-white">Já sou pioneiro</span>
+                                <span className="block mt-1 text-sm text-slate-500">Informar as horas que já fiz neste ano de serviço.</span>
+                            </button>
+                            <button
+                                onClick={() => void handleWelcomeChoice(true)}
+                                className="w-full text-left p-4 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
+                            >
+                                <span className="block font-bold text-slate-800 dark:text-white">Fui aprovado para começar este mês</span>
+                                <span className="block mt-1 text-sm text-slate-500">Calcularemos uma meta proporcional para os meses restantes.</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {isConfigOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
                     <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-200">
@@ -316,6 +459,7 @@ export default function PioneerDashboard({ membroId, nome }: PioneerDashboardPro
                 isOpen={isModalOpen} 
                 onClose={() => setIsModalOpen(false)} 
                 onSave={handleSaveManualEntry} 
+                entryToEdit={editingLog}
                 initialMinutes={initialTimerMinutes}
                 initialStartTime={initialStartTime}
                 initialEndTime={initialEndTime}

@@ -272,6 +272,8 @@ export interface Database {
           ultima_visita_obs: string | null
           proxima_visita: string | null
           saldo_inicial_pioneiro: Json | null
+          pioneiro_onboarding_concluido: boolean
+          inicio_pioneiro_ano_servico: Json
           created_at: string
           updated_at: string
         }
@@ -319,6 +321,8 @@ export interface Database {
           ultima_visita_obs?: string | null
           proxima_visita?: string | null
           saldo_inicial_pioneiro?: Json | null
+          pioneiro_onboarding_concluido?: boolean
+          inicio_pioneiro_ano_servico?: Json
           created_at?: string
           updated_at?: string
         }
@@ -366,6 +370,8 @@ export interface Database {
           ultima_visita_obs?: string | null
           proxima_visita?: string | null
           saldo_inicial_pioneiro?: Json | null
+          pioneiro_onboarding_concluido?: boolean
+          inicio_pioneiro_ano_servico?: Json
           created_at?: string
           updated_at?: string
         }

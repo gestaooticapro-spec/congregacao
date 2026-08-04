@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { X, Save, Clock, CalendarDays } from 'lucide-react'
-import { CategoriaMinisterio } from '@/types/database.types'
+import { CategoriaMinisterio, Database } from '@/types/database.types'
 
 type CategoriaOption = {
     value: CategoriaMinisterio;
@@ -22,13 +22,14 @@ const CATEGORIAS: CategoriaOption[] = [
 interface ManualEntryModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (data: string, minutos: number, categoria: CategoriaMinisterio, comment: string, startTime?: string | null, endTime?: string | null) => Promise<void>;
+    onSave: (data: string, minutos: number, categoria: CategoriaMinisterio, comment: string, startTime?: string | null, endTime?: string | null, logId?: string) => Promise<void>;
     initialMinutes?: number;
     initialStartTime?: string | null;
     initialEndTime?: string | null;
+    entryToEdit?: Database['public']['Tables']['ministerio_logs']['Row'] | null;
 }
 
-export default function ManualEntryModal({ isOpen, onClose, onSave, initialMinutes = 0, initialStartTime = null, initialEndTime = null }: ManualEntryModalProps) {
+export default function ManualEntryModal({ isOpen, onClose, onSave, initialMinutes = 0, initialStartTime = null, initialEndTime = null, entryToEdit = null }: ManualEntryModalProps) {
     const [data, setData] = useState(new Date().toISOString().split('T')[0])
     const [horas, setHoras] = useState(Math.floor(initialMinutes / 60).toString())
     const [minutos, setMinutos] = useState((initialMinutes % 60).toString())
@@ -39,10 +40,22 @@ export default function ManualEntryModal({ isOpen, onClose, onSave, initialMinut
 
     useEffect(() => {
         if (!isOpen) return
-        setHoras(Math.floor(initialMinutes / 60).toString())
-        setMinutos((initialMinutes % 60).toString())
+
+        if (entryToEdit) {
+            setData(entryToEdit.data)
+            setHoras(Math.floor(entryToEdit.minutos / 60).toString())
+            setMinutos((entryToEdit.minutos % 60).toString())
+            setCategoria(entryToEdit.categoria)
+            setComentarios(entryToEdit.comentarios || '')
+        } else {
+            setData(new Date().toISOString().split('T')[0])
+            setHoras(Math.floor(initialMinutes / 60).toString())
+            setMinutos((initialMinutes % 60).toString())
+            setCategoria('CAMPO')
+            setComentarios('')
+        }
         setError(null)
-    }, [isOpen, initialMinutes])
+    }, [isOpen, initialMinutes, entryToEdit])
 
     if (!isOpen) return null
 
@@ -65,13 +78,15 @@ export default function ManualEntryModal({ isOpen, onClose, onSave, initialMinut
         setIsSaving(true)
 
         try {
-            await onSave(data, totalMinutes, categoria, comentarios, initialStartTime, initialEndTime)
+            await onSave(data, totalMinutes, categoria, comentarios, entryToEdit?.start_time || initialStartTime, entryToEdit?.end_time || initialEndTime, entryToEdit?.id)
             onClose()
             setHoras('')
             setMinutos('')
             setComentarios('')
             setCategoria('CAMPO')
             setData(new Date().toISOString().split('T')[0])
+        // The caught error may be a Supabase error object rather than an Error instance.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             console.error('[ManualEntry] Save error:', err)
             const msg = err?.message || "Não foi possível salvar. Tente novamente."
@@ -86,7 +101,7 @@ export default function ManualEntryModal({ isOpen, onClose, onSave, initialMinut
             <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-800">
                 <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
                     <h3 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                        {initialMinutes > 0 ? (
+                        {entryToEdit ? 'Editar Atividade' : initialMinutes > 0 ? (
                             <>Confirmar Tempo <span className="text-sm font-normal text-blue-600 bg-blue-50 px-2 py-0.5 rounded ml-2">Cronômetro</span></>
                         ) : 'Lançamento Manual'}
                     </h3>
@@ -202,7 +217,7 @@ export default function ManualEntryModal({ isOpen, onClose, onSave, initialMinut
                         {isSaving ? (
                             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                         ) : (
-                            <><Save className="w-4 h-4" /> Salvar Tempo</>
+                            <><Save className="w-4 h-4" /> {entryToEdit ? 'Salvar Alterações' : 'Salvar Tempo'}</>
                         )}
                     </button>
                 </div>

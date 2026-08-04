@@ -28,6 +28,10 @@ export async function POST(request: NextRequest) {
                 ? await db.from('pioneiro_ocorrencias_estudo').select('*').in('atividade_id', studyIds)
                 : { data: [], error: null }
             if (occurrencesError) throw occurrencesError
+            const { data: studyNotes, error: notesError } = studyIds.length
+                ? await db.from('pioneiro_atividade_historico').select('*').in('atividade_id', studyIds).eq('evento', 'ESTUDO_OBSERVACAO').order('created_at', { ascending: false })
+                : { data: [], error: null }
+            if (notesError) throw notesError
             const { data: invites, error: inviteError } = await db.from('pioneiro_transferencias')
                 .select('*, atividade:pioneiro_atividades(*)').eq('destinatario_id', member.id).eq('status', 'PENDENTE').order('criado_em', { ascending: false })
             if (inviteError) throw inviteError
@@ -35,7 +39,7 @@ export async function POST(request: NextRequest) {
                 .select('*, destinatario:membros!pioneiro_transferencias_destinatario_id_fkey(nome_completo, nome_civil), atividade:pioneiro_atividades(pessoa_nome, titulo)')
                 .eq('remetente_id', member.id).eq('status', 'RECUSADA').is('visto_remetente_em', null).order('respondido_em', { ascending: false })
             if (responsesError) throw responsesError
-            return NextResponse.json({ activities: activities || [], invites: invites || [], transferResponses: transferResponses || [], studyOccurrences: studyOccurrences || [] })
+            return NextResponse.json({ activities: activities || [], invites: invites || [], transferResponses: transferResponses || [], studyOccurrences: studyOccurrences || [], studyNotes: studyNotes || [] })
         }
 
         if (action === 'pioneers') {
@@ -128,6 +132,24 @@ export async function POST(request: NextRequest) {
             if (error) throw error
             await db.from('pioneiro_atividade_historico').insert({ atividade_id: activityId, membro_id: member.id, evento: `ESTUDO_${occurrence.status}`, detalhes: { data_original: occurrence.data_original, data_agendada: occurrence.data_agendada || null } })
             return NextResponse.json({ occurrence: data })
+        }
+        if (action === 'undoStudyOccurrence') {
+            if (activity.tipo !== 'ESTUDO') return NextResponse.json({ error: 'Atividade não é um estudo' }, { status: 400 })
+            const dataOriginal = body.dataOriginal as string
+            if (!dataOriginal) return NextResponse.json({ error: 'Data da ocorrência é obrigatória' }, { status: 400 })
+            const { error } = await db.from('pioneiro_ocorrencias_estudo').delete().eq('atividade_id', activityId).eq('data_original', dataOriginal)
+            if (error) throw error
+            await db.from('pioneiro_atividade_historico').insert({ atividade_id: activityId, membro_id: member.id, evento: 'ESTUDO_NAO_REALIZADO', detalhes: { data_original: dataOriginal } })
+            return NextResponse.json({ ok: true })
+        }
+        if (action === 'studyNote') {
+            if (activity.tipo !== 'ESTUDO') return NextResponse.json({ error: 'Atividade não é um estudo' }, { status: 400 })
+            const note = body.note as string
+            const dataOriginal = body.dataOriginal as string
+            if (!note?.trim() || !dataOriginal) return NextResponse.json({ error: 'Escreva a observação e informe a data' }, { status: 400 })
+            const { error } = await db.from('pioneiro_atividade_historico').insert({ atividade_id: activityId, membro_id: member.id, evento: 'ESTUDO_OBSERVACAO', detalhes: { nota: note.trim(), data_original: dataOriginal } })
+            if (error) throw error
+            return NextResponse.json({ ok: true })
         }
         if (action === 'transfer') {
             const recipientId = body.recipientId as string

@@ -6,7 +6,6 @@ import { useState, useMemo, memo, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthProvider'
 import { useSidebar } from '@/contexts/SidebarContext'
 import { PerfilAcesso } from '@/types/database.types'
-import PinLoginModal from '@/components/PinLoginModal'
 import {
     Home,
     LayoutDashboard,
@@ -79,7 +78,6 @@ function Sidebar() {
     const pathname = usePathname()
     const router = useRouter()
     const [isMobileOpen, setIsMobileOpen] = useState(false)
-    const [isPinModalOpen, setIsPinModalOpen] = useState(false)
     const { isCollapsed, toggleCollapsed } = useSidebar()
     const { user, roles, hasRole, loading, signOut } = useAuth()
     const [isPioneiroSession, setIsPioneiroSession] = useState(false)
@@ -177,11 +175,7 @@ function Sidebar() {
                                 <button
                                     key="pin-button-item"
                                     onClick={() => {
-                                        if (typeof window !== 'undefined' && localStorage.getItem('membro_sessao')) {
-                                            router.push('/meu-relatorio')
-                                        } else {
-                                            setIsPinModalOpen(true)
-                                        }
+                                        router.push('/meu-relatorio')
                                         setIsMobileOpen(false)
                                     }}
                                     className={cn(
@@ -291,10 +285,6 @@ function Sidebar() {
                     )}
                 </div>
             </aside>
-            <PinLoginModal
-                isOpen={isPinModalOpen}
-                onClose={() => setIsPinModalOpen(false)}
-            />
         </>
     )
 }

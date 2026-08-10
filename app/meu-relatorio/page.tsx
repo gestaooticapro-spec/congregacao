@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { toast } from 'react-hot-toast'
@@ -22,7 +22,7 @@ interface SessaoMembro {
     nome: string
     grupo_id: string
     is_pioneiro: boolean
-    pin: string
+    pin?: string
     timestamp: number
 }
 
@@ -50,13 +50,21 @@ export default function MeuRelatorioPage() {
     const [horas, setHoras] = useState<string>('')
     const [horasAbono, setHorasAbono] = useState<string>('')
     const [estudos, setEstudos] = useState<string>('')
-    const [trabalhou, setTrabalhou] = useState(true)
     const [isPioneiroAuxiliar, setIsPioneiroAuxiliar] = useState(false)
+    const [relatorioEnviado, setRelatorioEnviado] = useState(false)
+    const avisoSemSessaoExibido = useRef(false)
 
     useEffect(() => {
         const stored = localStorage.getItem('membro_sessao')
         if (!stored) {
-            toast('Por favor, acesse através do PIN.', { icon: '🔒' })
+            if (!avisoSemSessaoExibido.current) {
+                avisoSemSessaoExibido.current = true
+                toast('Escolha seu nome na tela inicial pra mandar seu relatório.', {
+                    id: 'meu-relatorio-sem-sessao',
+                    icon: 'ℹ️',
+                    duration: 5000
+                })
+            }
             router.replace('/')
             setIsLoading(false)
             return
@@ -65,12 +73,16 @@ export default function MeuRelatorioPage() {
         const validateAndFetchDrafts = async () => {
             try {
                 const parsed: SessaoMembro = JSON.parse(stored)
-                if (!parsed.pin) {
-                    handleLogout()
-                    return
-                }
-
                 setSessao(parsed)
+
+                const { data: jaEnviado, error: relatorioError } = await supabase.rpc('verificar_relatorio_viamembro', {
+                    p_membro_id: parsed.id,
+                    p_mes: mes
+                })
+
+                if (!relatorioError) {
+                    setRelatorioEnviado(Boolean(jaEnviado))
+                }
 
                 // 2. Fetch Logs from Pioneer Panel to use as draft
                 if (parsed.is_pioneiro) {
@@ -101,11 +113,6 @@ export default function MeuRelatorioPage() {
                     }
                 }
 
-                // Prefill for normal publishers
-                if (!parsed.is_pioneiro) {
-                    setTrabalhou(true)
-                }
-
             } catch (e) {
                 handleLogout()
             } finally {
@@ -128,13 +135,13 @@ export default function MeuRelatorioPage() {
         setIsSubmitting(true)
         try {
             // Chama a RPC de forma segura com o PIN validado no localStorage
-            const { error } = await supabase.rpc('enviar_relatorio_viapin', {
-                p_pin: sessao.pin,
+            const { error } = await supabase.rpc('enviar_relatorio_viamembro', {
+                p_membro_id: sessao.id,
                 p_mes: mes,
                 p_horas: (sessao.is_pioneiro || isPioneiroAuxiliar) ? (parseInt(horas) || 0) : null,
-                p_horas_abono: (sessao.is_pioneiro || isPioneiroAuxiliar) ? (parseInt(horasAbono) || 0) : 0,
+                p_horas_abono: sessao.is_pioneiro ? (parseInt(horasAbono) || 0) : 0,
                 p_estudos: parseInt(estudos) || 0,
-                p_trabalhou: (!sessao.is_pioneiro && !isPioneiroAuxiliar) ? trabalhou : true,
+                p_trabalhou: true,
                 p_is_pioneiro_auxiliar: isPioneiroAuxiliar
             })
 
@@ -148,6 +155,7 @@ export default function MeuRelatorioPage() {
                 throw new Error(error.message || 'Erro de permissão ou salvamento')
             }
 
+            setRelatorioEnviado(true)
             const mesNome = format(parseISO(mes), 'MMMM', { locale: ptBR })
             toast.success(`Parabéns! O relatório de ${mesNome} foi enviado com sucesso.`, {
                 duration: 4000
@@ -156,9 +164,9 @@ export default function MeuRelatorioPage() {
                 router.push('/')
             }, 3000)
 
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Erro no Catch:', err)
-            const mensagem = err?.message || 'Erro desconhecido.'
+            const mensagem = err instanceof Error ? err.message : 'Erro desconhecido.'
             toast.error(`Erro ao enviar: ${mensagem}`)
         } finally {
             setIsSubmitting(false)
@@ -222,13 +230,22 @@ export default function MeuRelatorioPage() {
                         </label>
                         <select
                             value={mes}
-                            onChange={e => setMes(e.target.value)}
+                            onChange={e => {
+                                setRelatorioEnviado(false)
+                                setMes(e.target.value)
+                            }}
                             className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 capitalize"
                         >
                             {meses.map(m => (
                                 <option key={m.value} value={m.value}>{m.label}</option>
                             ))}
                         </select>
+                        {relatorioEnviado && (
+                            <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-900/20 dark:text-emerald-300">
+                                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                                <span>Você já enviou seu relatório pra esse mês.</span>
+                            </div>
+                        )}
                     </div>
 
                     {/* Pioneiro Auxiliar Toggle (Only for Publishers) */}
@@ -250,30 +267,13 @@ export default function MeuRelatorioPage() {
                         </div>
                     )}
 
-                    {/* Trabalhou Toggle (Only for normal publishers) */}
-                    {!mostraHoras && (
-                        <div className="space-y-3 p-4 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-800">
-                            <label className="flex items-center gap-3 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={trabalhou}
-                                    onChange={e => setTrabalhou(e.target.checked)}
-                                    className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                                />
-                                <span className="font-medium text-gray-700 dark:text-gray-300">
-                                    Participei no ministério neste mês
-                                </span>
-                            </label>
-                        </div>
-                    )}
-
                     {/* Horas (Only for pioneers) */}
                     {mostraHoras && (
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className={sessao.is_pioneiro ? 'grid grid-cols-2 gap-4' : 'grid grid-cols-1 gap-4'}>
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
                                     <Clock className="w-4 h-4 text-gray-400" />
-                                    Horas Reais
+                                    Horas
                                 </label>
                                 <input
                                     type="number"
@@ -285,19 +285,21 @@ export default function MeuRelatorioPage() {
                                     className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-purple-700 dark:text-purple-400 flex items-center gap-2">
-                                    Abono (LDC)
-                                </label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    value={horasAbono}
-                                    onChange={e => setHorasAbono(e.target.value)}
-                                    placeholder="0"
-                                    className="w-full h-12 px-4 rounded-xl border border-purple-200 dark:border-purple-900/50 bg-white dark:bg-slate-900 text-purple-900 dark:text-purple-100 placeholder:text-purple-300 focus:ring-2 focus:ring-purple-500 transition-all font-medium"
-                                />
-                            </div>
+                            {sessao.is_pioneiro && (
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-purple-700 dark:text-purple-400 flex items-center gap-2">
+                                        Abono (LDC)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={horasAbono}
+                                        onChange={e => setHorasAbono(e.target.value)}
+                                        placeholder="0"
+                                        className="w-full h-12 px-4 rounded-xl border border-purple-200 dark:border-purple-900/50 bg-white dark:bg-slate-900 text-purple-900 dark:text-purple-100 placeholder:text-purple-300 focus:ring-2 focus:ring-purple-500 transition-all font-medium"
+                                    />
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -323,7 +325,7 @@ export default function MeuRelatorioPage() {
                     {/* Submit */}
                     <button
                         type="submit"
-                        disabled={isSubmitting || (!trabalhou && !mostraHoras)}
+                        disabled={isSubmitting}
                         className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
                     >
                         {isSubmitting ? (

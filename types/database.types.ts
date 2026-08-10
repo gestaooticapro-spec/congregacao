@@ -966,6 +966,25 @@ export interface Database {
           is_pioneiro: boolean
         }[]
       }
+      verificar_relatorio_viamembro: {
+        Args: {
+          p_membro_id: string
+          p_mes: string
+        }
+        Returns: boolean
+      }
+      enviar_relatorio_viamembro: {
+        Args: {
+          p_membro_id: string
+          p_mes: string
+          p_horas?: number | null
+          p_estudos?: number | null
+          p_trabalhou?: boolean | null
+          p_is_pioneiro_auxiliar?: boolean | null
+          p_horas_abono?: number | null
+        }
+        Returns: boolean
+      }
       enviar_relatorio_viapin: {
         Args: {
           p_pin: string

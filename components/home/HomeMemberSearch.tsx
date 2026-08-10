@@ -141,6 +141,7 @@ export default function HomeMemberSearch(): React.ReactNode {
                 pin: membro.pin || '',
                 timestamp: Date.now()
             }))
+            window.dispatchEvent(new Event('membro-sessao-atualizada'))
             
             // Activate session state immediately
             setIsSessaoMembroAtiva(true)
@@ -465,6 +466,7 @@ export default function HomeMemberSearch(): React.ReactNode {
 
     const handleLogout = () => {
         localStorage.removeItem('membro_sessao')
+        window.dispatchEvent(new Event('membro-sessao-atualizada'))
         setIsSessaoMembroAtiva(false)
         setNomeSessao(null)
         setSelectedMembro(null)

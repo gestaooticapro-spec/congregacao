@@ -66,6 +66,10 @@ export default function HomeMemberSearch(): React.ReactNode {
     const [isSessaoMembroAtiva, setIsSessaoMembroAtiva] = useState(false)
     const [nomeSessao, setNomeSessao] = useState<string | null>(null)
     const [autoSessaoProcessada, setAutoSessaoProcessada] = useState(false)
+    const [membroAguardandoPin, setMembroAguardandoPin] = useState<Membro | null>(null)
+    const [pin, setPin] = useState('')
+    const [pinError, setPinError] = useState<string | null>(null)
+    const [validandoPin, setValidandoPin] = useState(false)
     const handleSearchRef = useRef<(membro: Membro) => Promise<void>>(async () => { })
 
     useEffect(() => {
@@ -103,6 +107,13 @@ export default function HomeMemberSearch(): React.ReactNode {
             const membroDaSessao = membros.find(membro => membro.id === parsed.id)
             if (!membroDaSessao) return
 
+            // A sessão antiga não é suficiente para autenticar pioneiros.
+            // Eles precisam informar o PIN novamente ao entrar pela Home.
+            if (membroDaSessao.is_pioneiro) {
+                localStorage.removeItem('membro_sessao')
+                return
+            }
+
             setIsSessaoMembroAtiva(true)
             setNomeSessao(parsed.nome || membroDaSessao.nome_completo)
             void handleSearchRef.current(membroDaSessao)
@@ -123,7 +134,7 @@ export default function HomeMemberSearch(): React.ReactNode {
         }
     }
 
-    const handleSearch = async (membro: Membro) => {
+    const carregarDesignacoes = async (membro: Membro, pinAutenticado?: string) => {
         setSelectedMembro(membro)
         setSearchTerm(membro.nome_completo)
         setShowResults(true)
@@ -131,14 +142,15 @@ export default function HomeMemberSearch(): React.ReactNode {
         setDiasDesignacoes([])
         setError(null)
 
-        // Automatic Login: Save session to localStorage
+        // Automatic Login: Save session to localStorage. For pioneers this is
+        // called only after the PIN has been validated against this member.
         try {
             localStorage.setItem('membro_sessao', JSON.stringify({
                 id: membro.id,
                 nome: membro.nome_completo,
                 grupo_id: membro.grupo_id,
                 is_pioneiro: membro.is_pioneiro,
-                pin: membro.pin || '',
+                pin: pinAutenticado || membro.pin || '',
                 timestamp: Date.now()
             }))
             window.dispatchEvent(new Event('membro-sessao-atualizada'))
@@ -449,6 +461,58 @@ export default function HomeMemberSearch(): React.ReactNode {
         }
     }
 
+    const handleSearch = async (membro: Membro) => {
+        if (membro.is_pioneiro) {
+            setSelectedMembro(membro)
+            setSearchTerm(membro.nome_completo)
+            setShowResults(true)
+            setPin('')
+            setPinError(null)
+            setMembroAguardandoPin(membro)
+            return
+        }
+
+        await carregarDesignacoes(membro)
+    }
+
+    const handlePinSubmit = async (event: React.FormEvent) => {
+        event.preventDefault()
+        if (!membroAguardandoPin || pin.length !== 4 || validandoPin) return
+
+        setValidandoPin(true)
+        setPinError(null)
+        try {
+            const { data, error: rpcError } = await supabase.rpc('verificar_pin', { p_pin: pin })
+            if (rpcError) throw rpcError
+
+            const membroAutenticado = data?.[0]
+            if (!membroAutenticado || membroAutenticado.id !== membroAguardandoPin.id) {
+                setPinError('PIN inválido para este membro.')
+                setPin('')
+                return
+            }
+
+            const membro = membroAguardandoPin
+            setMembroAguardandoPin(null)
+            await carregarDesignacoes(membro, pin)
+        } catch (err) {
+            console.error('Erro ao validar PIN do pioneiro:', err)
+            setPinError('Não foi possível validar o PIN. Tente novamente.')
+            setPin('')
+        } finally {
+            setValidandoPin(false)
+        }
+    }
+
+    const cancelarPin = () => {
+        setMembroAguardandoPin(null)
+        setPin('')
+        setPinError(null)
+        setSelectedMembro(null)
+        setSearchTerm('')
+        setShowResults(false)
+    }
+
     handleSearchRef.current = handleSearch
 
     const formatarFuncaoSuporte = (funcao: string) => {
@@ -489,6 +553,52 @@ export default function HomeMemberSearch(): React.ReactNode {
 
     return (
         <div className="w-full max-w-2xl mx-auto">
+            {membroAguardandoPin && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+                    <form
+                        onSubmit={handlePinSubmit}
+                        className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900"
+                    >
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Confirme seu acesso</h2>
+                        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                            {membroAguardandoPin.nome_completo}, digite seu PIN de 4 dígitos.
+                        </p>
+                        <input
+                            autoFocus
+                            inputMode="numeric"
+                            type="password"
+                            maxLength={4}
+                            pattern="[0-9]{4}"
+                            value={pin}
+                            onChange={(event) => {
+                                setPin(event.target.value.replace(/\D/g, '').slice(0, 4))
+                                setPinError(null)
+                            }}
+                            className="mt-5 w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-4 text-center text-2xl tracking-[0.5em] outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                            aria-label="PIN"
+                        />
+                        {pinError && <p className="mt-3 text-center text-sm text-red-600 dark:text-red-400">{pinError}</p>}
+                        <div className="mt-6 flex gap-3">
+                            <button
+                                type="button"
+                                onClick={cancelarPin}
+                                disabled={validandoPin}
+                                className="flex-1 rounded-xl border border-slate-200 px-4 py-3 font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={validandoPin || pin.length !== 4}
+                                className="flex-1 rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                            >
+                                {validandoPin ? 'Validando...' : 'Entrar'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
+
             {!isSessaoMembroAtiva && (
                 <div className="relative mb-8">
                 <input

@@ -11,7 +11,8 @@ import {
     FileText,
     Star,
     PieChart,
-    ArrowRight
+    ArrowRight,
+    X
 } from 'lucide-react'
 import { format, startOfMonth, subMonths } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -28,6 +29,8 @@ interface GrupoResumo {
     abonoPR: number
     abonoPA: number
     estudos: number
+    estudosPR: number
+    trabalharamPR: number
     pioneirosRegulares: number
     pioneirosAuxiliares: number
 }
@@ -56,8 +59,13 @@ export default function RelatoriosSecretariaPage() {
         horas: 0,
         estudos: 0,
         pr: 0,
-        pa: 0
+        pa: 0,
+        horasPR: 0,
+        abonoPR: 0,
+        estudosPR: 0,
+        trabalharamPR: 0
     })
+    const [mostrarResumoPR, setMostrarResumoPR] = useState(false)
 
     useEffect(() => {
         const fetchDados = async () => {
@@ -89,6 +97,7 @@ export default function RelatoriosSecretariaPage() {
 
                 // Calcular resumos por grupo
                 let mTot = 0, eTot = 0, hTot = 0, esTot = 0, prTot = 0, paTot = 0
+                let horasPRTot = 0, abonoPRTot = 0, estudosPRTot = 0, trabalharamPRTot = 0
 
                 const resumo: GrupoResumo[] = (grupos || []).map(g => {
                     const membrosDoGrupo = (membros || []).filter(m => m.grupo_id === g.id)
@@ -98,6 +107,8 @@ export default function RelatoriosSecretariaPage() {
                     let abonoPR = 0
                     let abonoPA = 0
                     let estudos = 0
+                    let estudosPR = 0
+                    let trabalharamPR = 0
                     let pr = 0
                     let pa = 0
 
@@ -116,6 +127,12 @@ export default function RelatoriosSecretariaPage() {
                                 prTot++
                                 horasPR += rel.horas || 0
                                 abonoPR += rel.horas_abono || 0
+                                estudosPR += rel.estudos || 0
+                                if (rel.trabalhou) trabalharamPR++
+                                horasPRTot += rel.horas || 0
+                                abonoPRTot += rel.horas_abono || 0
+                                estudosPRTot += rel.estudos || 0
+                                if (rel.trabalhou) trabalharamPRTot++
                             }
                             if (!m.is_pioneiro && rel.is_pioneiro_auxiliar) {
                                 pa++
@@ -137,6 +154,8 @@ export default function RelatoriosSecretariaPage() {
                         abonoPR,
                         abonoPA,
                         estudos,
+                        estudosPR,
+                        trabalharamPR,
                         pioneirosRegulares: pr,
                         pioneirosAuxiliares: pa
                     }
@@ -149,7 +168,11 @@ export default function RelatoriosSecretariaPage() {
                     horas: hTot,
                     estudos: esTot,
                     pr: prTot,
-                    pa: paTot
+                    pa: paTot,
+                    horasPR: horasPRTot,
+                    abonoPR: abonoPRTot,
+                    estudosPR: estudosPRTot,
+                    trabalharamPR: trabalharamPRTot
                 })
 
             } catch (err) {
@@ -229,10 +252,15 @@ export default function RelatoriosSecretariaPage() {
                 <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm">
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Pioneiros Relatados</p>
                     <div className="flex gap-4 mt-2">
-                        <div>
+                        <button
+                            type="button"
+                            onClick={() => setMostrarResumoPR(true)}
+                            className="text-left rounded-lg px-2 -mx-2 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500"
+                            title="Ver resumo dos pioneiros regulares"
+                        >
                             <span className="block text-2xl font-bold text-amber-600 dark:text-amber-500">{totais.pr}</span>
                             <span className="text-[10px] uppercase font-bold text-gray-400">Regulares</span>
-                        </div>
+                        </button>
                         <div>
                             <span className="block text-2xl font-bold text-blue-600 dark:text-blue-500">{totais.pa}</span>
                             <span className="text-[10px] uppercase font-bold text-gray-400">Auxiliares</span>
@@ -240,6 +268,63 @@ export default function RelatoriosSecretariaPage() {
                     </div>
                 </div>
             </div>
+
+            {mostrarResumoPR && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+                    onClick={() => setMostrarResumoPR(false)}
+                >
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="resumo-pr-titulo"
+                        className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="mb-6 flex items-start justify-between gap-4">
+                            <div>
+                                <h2 id="resumo-pr-titulo" className="text-xl font-bold text-gray-900 dark:text-white">
+                                    Resumo dos pioneiros regulares
+                                </h2>
+                                <p className="mt-1 text-sm capitalize text-gray-500 dark:text-gray-400">
+                                    Relatórios de {meses.find(m => m.value === mes)?.label}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setMostrarResumoPR(false)}
+                                className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-slate-800 dark:hover:text-gray-200"
+                                aria-label="Fechar resumo"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+
+                        <div className="mb-5 rounded-xl bg-amber-50 p-4 dark:bg-amber-900/20">
+                            <p className="text-sm text-amber-800 dark:text-amber-300">PR que entregaram o relatório</p>
+                            <p className="mt-1 text-3xl font-bold text-amber-700 dark:text-amber-400">{totais.pr}</p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                            {[
+                                ['Horas reais', totais.horasPR, 'text-indigo-600 dark:text-indigo-400'],
+                                ['Horas de abono', totais.abonoPR, 'text-purple-600 dark:text-purple-400'],
+                                ['Estudos', totais.estudosPR, 'text-teal-600 dark:text-teal-400'],
+                                ['Trabalharam', totais.trabalharamPR, 'text-green-600 dark:text-green-400']
+                            ].map(([label, value, color]) => (
+                                <div key={label as string} className="rounded-xl border border-gray-100 p-3 dark:border-slate-800">
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
+                                    <p className={`mt-1 text-2xl font-bold ${color}`}>{value}</p>
+                                </div>
+                            ))}
+                        </div>
+
+                        <p className="mt-5 text-xs text-gray-500 dark:text-gray-400">
+                            O resumo considera somente os relatórios enviados pelos membros marcados como pioneiros regulares.
+                        </p>
+                    </div>
+                </div>
+            )}
 
             {/* Resumo por Grupo */}
             <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 mt-8">

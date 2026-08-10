@@ -35,6 +35,17 @@ interface GrupoResumo {
     pioneirosAuxiliares: number
 }
 
+interface PioneiroRegularResumo {
+    id: string
+    nome: string
+    relatorio: {
+        horas: number
+        horasAbono: number
+        estudos: number
+        trabalhou: boolean
+    } | null
+}
+
 const getMonthOptions = () => {
     const now = new Date()
     const currentMonth = startOfMonth(now)
@@ -66,6 +77,7 @@ export default function RelatoriosSecretariaPage() {
         trabalharamPR: 0
     })
     const [mostrarResumoPR, setMostrarResumoPR] = useState(false)
+    const [pioneirosRegularesDetalhes, setPioneirosRegularesDetalhes] = useState<PioneiroRegularResumo[]>([])
 
     useEffect(() => {
         const fetchDados = async () => {
@@ -82,7 +94,7 @@ export default function RelatoriosSecretariaPage() {
                 // 2. Buscar todos os membros ativos
                 const { data: membros, error: errMem } = await supabase
                     .from('membros')
-                    .select('id, grupo_id, is_pioneiro')
+                    .select('id, nome_completo, grupo_id, is_pioneiro')
                     .eq('ativo', true)
 
                 if (errMem) throw errMem
@@ -94,6 +106,25 @@ export default function RelatoriosSecretariaPage() {
                     .eq('mes', mes)
 
                 if (errRels) throw errRels
+
+                setPioneirosRegularesDetalhes(
+                    (membros || [])
+                        .filter(m => m.is_pioneiro)
+                        .map(m => {
+                            const rel = relatorios?.find(r => r.membro_id === m.id)
+                            return {
+                                id: m.id,
+                                nome: m.nome_completo,
+                                relatorio: rel ? {
+                                    horas: rel.horas || 0,
+                                    horasAbono: rel.horas_abono || 0,
+                                    estudos: rel.estudos || 0,
+                                    trabalhou: rel.trabalhou || false
+                                } : null
+                            }
+                        })
+                        .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+                )
 
                 // Calcular resumos por grupo
                 let mTot = 0, eTot = 0, hTot = 0, esTot = 0, prTot = 0, paTot = 0
@@ -278,7 +309,7 @@ export default function RelatoriosSecretariaPage() {
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="resumo-pr-titulo"
-                        className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900"
+                        className="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900"
                         onClick={e => e.stopPropagation()}
                     >
                         <div className="mb-6 flex items-start justify-between gap-4">
@@ -317,6 +348,57 @@ export default function RelatoriosSecretariaPage() {
                                     <p className={`mt-1 text-2xl font-bold ${color}`}>{value}</p>
                                 </div>
                             ))}
+                        </div>
+
+                        <div className="mt-6">
+                            <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                Detalhamento por pioneiro
+                            </h3>
+                            <div className="overflow-hidden rounded-xl border border-gray-100 dark:border-slate-800">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full min-w-[640px] text-left text-sm">
+                                        <thead className="bg-gray-50 dark:bg-slate-800/60">
+                                            <tr className="text-xs text-gray-500 dark:text-gray-400">
+                                                <th className="px-4 py-3 font-medium">Pioneiro</th>
+                                                <th className="px-4 py-3 text-center font-medium">Status</th>
+                                                <th className="px-4 py-3 text-right font-medium">Horas</th>
+                                                <th className="px-4 py-3 text-right font-medium">Abono</th>
+                                                <th className="px-4 py-3 text-right font-medium">Estudos</th>
+                                                <th className="px-4 py-3 text-center font-medium">Trabalhou</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                                            {pioneirosRegularesDetalhes.map(pioneiro => (
+                                                <tr key={pioneiro.id}>
+                                                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                                                        {pioneiro.nome}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <span className={`rounded-full px-2 py-1 text-xs font-medium ${pioneiro.relatorio
+                                                            ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                                                            : 'bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-gray-400'
+                                                            }`}>
+                                                            {pioneiro.relatorio ? 'Entregue' : 'Pendente'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white">
+                                                        {pioneiro.relatorio?.horas ?? '-'}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right font-semibold text-purple-600 dark:text-purple-400">
+                                                        {pioneiro.relatorio?.horasAbono ?? '-'}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right font-semibold text-teal-600 dark:text-teal-400">
+                                                        {pioneiro.relatorio?.estudos ?? '-'}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-300">
+                                                        {pioneiro.relatorio ? (pioneiro.relatorio.trabalhou ? 'Sim' : 'Não') : '-'}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
 
                         <p className="mt-5 text-xs text-gray-500 dark:text-gray-400">

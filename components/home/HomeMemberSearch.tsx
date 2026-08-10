@@ -513,6 +513,20 @@ export default function HomeMemberSearch(): React.ReactNode {
         setShowResults(false)
     }
 
+    const adicionarDigitoPin = (digito: string) => {
+        if (!validandoPin && pin.length < 4) {
+            setPin(prev => prev + digito)
+            setPinError(null)
+        }
+    }
+
+    const apagarDigitoPin = () => {
+        if (!validandoPin) {
+            setPin(prev => prev.slice(0, -1))
+            setPinError(null)
+        }
+    }
+
     handleSearchRef.current = handleSearch
 
     const formatarFuncaoSuporte = (funcao: string) => {
@@ -563,21 +577,48 @@ export default function HomeMemberSearch(): React.ReactNode {
                         <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                             {membroAguardandoPin.nome_completo}, digite seu PIN de 4 dígitos.
                         </p>
-                        <input
-                            autoFocus
-                            inputMode="numeric"
-                            type="password"
-                            maxLength={4}
-                            pattern="[0-9]{4}"
-                            value={pin}
-                            onChange={(event) => {
-                                setPin(event.target.value.replace(/\D/g, '').slice(0, 4))
-                                setPinError(null)
-                            }}
-                            className="mt-5 w-full rounded-xl border-2 border-slate-200 bg-slate-50 p-4 text-center text-2xl tracking-[0.5em] outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                            aria-label="PIN"
-                        />
+                        <p className="mt-5 text-center text-sm text-slate-500 dark:text-slate-400">
+                            Use o teclado abaixo para informar o PIN.
+                        </p>
                         {pinError && <p className="mt-3 text-center text-sm text-red-600 dark:text-red-400">{pinError}</p>}
+                        <div className="mt-5 grid grid-cols-3 gap-3">
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(digito => (
+                                <button
+                                    key={digito}
+                                    type="button"
+                                    onClick={() => adicionarDigitoPin(String(digito))}
+                                    disabled={validandoPin || pin.length === 4}
+                                    className="h-12 rounded-xl bg-slate-100 text-xl font-semibold text-slate-800 transition-colors hover:bg-slate-200 disabled:opacity-50 dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700"
+                                >
+                                    {digito}
+                                </button>
+                            ))}
+                            <button
+                                type="button"
+                                onClick={apagarDigitoPin}
+                                disabled={validandoPin || pin.length === 0}
+                                className="h-12 rounded-xl bg-red-50 text-sm font-semibold text-red-600 transition-colors hover:bg-red-100 disabled:opacity-50 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"
+                                aria-label="Apagar último dígito"
+                            >
+                                Apagar
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => adicionarDigitoPin('0')}
+                                disabled={validandoPin || pin.length === 4}
+                                className="h-12 rounded-xl bg-slate-100 text-xl font-semibold text-slate-800 transition-colors hover:bg-slate-200 disabled:opacity-50 dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700"
+                            >
+                                0
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setPin('')}
+                                disabled={validandoPin || pin.length === 0}
+                                className="h-12 rounded-xl bg-slate-100 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-200 disabled:opacity-50 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                            >
+                                Limpar
+                            </button>
+                        </div>
                         <div className="mt-6 flex gap-3">
                             <button
                                 type="button"

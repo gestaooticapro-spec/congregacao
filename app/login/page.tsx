@@ -3,12 +3,15 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, KeyRound } from 'lucide-react'
 
 export default function LoginPage() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
+    const [showPasswordRecovery, setShowPasswordRecovery] = useState(false)
+    const [recoveryLoading, setRecoveryLoading] = useState(false)
+    const [recoveryMessage, setRecoveryMessage] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
@@ -39,6 +42,25 @@ export default function LoginPage() {
         } finally {
             setLoading(false)
         }
+    }
+
+    const handlePasswordRecovery = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setRecoveryLoading(true)
+        setRecoveryMessage(null)
+
+        const redirectTo = `${window.location.origin}/redefinir-senha`
+        const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+
+        if (error) {
+            console.error('[Login] Password recovery request failed', { message: error.message })
+            setRecoveryMessage('Não foi possível enviar o e-mail agora. Tente novamente.')
+        } else {
+            // Esta mensagem não confirma se o e-mail existe, evitando exposição de contas.
+            setRecoveryMessage('Se este e-mail estiver cadastrado, você receberá um link para redefinir sua senha.')
+        }
+
+        setRecoveryLoading(false)
     }
 
     return (
@@ -117,6 +139,46 @@ export default function LoginPage() {
                         </button>
                     </div>
                 </form>
+
+                <div className="text-center">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setShowPasswordRecovery((value) => !value)
+                            setRecoveryMessage(null)
+                        }}
+                        className="inline-flex items-center gap-2 text-sm font-medium text-blue-700 hover:text-blue-900"
+                    >
+                        <KeyRound className="h-4 w-4" aria-hidden="true" />
+                        Esqueci minha senha
+                    </button>
+                </div>
+
+                {showPasswordRecovery && (
+                    <form className="rounded-lg border border-blue-100 bg-blue-50 p-4 space-y-3" onSubmit={handlePasswordRecovery}>
+                        <p className="text-sm text-blue-950">
+                            Informe seu e-mail para receber o link de redefinição de senha.
+                        </p>
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="block w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm"
+                            placeholder="Endereço de e-mail"
+                            required
+                        />
+                        {recoveryMessage && (
+                            <p className="text-sm text-blue-900">{recoveryMessage}</p>
+                        )}
+                        <button
+                            type="submit"
+                            disabled={recoveryLoading}
+                            className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:bg-blue-400"
+                        >
+                            {recoveryLoading ? 'Enviando...' : 'Enviar link de recuperação'}
+                        </button>
+                    </form>
+                )}
             </div>
         </div>
     )

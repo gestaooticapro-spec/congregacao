@@ -55,6 +55,7 @@ export default function PinLoginModal({ isOpen, onClose }: PinLoginModalProps) {
                 pin: pin,
                 timestamp: Date.now()
             }))
+            window.dispatchEvent(new Event('membro-sessao-atualizada'))
 
             toast.success(`Bem-vindo, ${member.nome_completo.split(' ')[0]}!`)
             onClose()

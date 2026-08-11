@@ -125,6 +125,7 @@ export default function MeuRelatorioPage() {
 
     const handleLogout = () => {
         localStorage.removeItem('membro_sessao')
+        window.dispatchEvent(new Event('membro-sessao-atualizada'))
         router.replace('/')
     }
 

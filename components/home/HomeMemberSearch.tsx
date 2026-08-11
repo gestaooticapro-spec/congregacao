@@ -24,6 +24,7 @@ type EscalaLimpezaComGrupo = Pick<Database['public']['Tables']['escala_limpeza']
 type MembroSessao = {
     id: string
     nome?: string
+    pin?: string
 }
 
 type ParteProgramacao = {
@@ -100,26 +101,32 @@ export default function HomeMemberSearch(): React.ReactNode {
         const stored = localStorage.getItem('membro_sessao')
         if (!stored) return
 
-        try {
+        const restoreSession = async () => {
+          try {
             const parsed = JSON.parse(stored) as MembroSessao
             if (!parsed?.id) return
 
             const membroDaSessao = membros.find(membro => membro.id === parsed.id)
             if (!membroDaSessao) return
 
-            // A sessão antiga não é suficiente para autenticar pioneiros.
-            // Eles precisam informar o PIN novamente ao entrar pela Home.
             if (membroDaSessao.is_pioneiro) {
-                localStorage.removeItem('membro_sessao')
-                return
+                if (!parsed.pin) return
+                const { data, error } = await supabase.rpc('verificar_pin', { p_pin: parsed.pin })
+                if (error || !data?.some((row: { id: string }) => row.id === membroDaSessao.id)) return
             }
 
             setIsSessaoMembroAtiva(true)
-            setNomeSessao(parsed.nome || membroDaSessao.nome_completo)
-            void handleSearchRef.current(membroDaSessao)
-        } catch (err) {
-            console.warn('Falha ao restaurar membro_sessao na home:', err)
+            setNomeSessao(membroDaSessao.nome_completo)
+            setSelectedMembro(membroDaSessao)
+            setSearchTerm(membroDaSessao.nome_completo)
+            setShowResults(true)
+            void carregarDesignacoes(membroDaSessao, parsed.pin)
+          } catch (err) {
+              console.warn('Falha ao restaurar membro_sessao na home:', err)
+          }
         }
+
+        void restoreSession()
     }, [autoSessaoProcessada, membros])
 
     const formatWeekRange = (dateString: string) => {

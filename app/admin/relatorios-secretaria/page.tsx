@@ -15,7 +15,7 @@ import {
     X,
     UserCheck
 } from 'lucide-react'
-import { addDays, eachWeekOfInterval, endOfMonth, format, startOfMonth, startOfWeek, subMonths } from 'date-fns'
+import { addDays, addMonths, eachWeekOfInterval, endOfMonth, format, startOfMonth, subMonths } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import Link from 'next/link'
 
@@ -103,7 +103,7 @@ export default function RelatoriosSecretariaPage() {
                 if (errGrps) throw errGrps
 
                 // 2. Buscar todos os membros ativos
-                const { data: membros, error: errMem } = await supabase
+                const { data: membrosAtivos, error: errMem } = await supabase
                     .from('membros')
                     .select('id, nome_completo, grupo_id, is_pioneiro')
                     .eq('ativo', true)
@@ -118,22 +118,45 @@ export default function RelatoriosSecretariaPage() {
 
                 if (errRels) throw errRels
 
-                const inicioMes = startOfMonth(new Date(`${mes}T12:00:00`))
-                const fimBuscaAssistencias = addDays(endOfMonth(inicioMes), 6)
+                // Inclui membros que hoje estão inativos, mas que tinham relatório neste mês.
+                // Assim, a inativação posterior não apaga o histórico da secretaria.
+                const idsComRelatorio = [...new Set(
+                    (relatorios || [])
+                        .filter(relatorio => relatorio.membro_ativo_no_relatorio === true)
+                        .map(relatorio => relatorio.membro_id)
+                )]
+                const { data: membrosComRelatorio, error: errMembrosComRelatorio } = idsComRelatorio.length > 0
+                    ? await supabase
+                        .from('membros')
+                        .select('id, nome_completo, grupo_id, is_pioneiro')
+                        .in('id', idsComRelatorio)
+                    : { data: [], error: null }
+
+                if (errMembrosComRelatorio) throw errMembrosComRelatorio
+
+                const membros = Array.from(
+                    new Map([...(membrosAtivos || []), ...(membrosComRelatorio || [])].map(membro => [membro.id, membro])).values()
+                )
+
+                const getQualificacaoDoRelatorio = (relatorio: NonNullable<typeof relatorios>[number], membro: typeof membros[number]) =>
+                    relatorio.qualificacao_no_relatorio
+                    ?? (membro.is_pioneiro
+                        ? 'PIONEIRO_REGULAR'
+                        : relatorio.is_pioneiro_auxiliar
+                            ? 'PIONEIRO_AUXILIAR'
+                            : 'PUBLICADOR')
+
+                const proximoMes = format(addMonths(new Date(`${mes}T12:00:00`), 1), 'yyyy-MM-dd')
                 const { data: assistencias, error: errAssistencias } = await (supabase as any)
                     .from('assistencias_reunioes')
                     .select('data_reuniao, tipo_reuniao, quantidade')
                     .gte('data_reuniao', mes)
-                    .lte('data_reuniao', format(fimBuscaAssistencias, 'yyyy-MM-dd'))
+                    .lt('data_reuniao', proximoMes)
 
                 if (errAssistencias) throw errAssistencias
 
-                // A assistência pertence ao mês em que começa a semana,
-                // mesmo quando a reunião de sábado cai no mês seguinte.
-                const assistenciasDoMes = ((assistencias || []) as AssistenciaResumo[]).filter(assistencia => {
-                    const semanaInicio = startOfWeek(new Date(`${assistencia.data_reuniao}T12:00:00`), { weekStartsOn: 1 })
-                    return semanaInicio >= inicioMes && semanaInicio <= endOfMonth(inicioMes)
-                })
+                // A assistência pertence ao mês da data da reunião.
+                const assistenciasDoMes = (assistencias || []) as AssistenciaResumo[]
 
                 setAssistenciasMes(assistenciasDoMes)
 
@@ -146,7 +169,10 @@ export default function RelatoriosSecretariaPage() {
 
                 setPioneirosRegularesDetalhes(
                     (membros || [])
-                        .filter(m => m.is_pioneiro)
+                        .filter(m => {
+                            const rel = relatorios?.find(r => r.membro_id === m.id)
+                            return rel ? getQualificacaoDoRelatorio(rel, m) === 'PIONEIRO_REGULAR' : false
+                        })
                         .map(m => {
                             const rel = relatorios?.find(r => r.membro_id === m.id)
                             return {
@@ -184,13 +210,14 @@ export default function RelatoriosSecretariaPage() {
                         mTot++
                         const rel = relatorios?.find(r => r.membro_id === m.id)
                         if (rel) {
+                            const qualificacao = getQualificacaoDoRelatorio(rel, m)
                             entregues++
                             eTot++
                             hTot += rel.horas || 0
                             estudos += rel.estudos || 0
                             esTot += rel.estudos || 0
 
-                            if (m.is_pioneiro) {
+                            if (qualificacao === 'PIONEIRO_REGULAR') {
                                 pr++
                                 prTot++
                                 horasPR += rel.horas || 0
@@ -202,7 +229,7 @@ export default function RelatoriosSecretariaPage() {
                                 estudosPRTot += rel.estudos || 0
                                 if (rel.trabalhou) trabalharamPRTot++
                             }
-                            if (!m.is_pioneiro && rel.is_pioneiro_auxiliar) {
+                            if (qualificacao === 'PIONEIRO_AUXILIAR') {
                                 pa++
                                 paTot++
                                 horasPA += rel.horas || 0
@@ -264,7 +291,11 @@ export default function RelatoriosSecretariaPage() {
     const semanasDoMes = eachWeekOfInterval({
         start: inicioMes,
         end: fimMes
-    }, { weekStartsOn: 1 }).filter(semanaInicio => semanaInicio >= inicioMes && semanaInicio <= fimMes)
+    }, { weekStartsOn: 1 }).filter(semanaInicio => {
+        const quartaNoMes = format(addDays(semanaInicio, 2), 'yyyy-MM') === mes.slice(0, 7)
+        const sabadoNoMes = format(addDays(semanaInicio, 5), 'yyyy-MM') === mes.slice(0, 7)
+        return quartaNoMes || sabadoNoMes
+    })
     const assistenciasQuartas = assistenciasMes.filter(a => a.tipo_reuniao === 'MEIO_SEMANA')
     const assistenciasSabados = assistenciasMes.filter(a => a.tipo_reuniao === 'FIM_SEMANA')
     const mediaQuarta = assistenciasQuartas.length
@@ -437,26 +468,51 @@ export default function RelatoriosSecretariaPage() {
                             </div>
                         </div>
 
+                        <div className="mb-2 grid grid-cols-2 gap-3 px-1 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            <div>Quarta-feira</div>
+                            <div>Sábado</div>
+                        </div>
                         <div className="space-y-3">
                             {semanasDoMes.map(semanaInicio => {
-                                const quarta = format(addDays(semanaInicio, 2), 'yyyy-MM-dd')
-                                const sabado = format(addDays(semanaInicio, 5), 'yyyy-MM-dd')
-                                const assistenciaQuarta = assistenciasMes.find(a => a.data_reuniao === quarta && a.tipo_reuniao === 'MEIO_SEMANA')
-                                const assistenciaSabado = assistenciasMes.find(a => a.data_reuniao === sabado && a.tipo_reuniao === 'FIM_SEMANA')
+                                const quartaData = addDays(semanaInicio, 2)
+                                const sabadoData = addDays(semanaInicio, 5)
+                                const quarta = format(quartaData, 'yyyy-MM-dd')
+                                const sabado = format(sabadoData, 'yyyy-MM-dd')
+                                const quartaNoMes = format(quartaData, 'yyyy-MM') === mes.slice(0, 7)
+                                const sabadoNoMes = format(sabadoData, 'yyyy-MM') === mes.slice(0, 7)
+                                const assistenciaQuarta = quartaNoMes
+                                    ? assistenciasMes.find(a => a.data_reuniao === quarta && a.tipo_reuniao === 'MEIO_SEMANA')
+                                    : null
+                                const assistenciaSabado = sabadoNoMes
+                                    ? assistenciasMes.find(a => a.data_reuniao === sabado && a.tipo_reuniao === 'FIM_SEMANA')
+                                    : null
 
                                 return (
                                     <div key={semanaInicio.toISOString()} className="rounded-xl border border-gray-100 p-4 dark:border-slate-800">
-                                        <p className="mb-3 text-sm font-bold capitalize text-gray-900 dark:text-white">
-                                            Semana de {format(semanaInicio, 'dd')} de {format(semanaInicio, 'MMMM', { locale: ptBR })} a {format(addDays(semanaInicio, 6), 'dd')} de {format(addDays(semanaInicio, 6), 'MMMM yyyy', { locale: ptBR })}
-                                        </p>
                                         <div className="grid grid-cols-2 gap-3 text-sm">
-                                            <div className="rounded-lg bg-gray-50 p-3 dark:bg-slate-800/60">
-                                                <span className="block text-xs text-gray-500 dark:text-gray-400">Quarta ({format(addDays(semanaInicio, 2), 'dd/MM')})</span>
-                                                <span className="mt-1 block text-xl font-bold text-indigo-600 dark:text-indigo-400">{assistenciaQuarta?.quantidade ?? '-'}</span>
+                                            <div className={`rounded-lg border p-3 ${quartaNoMes
+                                                ? 'border-gray-100 bg-gray-50 dark:border-slate-800 dark:bg-slate-800/60'
+                                                : 'border-dashed border-gray-200 bg-gray-50/50 dark:border-slate-800 dark:bg-slate-900/40'
+                                                }`}>
+                                                {quartaNoMes ? (
+                                                    <>
+                                                        <span className="block text-xs text-gray-500 dark:text-gray-400">{format(quartaData, 'dd/MM')}</span>
+                                                        <span className="mt-1 block text-xl font-bold text-indigo-600 dark:text-indigo-400">{assistenciaQuarta?.quantidade ?? '-'}</span>
+                                                    </>
+                                                ) : (
+                                                    <span className="block text-center text-xl text-gray-300 dark:text-slate-700">—</span>
+                                                )}
                                             </div>
-                                            <div className="rounded-lg bg-gray-50 p-3 dark:bg-slate-800/60">
-                                                <span className="block text-xs text-gray-500 dark:text-gray-400">Sábado ({format(addDays(semanaInicio, 5), 'dd/MM')})</span>
-                                                <span className="mt-1 block text-xl font-bold text-cyan-600 dark:text-cyan-400">{assistenciaSabado?.quantidade ?? '-'}</span>
+                                            <div className={`rounded-lg border p-3 ${sabadoNoMes
+                                                ? 'border-gray-100 bg-gray-50 dark:border-slate-800 dark:bg-slate-800/60'
+                                                : 'border-dashed border-gray-200 bg-gray-50/50 dark:border-slate-800 dark:bg-slate-900/40'
+                                                }`}>
+                                                <span className={`block text-xs text-gray-500 dark:text-gray-400 ${sabadoNoMes ? '' : 'invisible'}`}>Sábado ({format(sabadoData, 'dd/MM')})</span>
+                                                {sabadoNoMes ? (
+                                                    <span className="mt-1 block text-xl font-bold text-cyan-600 dark:text-cyan-400">{assistenciaSabado?.quantidade ?? '-'}</span>
+                                                ) : (
+                                                    <span className="block text-center text-xl text-gray-300 dark:text-slate-700">—</span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

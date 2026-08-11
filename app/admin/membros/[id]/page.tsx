@@ -109,6 +109,26 @@ export default function EditarMembroPage() {
 
             if (error) throw error
 
+            const storedSession = localStorage.getItem('membro_sessao')
+            if (storedSession) {
+                try {
+                    const session = JSON.parse(storedSession) as { id?: string }
+                    if (session.id === id) {
+                        localStorage.setItem('membro_sessao', JSON.stringify({
+                            ...session,
+                            nome: formData.nome_completo,
+                            grupo_id: formData.grupo_id,
+                            is_pioneiro: formData.is_pioneiro,
+                            ...(formData.pin ? { pin: formData.pin } : {}),
+                            timestamp: Date.now()
+                        }))
+                        window.dispatchEvent(new Event('membro-sessao-atualizada'))
+                    }
+                } catch {
+                    // A atualização do membro já foi concluída; ignore uma sessão local inválida.
+                }
+            }
+
             // alert('Membro atualizado com sucesso!') - Removed for speed
             // Optional: router.push('/admin/membros') or stay on page
         } catch (error: any) {

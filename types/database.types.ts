@@ -912,6 +912,8 @@ export interface Database {
           estudos: number | null
           trabalhou: boolean | null
           is_pioneiro_auxiliar: boolean | null
+          qualificacao_no_relatorio: 'PUBLICADOR' | 'PIONEIRO_REGULAR' | 'PIONEIRO_AUXILIAR' | null
+          membro_ativo_no_relatorio: boolean | null
           horas_abono: number | null
           criado_em: string
           atualizado_em: string
@@ -924,6 +926,8 @@ export interface Database {
           estudos?: number | null
           trabalhou?: boolean | null
           is_pioneiro_auxiliar?: boolean | null
+          qualificacao_no_relatorio?: 'PUBLICADOR' | 'PIONEIRO_REGULAR' | 'PIONEIRO_AUXILIAR' | null
+          membro_ativo_no_relatorio?: boolean | null
           horas_abono?: number | null
           criado_em?: string
           atualizado_em?: string
@@ -936,6 +940,8 @@ export interface Database {
           estudos?: number | null
           trabalhou?: boolean | null
           is_pioneiro_auxiliar?: boolean | null
+          qualificacao_no_relatorio?: 'PUBLICADOR' | 'PIONEIRO_REGULAR' | 'PIONEIRO_AUXILIAR' | null
+          membro_ativo_no_relatorio?: boolean | null
           horas_abono?: number | null
           criado_em?: string
           atualizado_em?: string
@@ -993,8 +999,9 @@ export interface Database {
           p_estudos?: number | null
           p_trabalhou?: boolean | null
           p_is_pioneiro_auxiliar?: boolean | null
+          p_horas_abono?: number | null
         }
-        Returns: string
+        Returns: boolean
       }
     }
     Enums: {

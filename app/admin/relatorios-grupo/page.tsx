@@ -66,6 +66,14 @@ function RelatoriosGrupoContent() {
         is_pioneiro_auxiliar: false
     })
 
+    const getQualificacaoDoRelatorio = (membro: Membro, relatorio: Relatorio | null) =>
+        relatorio?.qualificacao_no_relatorio
+        ?? (membro.is_pioneiro
+            ? 'PIONEIRO_REGULAR'
+            : relatorio?.is_pioneiro_auxiliar
+                ? 'PIONEIRO_AUXILIAR'
+                : 'PUBLICADOR')
+
     const handleOpenModal = (view: RelatorioView) => {
         setMembroEditando(view)
         setFormRelatorio({
@@ -83,9 +91,16 @@ function RelatoriosGrupoContent() {
 
         setIsSaving(true)
         try {
-            const isPioneiroRegular = membroEditando.membro.is_pioneiro
+            const qualificacaoExistente = membroEditando.relatorio?.qualificacao_no_relatorio
+            const isPioneiroRegular = qualificacaoExistente === 'PIONEIRO_REGULAR'
+                || (!qualificacaoExistente && membroEditando.membro.is_pioneiro)
             const isAuxiliar = formRelatorio.is_pioneiro_auxiliar
             const isPioneiro = isPioneiroRegular || isAuxiliar
+            const qualificacaoNoRelatorio = isPioneiroRegular
+                ? 'PIONEIRO_REGULAR'
+                : isAuxiliar
+                    ? 'PIONEIRO_AUXILIAR'
+                    : 'PUBLICADOR'
 
             const payload = {
                 membro_id: membroEditando.membro.id,
@@ -106,7 +121,11 @@ function RelatoriosGrupoContent() {
             } else {
                 const { error } = await supabase
                     .from('relatorios_servico')
-                    .insert([payload])
+                    .insert([{
+                        ...payload,
+                        qualificacao_no_relatorio: qualificacaoNoRelatorio,
+                        membro_ativo_no_relatorio: true
+                    }])
                 if (error) throw error
                 
                 // Tenta pegar o ID gerado se for um insert
@@ -133,6 +152,8 @@ function RelatoriosGrupoContent() {
                         relatorio: {
                             ...m.relatorio,
                             ...payload,
+                            qualificacao_no_relatorio: membroEditando.relatorio?.qualificacao_no_relatorio || qualificacaoNoRelatorio,
+                            membro_ativo_no_relatorio: membroEditando.relatorio?.membro_ativo_no_relatorio ?? true,
                             id: membroEditando.relatorio?.id || (payload as any).id || 'temp-id'
                         } as Relatorio
                     }
@@ -186,12 +207,11 @@ function RelatoriosGrupoContent() {
 
                 if (grpData) setNomeGrupo(grpData.nome)
 
-                // 2. Pegar membros do mesmo grupo (ativos, publicadores/pioneiros)
+                // 2. Pegar membros do grupo, inclusive os inativos para preservar relatórios carimbados.
                 const { data: membros, error: erroMembros } = await supabase
                     .from('membros')
                     .select('*')
                     .eq('grupo_id', grupoId)
-                    .eq('ativo', true)
                     .order('nome_completo')
 
                 if (erroMembros) throw erroMembros
@@ -205,10 +225,12 @@ function RelatoriosGrupoContent() {
                     .in('membro_id', membroIds)
                     .eq('mes', mes)
 
-                const viewData: RelatorioView[] = (membros || []).map(m => ({
-                    membro: m,
-                    relatorio: rels?.find(r => r.membro_id === m.id) || null
-                }))
+                const viewData: RelatorioView[] = (membros || [])
+                    .map(m => ({
+                        membro: m,
+                        relatorio: rels?.find(r => r.membro_id === m.id) || null
+                    }))
+                    .filter(({ membro, relatorio }) => membro.ativo || relatorio?.membro_ativo_no_relatorio === true)
 
                 setMembrosGrupo(viewData)
 
@@ -230,8 +252,11 @@ function RelatoriosGrupoContent() {
     const total = membrosGrupo.length
     const pgs = Math.round((entregues / total) * 100) || 0
 
-    const prEntregues = membrosGrupo.filter(v => v.membro.is_pioneiro && v.relatorio).length
-    const paEntregues = membrosGrupo.filter(v => (!v.membro.is_pioneiro) && v.relatorio?.is_pioneiro_auxiliar).length
+    const prEntregues = membrosGrupo.filter(v => v.relatorio && getQualificacaoDoRelatorio(v.membro, v.relatorio) === 'PIONEIRO_REGULAR').length
+    const paEntregues = membrosGrupo.filter(v => v.relatorio && getQualificacaoDoRelatorio(v.membro, v.relatorio) === 'PIONEIRO_AUXILIAR').length
+    const qualificacaoEditando = membroEditando
+        ? getQualificacaoDoRelatorio(membroEditando.membro, membroEditando.relatorio)
+        : 'PUBLICADOR'
 
     return (
         <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
@@ -361,12 +386,12 @@ function RelatoriosGrupoContent() {
                                             <div>
                                                 <p className="font-medium text-gray-900 dark:text-white">{membro.nome_completo}</p>
                                                 <div className="flex items-center gap-2 mt-0.5">
-                                                    {membro.is_pioneiro && (
+                                                    {getQualificacaoDoRelatorio(membro, relatorio) === 'PIONEIRO_REGULAR' && (
                                                         <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400">
                                                             Pioneiro Regular
                                                         </span>
                                                     )}
-                                                    {relatorio?.is_pioneiro_auxiliar && (
+                                                    {getQualificacaoDoRelatorio(membro, relatorio) === 'PIONEIRO_AUXILIAR' && (
                                                         <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400">
                                                             Pioneiro Auxiliar
                                                         </span>
@@ -394,13 +419,13 @@ function RelatoriosGrupoContent() {
                                     <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-300">
                                         {relatorio ? (
                                             // Se for normal, ver se trabalhou ou não
-                                            (membro.is_pioneiro || relatorio.is_pioneiro_auxiliar)
+                                            (getQualificacaoDoRelatorio(membro, relatorio) !== 'PUBLICADOR')
                                                 ? <span className="font-semibold text-gray-900 dark:text-white">{relatorio.horas || 0}</span>
                                                 : (relatorio.trabalhou ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : '-')
                                         ) : '-'}
                                     </td>
                                     <td className="py-4 px-6 text-sm text-purple-600 dark:text-purple-400 font-semibold">
-                                        {(relatorio && (membro.is_pioneiro || relatorio.is_pioneiro_auxiliar)) ? (relatorio.horas_abono || 0) : '-'}
+                                        {(relatorio && getQualificacaoDoRelatorio(membro, relatorio) !== 'PUBLICADOR') ? (relatorio.horas_abono || 0) : '-'}
                                     </td>
                                     <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-300">
                                         {relatorio ? (
@@ -436,7 +461,7 @@ function RelatoriosGrupoContent() {
                             </button>
                         </div>
                         <form onSubmit={handleSaveRelatorio} className="p-6 space-y-4">
-                            {!membroEditando.membro.is_pioneiro && (
+                            {qualificacaoEditando !== 'PIONEIRO_REGULAR' && (
                                 <label className="flex items-center gap-3 p-4 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/50 rounded-xl cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
                                     <input 
                                         type="checkbox" 
@@ -458,7 +483,7 @@ function RelatoriosGrupoContent() {
                                 <span className="font-medium text-gray-700 dark:text-gray-300">Participou no Ministério</span>
                             </label>
 
-                            {(membroEditando.membro.is_pioneiro || formRelatorio.is_pioneiro_auxiliar) && (
+                            {(qualificacaoEditando === 'PIONEIRO_REGULAR' || formRelatorio.is_pioneiro_auxiliar) && (
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Horas Reais</label>

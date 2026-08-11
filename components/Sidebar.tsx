@@ -83,14 +83,26 @@ function Sidebar() {
     const [isPioneiroSession, setIsPioneiroSession] = useState(false)
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
+        const syncMemberSession = () => {
             const session = localStorage.getItem('membro_sessao')
-            if (session) {
-                try {
-                    const parsed = JSON.parse(session)
-                    setIsPioneiroSession(!!parsed.is_pioneiro)
-                } catch (e) {}
+            if (!session) {
+                setIsPioneiroSession(false)
+                return
             }
+
+            try {
+                setIsPioneiroSession(!!JSON.parse(session).is_pioneiro)
+            } catch {
+                setIsPioneiroSession(false)
+            }
+        }
+
+        syncMemberSession()
+        window.addEventListener('membro-sessao-atualizada', syncMemberSession)
+        window.addEventListener('storage', syncMemberSession)
+        return () => {
+            window.removeEventListener('membro-sessao-atualizada', syncMemberSession)
+            window.removeEventListener('storage', syncMemberSession)
         }
     }, [])
 

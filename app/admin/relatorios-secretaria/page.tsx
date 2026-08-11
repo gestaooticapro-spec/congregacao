@@ -265,6 +265,17 @@ export default function RelatoriosSecretariaPage() {
         start: inicioMes,
         end: fimMes
     }, { weekStartsOn: 1 }).filter(semanaInicio => semanaInicio >= inicioMes && semanaInicio <= fimMes)
+    const assistenciasQuartas = assistenciasMes.filter(a => a.tipo_reuniao === 'MEIO_SEMANA')
+    const assistenciasSabados = assistenciasMes.filter(a => a.tipo_reuniao === 'FIM_SEMANA')
+    const mediaQuarta = assistenciasQuartas.length
+        ? assistenciasQuartas.reduce((total, a) => total + a.quantidade, 0) / assistenciasQuartas.length
+        : null
+    const mediaSabado = assistenciasSabados.length
+        ? assistenciasSabados.reduce((total, a) => total + a.quantidade, 0) / assistenciasSabados.length
+        : null
+    const formatarMedia = (media: number | null) => media === null
+        ? '-'
+        : media.toLocaleString('pt-BR', { maximumFractionDigits: 1 })
 
     return (
         <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-8">
@@ -407,7 +418,7 @@ export default function RelatoriosSecretariaPage() {
                             </button>
                         </div>
 
-                        <div className="mb-5 grid grid-cols-2 gap-3">
+                        <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
                             <div className="rounded-xl bg-indigo-50 p-4 dark:bg-indigo-900/20">
                                 <p className="text-xs font-medium uppercase text-indigo-600 dark:text-indigo-400">Quartas</p>
                                 <p className="mt-1 text-2xl font-bold text-indigo-700 dark:text-indigo-300">{totais.assistenciaQuarta}</p>
@@ -415,6 +426,14 @@ export default function RelatoriosSecretariaPage() {
                             <div className="rounded-xl bg-cyan-50 p-4 dark:bg-cyan-900/20">
                                 <p className="text-xs font-medium uppercase text-cyan-600 dark:text-cyan-400">Sábados</p>
                                 <p className="mt-1 text-2xl font-bold text-cyan-700 dark:text-cyan-300">{totais.assistenciaSabado}</p>
+                            </div>
+                            <div className="rounded-xl bg-violet-50 p-4 dark:bg-violet-900/20">
+                                <p className="text-xs font-medium uppercase text-violet-600 dark:text-violet-400">Média quartas</p>
+                                <p className="mt-1 text-2xl font-bold text-violet-700 dark:text-violet-300">{formatarMedia(mediaQuarta)}</p>
+                            </div>
+                            <div className="rounded-xl bg-teal-50 p-4 dark:bg-teal-900/20">
+                                <p className="text-xs font-medium uppercase text-teal-600 dark:text-teal-400">Média sábados</p>
+                                <p className="mt-1 text-2xl font-bold text-teal-700 dark:text-teal-300">{formatarMedia(mediaSabado)}</p>
                             </div>
                         </div>
 

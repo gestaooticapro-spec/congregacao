@@ -15,7 +15,7 @@ import {
     X,
     UserCheck
 } from 'lucide-react'
-import { addMonths, format, startOfMonth, subMonths } from 'date-fns'
+import { addDays, eachWeekOfInterval, endOfMonth, format, startOfMonth, startOfWeek, subMonths } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import Link from 'next/link'
 
@@ -45,6 +45,12 @@ interface PioneiroRegularResumo {
         estudos: number
         trabalhou: boolean
     } | null
+}
+
+interface AssistenciaResumo {
+    data_reuniao: string
+    tipo_reuniao: 'MEIO_SEMANA' | 'FIM_SEMANA'
+    quantidade: number
 }
 
 const getMonthOptions = () => {
@@ -77,10 +83,12 @@ export default function RelatoriosSecretariaPage() {
         estudosPR: 0,
         trabalharamPR: 0,
         assistenciaQuarta: 0,
-        assistenciaDomingo: 0
+        assistenciaSabado: 0
     })
     const [mostrarResumoPR, setMostrarResumoPR] = useState(false)
     const [pioneirosRegularesDetalhes, setPioneirosRegularesDetalhes] = useState<PioneiroRegularResumo[]>([])
+    const [mostrarResumoAssistencia, setMostrarResumoAssistencia] = useState(false)
+    const [assistenciasMes, setAssistenciasMes] = useState<AssistenciaResumo[]>([])
 
     useEffect(() => {
         const fetchDados = async () => {
@@ -110,19 +118,29 @@ export default function RelatoriosSecretariaPage() {
 
                 if (errRels) throw errRels
 
-                const proximoMes = format(addMonths(new Date(`${mes}T12:00:00`), 1), 'yyyy-MM-dd')
+                const inicioMes = startOfMonth(new Date(`${mes}T12:00:00`))
+                const fimBuscaAssistencias = addDays(endOfMonth(inicioMes), 6)
                 const { data: assistencias, error: errAssistencias } = await (supabase as any)
                     .from('assistencias_reunioes')
-                    .select('tipo_reuniao, quantidade')
+                    .select('data_reuniao, tipo_reuniao, quantidade')
                     .gte('data_reuniao', mes)
-                    .lt('data_reuniao', proximoMes)
+                    .lte('data_reuniao', format(fimBuscaAssistencias, 'yyyy-MM-dd'))
 
                 if (errAssistencias) throw errAssistencias
 
-                const assistenciaQuarta = (assistencias || [])
+                // A assistência pertence ao mês em que começa a semana,
+                // mesmo quando a reunião de sábado cai no mês seguinte.
+                const assistenciasDoMes = ((assistencias || []) as AssistenciaResumo[]).filter(assistencia => {
+                    const semanaInicio = startOfWeek(new Date(`${assistencia.data_reuniao}T12:00:00`), { weekStartsOn: 1 })
+                    return semanaInicio >= inicioMes && semanaInicio <= endOfMonth(inicioMes)
+                })
+
+                setAssistenciasMes(assistenciasDoMes)
+
+                const assistenciaQuarta = assistenciasDoMes
                     .filter((a: { tipo_reuniao: string }) => a.tipo_reuniao === 'MEIO_SEMANA')
                     .reduce((total: number, a: { quantidade: number }) => total + (a.quantidade || 0), 0)
-                const assistenciaDomingo = (assistencias || [])
+                const assistenciaSabado = assistenciasDoMes
                     .filter((a: { tipo_reuniao: string }) => a.tipo_reuniao === 'FIM_SEMANA')
                     .reduce((total: number, a: { quantidade: number }) => total + (a.quantidade || 0), 0)
 
@@ -224,7 +242,7 @@ export default function RelatoriosSecretariaPage() {
                     estudosPR: estudosPRTot,
                     trabalharamPR: trabalharamPRTot,
                     assistenciaQuarta,
-                    assistenciaDomingo
+                    assistenciaSabado
                 })
 
             } catch (err) {
@@ -241,6 +259,12 @@ export default function RelatoriosSecretariaPage() {
     if (isLoading) return <div className="p-8 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
 
     const pgsGeral = Math.round((totais.entregues / totais.membros) * 100) || 0
+    const inicioMes = startOfMonth(new Date(`${mes}T12:00:00`))
+    const fimMes = endOfMonth(inicioMes)
+    const semanasDoMes = eachWeekOfInterval({
+        start: inicioMes,
+        end: fimMes
+    }, { weekStartsOn: 1 }).filter(semanaInicio => semanaInicio >= inicioMes && semanaInicio <= fimMes)
 
     return (
         <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-8">
@@ -260,10 +284,10 @@ export default function RelatoriosSecretariaPage() {
                     <select
                         value={mes}
                         onChange={e => setMes(e.target.value)}
-                        className="bg-transparent border-none focus:ring-0 text-sm font-medium text-gray-700 dark:text-gray-300 py-1 cursor-pointer capitalize"
+                        className="bg-white dark:bg-slate-900 border-none focus:ring-0 text-sm font-medium text-gray-700 dark:text-gray-200 py-1 cursor-pointer capitalize"
                     >
                         {meses.map(m => (
-                            <option key={m.value} value={m.value}>{m.label}</option>
+                            <option key={m.value} value={m.value} className="bg-white text-gray-900 dark:bg-slate-900 dark:text-gray-200">{m.label}</option>
                         ))}
                     </select>
                 </div>
@@ -274,7 +298,10 @@ export default function RelatoriosSecretariaPage() {
                 <PieChart className="w-5 h-5 text-gray-500" /> Total da Congregação
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm">
+                <div
+                    className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm"
+                    title="Ver detalhes da assistência"
+                >
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Membros vs Entregues</p>
                     <div className="flex items-end gap-2 mb-4">
                         <h3 className="text-3xl font-bold text-gray-900 dark:text-white">{totais.entregues}</h3>
@@ -320,7 +347,16 @@ export default function RelatoriosSecretariaPage() {
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm">
+                <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setMostrarResumoAssistencia(true)}
+                    onKeyDown={event => {
+                        if (event.key === 'Enter' || event.key === ' ') setMostrarResumoAssistencia(true)
+                    }}
+                    className="cursor-pointer bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm transition-colors hover:border-indigo-300 dark:hover:border-indigo-700"
+                    title="Ver detalhes da assistência"
+                >
                     <div className="flex items-start justify-between">
                         <div>
                             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Assistência às reuniões</p>
@@ -330,8 +366,8 @@ export default function RelatoriosSecretariaPage() {
                                     <span className="text-[10px] uppercase font-bold text-gray-400">Quartas</span>
                                 </div>
                                 <div>
-                                    <span className="block text-2xl font-bold text-cyan-600 dark:text-cyan-400">{totais.assistenciaDomingo}</span>
-                                    <span className="text-[10px] uppercase font-bold text-gray-400">Domingos</span>
+                                    <span className="block text-2xl font-bold text-cyan-600 dark:text-cyan-400">{totais.assistenciaSabado}</span>
+                                    <span className="text-[10px] uppercase font-bold text-gray-400">Sábados</span>
                                 </div>
                             </div>
                         </div>
@@ -339,6 +375,78 @@ export default function RelatoriosSecretariaPage() {
                     </div>
                 </div>
             </div>
+
+            {mostrarResumoAssistencia && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+                    onClick={() => setMostrarResumoAssistencia(false)}
+                >
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="resumo-assistencia-titulo"
+                        className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900"
+                        onClick={event => event.stopPropagation()}
+                    >
+                        <div className="mb-6 flex items-start justify-between gap-4">
+                            <div>
+                                <h2 id="resumo-assistencia-titulo" className="text-xl font-bold text-gray-900 dark:text-white">
+                                    Detalhes da assistência
+                                </h2>
+                                <p className="mt-1 text-sm capitalize text-gray-500 dark:text-gray-400">
+                                    {meses.find(m => m.value === mes)?.label}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setMostrarResumoAssistencia(false)}
+                                className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-slate-800 dark:hover:text-gray-200"
+                                aria-label="Fechar detalhes da assistência"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+
+                        <div className="mb-5 grid grid-cols-2 gap-3">
+                            <div className="rounded-xl bg-indigo-50 p-4 dark:bg-indigo-900/20">
+                                <p className="text-xs font-medium uppercase text-indigo-600 dark:text-indigo-400">Quartas</p>
+                                <p className="mt-1 text-2xl font-bold text-indigo-700 dark:text-indigo-300">{totais.assistenciaQuarta}</p>
+                            </div>
+                            <div className="rounded-xl bg-cyan-50 p-4 dark:bg-cyan-900/20">
+                                <p className="text-xs font-medium uppercase text-cyan-600 dark:text-cyan-400">Sábados</p>
+                                <p className="mt-1 text-2xl font-bold text-cyan-700 dark:text-cyan-300">{totais.assistenciaSabado}</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            {semanasDoMes.map(semanaInicio => {
+                                const quarta = format(addDays(semanaInicio, 2), 'yyyy-MM-dd')
+                                const sabado = format(addDays(semanaInicio, 5), 'yyyy-MM-dd')
+                                const assistenciaQuarta = assistenciasMes.find(a => a.data_reuniao === quarta && a.tipo_reuniao === 'MEIO_SEMANA')
+                                const assistenciaSabado = assistenciasMes.find(a => a.data_reuniao === sabado && a.tipo_reuniao === 'FIM_SEMANA')
+
+                                return (
+                                    <div key={semanaInicio.toISOString()} className="rounded-xl border border-gray-100 p-4 dark:border-slate-800">
+                                        <p className="mb-3 text-sm font-bold capitalize text-gray-900 dark:text-white">
+                                            Semana de {format(semanaInicio, 'dd')} de {format(semanaInicio, 'MMMM', { locale: ptBR })} a {format(addDays(semanaInicio, 6), 'dd')} de {format(addDays(semanaInicio, 6), 'MMMM yyyy', { locale: ptBR })}
+                                        </p>
+                                        <div className="grid grid-cols-2 gap-3 text-sm">
+                                            <div className="rounded-lg bg-gray-50 p-3 dark:bg-slate-800/60">
+                                                <span className="block text-xs text-gray-500 dark:text-gray-400">Quarta ({format(addDays(semanaInicio, 2), 'dd/MM')})</span>
+                                                <span className="mt-1 block text-xl font-bold text-indigo-600 dark:text-indigo-400">{assistenciaQuarta?.quantidade ?? '-'}</span>
+                                            </div>
+                                            <div className="rounded-lg bg-gray-50 p-3 dark:bg-slate-800/60">
+                                                <span className="block text-xs text-gray-500 dark:text-gray-400">Sábado ({format(addDays(semanaInicio, 5), 'dd/MM')})</span>
+                                                <span className="mt-1 block text-xl font-bold text-cyan-600 dark:text-cyan-400">{assistenciaSabado?.quantidade ?? '-'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {mostrarResumoPR && (
                 <div

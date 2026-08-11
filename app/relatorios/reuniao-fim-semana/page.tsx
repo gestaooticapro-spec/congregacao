@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { format, addDays, startOfWeek, endOfWeek, nextDay, Day } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import MeetingAttendanceButton from '@/components/MeetingAttendanceButton'
 
 // Helper to get the next meeting date (Saturday or Sunday)
 const getNextWeekendMeetingDate = (baseDate: Date) => {
@@ -175,6 +176,8 @@ export default function ReuniaoFimSemanaPage() {
                         {format(data?.displayDate ? new Date(data.displayDate + 'T12:00:00') : currentDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                     </div>
                 </h1>
+
+                <MeetingAttendanceButton date={data?.displayDate} meetingType="FIM_SEMANA" />
 
                 <button
                     onClick={handleNext}

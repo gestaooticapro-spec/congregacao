@@ -12,9 +12,10 @@ import {
     Star,
     PieChart,
     ArrowRight,
-    X
+    X,
+    UserCheck
 } from 'lucide-react'
-import { format, startOfMonth, subMonths } from 'date-fns'
+import { addMonths, format, startOfMonth, subMonths } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import Link from 'next/link'
 
@@ -74,7 +75,9 @@ export default function RelatoriosSecretariaPage() {
         horasPR: 0,
         abonoPR: 0,
         estudosPR: 0,
-        trabalharamPR: 0
+        trabalharamPR: 0,
+        assistenciaQuarta: 0,
+        assistenciaDomingo: 0
     })
     const [mostrarResumoPR, setMostrarResumoPR] = useState(false)
     const [pioneirosRegularesDetalhes, setPioneirosRegularesDetalhes] = useState<PioneiroRegularResumo[]>([])
@@ -106,6 +109,22 @@ export default function RelatoriosSecretariaPage() {
                     .eq('mes', mes)
 
                 if (errRels) throw errRels
+
+                const proximoMes = format(addMonths(new Date(`${mes}T12:00:00`), 1), 'yyyy-MM-dd')
+                const { data: assistencias, error: errAssistencias } = await (supabase as any)
+                    .from('assistencias_reunioes')
+                    .select('tipo_reuniao, quantidade')
+                    .gte('data_reuniao', mes)
+                    .lt('data_reuniao', proximoMes)
+
+                if (errAssistencias) throw errAssistencias
+
+                const assistenciaQuarta = (assistencias || [])
+                    .filter((a: { tipo_reuniao: string }) => a.tipo_reuniao === 'MEIO_SEMANA')
+                    .reduce((total: number, a: { quantidade: number }) => total + (a.quantidade || 0), 0)
+                const assistenciaDomingo = (assistencias || [])
+                    .filter((a: { tipo_reuniao: string }) => a.tipo_reuniao === 'FIM_SEMANA')
+                    .reduce((total: number, a: { quantidade: number }) => total + (a.quantidade || 0), 0)
 
                 setPioneirosRegularesDetalhes(
                     (membros || [])
@@ -203,7 +222,9 @@ export default function RelatoriosSecretariaPage() {
                     horasPR: horasPRTot,
                     abonoPR: abonoPRTot,
                     estudosPR: estudosPRTot,
-                    trabalharamPR: trabalharamPRTot
+                    trabalharamPR: trabalharamPRTot,
+                    assistenciaQuarta,
+                    assistenciaDomingo
                 })
 
             } catch (err) {
@@ -296,6 +317,25 @@ export default function RelatoriosSecretariaPage() {
                             <span className="block text-2xl font-bold text-blue-600 dark:text-blue-500">{totais.pa}</span>
                             <span className="text-[10px] uppercase font-bold text-gray-400">Auxiliares</span>
                         </div>
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm">
+                    <div className="flex items-start justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Assistência às reuniões</p>
+                            <div className="mt-2 flex gap-4">
+                                <div>
+                                    <span className="block text-2xl font-bold text-indigo-600 dark:text-indigo-400">{totais.assistenciaQuarta}</span>
+                                    <span className="text-[10px] uppercase font-bold text-gray-400">Quartas</span>
+                                </div>
+                                <div>
+                                    <span className="block text-2xl font-bold text-cyan-600 dark:text-cyan-400">{totais.assistenciaDomingo}</span>
+                                    <span className="text-[10px] uppercase font-bold text-gray-400">Domingos</span>
+                                </div>
+                            </div>
+                        </div>
+                        <UserCheck className="h-8 w-8 text-indigo-100 dark:text-indigo-900/30" />
                     </div>
                 </div>
             </div>

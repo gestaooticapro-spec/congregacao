@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { format, parseISO, startOfWeek, endOfWeek } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { calculatePartTimes } from '@/lib/scheduleUtils'
+import MeetingAttendanceButton from '@/components/MeetingAttendanceButton'
 
 type Programacao = Database['public']['Tables']['programacao_semanal']['Row']
 type Membro = Database['public']['Tables']['membros']['Row']
@@ -419,6 +420,10 @@ function RelatorioContent() {
                                 <span>🖨️</span> Imprimir
                             </button>
                         </div>
+                    </div>
+
+                    <div className="mb-4 flex justify-end">
+                        <MeetingAttendanceButton date={dates[currentIndex]} meetingType="MEIO_SEMANA" />
                     </div>
 
                     <div className="flex items-center justify-center gap-4 bg-white shadow-sm p-4 rounded-lg border border-slate-200">

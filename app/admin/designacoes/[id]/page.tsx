@@ -483,19 +483,19 @@ export default function EditarDesignacoesPage() {
     if (!programacao) return <div className="p-8">Programação não encontrada.</div>
 
     return (
-        <div className="max-w-5xl mx-auto p-8 pb-24">
-            <div className="flex justify-between items-center mb-8">
+        <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 overflow-x-hidden">
+            <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Designações</h1>
                     <p className="text-gray-600 dark:text-gray-400 mt-1 capitalize">
                         {new Date(programacao.data_reuniao + 'T00:00:00').toLocaleDateString('pt-BR')} - {programacao.evento_tipo !== 'normal' ? programacao.evento_tipo : programacao.semana_descricao}
                     </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex w-full flex-wrap gap-2 sm:w-auto">
                     {programacao?.evento_tipo === 'visita spte' && (
                         <button
                             onClick={() => router.push(`/admin/visita/${id}`)}
-                            className="px-4 py-2 border border-teal-300 dark:border-teal-600 bg-teal-50 dark:bg-teal-900/30 rounded-md text-teal-700 dark:text-teal-300 hover:bg-teal-100 flex items-center gap-2 font-bold transition-colors"
+                            className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-md border border-teal-300 bg-teal-50 px-3 py-2 text-center text-teal-700 transition-colors hover:bg-teal-100 dark:border-teal-600 dark:bg-teal-900/30 dark:text-teal-300 sm:flex-none sm:px-4"
                         >
                             📋 Painel da Visita
                         </button>
@@ -503,20 +503,20 @@ export default function EditarDesignacoesPage() {
                     <button
                         onClick={handleAutoSuggest}
                         disabled={generating || !isEditable}
-                        className="px-4 py-2 border border-purple-300 dark:border-purple-600 rounded-md text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/30 flex items-center gap-2 disabled:opacity-50"
+                        className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-md border border-purple-300 px-3 py-2 text-center text-purple-700 hover:bg-purple-50 disabled:opacity-50 dark:border-purple-600 dark:text-purple-300 dark:hover:bg-purple-900/30 sm:flex-none sm:px-4"
                     >
                         {generating ? 'Gerando...' : '✨ Sugestão Automática'}
                     </button>
                     <button
                         onClick={() => window.print()}
-                        className="px-4 py-2 border border-blue-300 dark:border-blue-600 rounded-md text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 flex items-center gap-2"
+                        className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-md border border-blue-300 px-3 py-2 text-center text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-300 dark:hover:bg-blue-900/30 sm:flex-none sm:px-4"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                         Imprimir
                     </button>
                     <button
                         onClick={() => router.back()}
-                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                        className="flex min-w-0 flex-1 items-center justify-center rounded-md border border-gray-300 px-3 py-2 text-center text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800 sm:flex-none sm:px-4"
                     >
                         Voltar
                     </button>
@@ -657,15 +657,15 @@ export default function EditarDesignacoesPage() {
                 {/* Roles Section */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 mb-6">
                     <h3 className="text-lg font-semibold mb-4 text-purple-600">Designações Principais</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-3 [&>*]:min-w-0">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Presidente</label>
-                            <div className="flex items-center">
+                            <div className="flex min-w-0 items-center">
                                 <select
                                     value={presidenteId}
                                     onChange={(e) => handleRoleChange('presidente_id', e.target.value)}
                                     disabled={!isEditable}
-                                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 disabled:opacity-50"
+                                    className="min-w-0 flex-1 rounded border border-gray-300 bg-white p-2 dark:border-gray-600 dark:bg-gray-800 disabled:opacity-50"
                                 >
                                     <option value="">Selecione...</option>
                                     {getQualifiedMembers({ tipo: 'PRESIDENTE', nome: '', tempo: 0 }).map(m => (
@@ -701,12 +701,12 @@ export default function EditarDesignacoesPage() {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Oração Inicial</label>
-                            <div className="flex items-center">
+                            <div className="flex min-w-0 items-center">
                                 <select
                                     value={oracaoInicialId}
                                     onChange={(e) => handleRoleChange('oracao_inicial_id', e.target.value)}
                                     disabled={!isEditable}
-                                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 disabled:opacity-50"
+                                    className="min-w-0 flex-1 rounded border border-gray-300 bg-white p-2 dark:border-gray-600 dark:bg-gray-800 disabled:opacity-50"
                                 >
                                     <option value="">Selecione...</option>
                                     {getQualifiedMembers({ tipo: 'ORACAO', nome: '', tempo: 0 }).map(m => (
@@ -742,12 +742,12 @@ export default function EditarDesignacoesPage() {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Oração Final</label>
-                            <div className="flex items-center">
+                            <div className="flex min-w-0 items-center">
                                 <select
                                     value={oracaoFinalId}
                                     onChange={(e) => handleRoleChange('oracao_final_id', e.target.value)}
                                     disabled={!isEditable}
-                                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 disabled:opacity-50"
+                                    className="min-w-0 flex-1 rounded border border-gray-300 bg-white p-2 dark:border-gray-600 dark:bg-gray-800 disabled:opacity-50"
                                 >
                                     <option value="">Selecione...</option>
                                     {getQualifiedMembers({ tipo: 'ORACAO', nome: '', tempo: 0 }).map(m => (

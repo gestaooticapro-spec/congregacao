@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 
 export default function TerritoriosPage() {
     const [territories, setTerritories] = useState<any[]>([])
     const [searchTerm, setSearchTerm] = useState('')
+    const [activeTab, setActiveTab] = useState<'reservados' | 'disponiveis'>('reservados')
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
@@ -40,22 +41,43 @@ export default function TerritoriosPage() {
         }
     }
 
-    const filteredTerritories = territories.filter(t => {
+    const filteredTerritories = useMemo(() => {
         const search = searchTerm.toLowerCase()
-        const matchesSearch = t.nome.toLowerCase().includes(search) ||
+
+        const matchesSearch = (t: any) =>
+            t.nome.toLowerCase().includes(search) ||
             (t.referencia && t.referencia.toLowerCase().includes(search)) ||
             (t.responsavel?.nome_completo && t.responsavel.nome_completo.toLowerCase().includes(search))
 
-        // If searching, show all matches
-        if (searchTerm) {
-            return matchesSearch
+        let list = territories.filter(matchesSearch)
+
+        if (activeTab === 'reservados') {
+            // Show territories with active visits OR assigned to someone
+            list = list.filter(t => {
+                const activeVisitsCount = t.visitas_ativas?.[0]?.count || 0
+                const isAssigned = !!t.responsavel
+                return activeVisitsCount > 0 || isAssigned
+            })
+        } else {
+            // Show available territories: no responsible AND no active visits
+            list = list.filter(t => {
+                const activeVisitsCount = t.visitas_ativas?.[0]?.count || 0
+                return !t.responsavel && activeVisitsCount === 0
+            })
+            // Sort: never worked first, then oldest last completion first
+            list = [...list].sort((a, b) => {
+                const dateA = a.historico_conclusao?.[0]?.data_fim
+                const dateB = b.historico_conclusao?.[0]?.data_fim
+
+                if (!dateA && !dateB) return 0
+                if (!dateA) return -1
+                if (!dateB) return 1
+                return new Date(dateA).getTime() - new Date(dateB).getTime()
+            })
         }
 
-        // If not searching, show active (visits > 0) OR assigned to someone
-        const activeVisitsCount = t.visitas_ativas?.[0]?.count || 0
-        const isAssigned = !!t.responsavel
-        return activeVisitsCount > 0 || isAssigned
-    })
+        return list
+    }, [territories, searchTerm, activeTab])
 
     if (loading) return <div className="container mx-auto p-4">Carregando...</div>
 
@@ -81,7 +103,7 @@ export default function TerritoriosPage() {
             </div>
 
             {/* Search Bar */}
-            <div className="mb-6">
+            <div className="mb-4">
                 <input
                     type="text"
                     placeholder="Buscar por nome, referência ou responsável..."
@@ -91,32 +113,43 @@ export default function TerritoriosPage() {
                 />
             </div>
 
+            {/* Tabs */}
+            <div className="flex justify-center mb-6">
+                <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl inline-flex">
+                    <button
+                        onClick={() => setActiveTab('reservados')}
+                        className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'reservados'
+                            ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                            }`}
+                    >
+                        📌 Reservados
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('disponiveis')}
+                        className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'disponiveis'
+                            ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                            }`}
+                    >
+                        🗺️ Disponíveis
+                    </button>
+                </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredTerritories.map((t) => {
                     const lastCompletion = t.historico_conclusao?.[0]?.data_fim
 
                     // Calculate how many territories are "older" (more overdue)
-                    // Logic: Compare lastCompletion of this territory with all others.
-                    // Older = date is BEFORE this date (smaller string/timestamp)
-                    // If a territory has NO completion, it's considered "Infinite Old" (first priority), essentially < any date.
                     const overdueCount = territories.filter(other => {
-                        if (other.id === t.id) return false // Don't compare with self
+                        if (other.id === t.id) return false
 
                         const otherDate = other.historico_conclusao?.[0]?.data_fim
 
-                        // If current has no date (it's new/never worked), it is priority 0. 
-                        // Nothing is older than it except other never-worked ones.
-                        if (!lastCompletion) {
-                            // If other also has no date, treat as equal (not older). 
-                            // If other HAS date, it is newer (not older).
-                            return false;
-                        }
+                        if (!lastCompletion) return false
+                        if (!otherDate) return true
 
-                        // If current HAS date:
-                        // If other has no date, it is OLDER (never worked).
-                        if (!otherDate) return true;
-
-                        // Compare dates: Is otherDate < thisDate?
                         return new Date(otherDate) < new Date(lastCompletion)
                     }).length
 
@@ -144,6 +177,13 @@ export default function TerritoriosPage() {
                                         )}
                                     </div>
                                 )}
+                                {!lastCompletion && (
+                                    <div className="absolute bottom-0 left-0 right-0 bg-orange-600/90 text-white px-3 py-2 backdrop-blur-sm">
+                                        <p className="text-xs font-semibold">
+                                            🆕 Nenhum registro de atividade nesse território
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                             <div className="p-4 flex-grow flex flex-col">
                                 <div className="flex justify-between items-start mb-2">
@@ -159,12 +199,22 @@ export default function TerritoriosPage() {
 
                                 <div className="mt-auto pt-3 border-t border-gray-50">
                                     {t.responsavel?.nome_completo ? (
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-xs text-gray-500">Com:</span>
-                                            <span className="text-sm font-medium text-blue-800 truncate">
-                                                {t.responsavel.nome_completo}
-                                            </span>
-                                        </div>
+                                        <>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className={`text-xs font-bold px-2 py-1 rounded self-start ${t.territorio_pessoal
+                                                    ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20'
+                                                    : 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                                                    }`}>
+                                                    {t.territorio_pessoal ? '🔴 Território Pessoal' : '🔵 Sendo trabalhado pela Congregação'}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-gray-500">Com:</span>
+                                                <span className="text-sm font-medium text-blue-800 truncate">
+                                                    {t.responsavel.nome_completo}
+                                                </span>
+                                            </div>
+                                        </>
                                     ) : (
                                         <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded self-start">
                                             Disponível
@@ -180,7 +230,9 @@ export default function TerritoriosPage() {
                     <div className="col-span-full text-center py-10 text-gray-500">
                         {searchTerm
                             ? 'Nenhum território encontrado.'
-                            : 'Nenhum território em andamento. Use a busca para encontrar um novo.'}
+                            : activeTab === 'reservados'
+                                ? 'Nenhum território reservado no momento.'
+                                : 'Nenhum território disponível no momento.'}
                     </div>
                 )}
             </div>

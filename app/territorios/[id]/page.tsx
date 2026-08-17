@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, use } from 'react'
-import { getTerritory, toggleVisita, closeTerritory, assignTerritory, releaseTerritory } from '@/app/actions/territorios.actions'
+import { getTerritory, toggleVisita, closeTerritory, assignTerritory, releaseTerritory, toggleTerritorioPessoal } from '@/app/actions/territorios.actions'
 import MapaInterativo from '@/components/territorios/MapaInterativo'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
@@ -17,12 +17,27 @@ export default function TerritorioPage({ params }: { params: Promise<{ id: strin
     const [membros, setMembros] = useState<any[]>([])
     const [selectedMember, setSelectedMember] = useState('')
     const [assigning, setAssigning] = useState(false)
+    const [togglingPessoal, setTogglingPessoal] = useState(false)
+    const [loggedMember, setLoggedMember] = useState<{ id: string; nome: string } | null>(null)
     const router = useRouter()
 
     useEffect(() => {
         loadTerritory()
         loadMembros()
     }, [id])
+
+    useEffect(() => {
+        const raw = localStorage.getItem('membro_sessao')
+        if (raw) {
+            try {
+                const sessao = JSON.parse(raw)
+                if (sessao.id && sessao.nome) {
+                    setLoggedMember({ id: sessao.id, nome: sessao.nome })
+                    setSelectedMember(sessao.id)
+                }
+            } catch { /* ignore */ }
+        }
+    }, [])
 
     const loadMembros = async () => {
         const { data } = await supabase
@@ -101,6 +116,21 @@ export default function TerritorioPage({ params }: { params: Promise<{ id: strin
         }
     }
 
+    const handleTogglePessoal = async () => {
+        const newValue = !territorio.territorio_pessoal
+        // Optimistic update
+        setTerritorio({ ...territorio, territorio_pessoal: newValue })
+        setTogglingPessoal(true)
+
+        const res = await toggleTerritorioPessoal(id)
+        if (res.error) {
+            // Revert on error
+            setTerritorio({ ...territorio, territorio_pessoal: !newValue })
+            alert(res.error)
+        }
+        setTogglingPessoal(false)
+    }
+
     if (loading) return <div className="p-4">Carregando...</div>
     if (!territorio) return <div className="p-4">Território não encontrado.</div>
 
@@ -113,19 +143,28 @@ export default function TerritorioPage({ params }: { params: Promise<{ id: strin
             <div className="container mx-auto p-4 max-w-md min-h-screen flex flex-col justify-center">
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
                     <h1 className="text-2xl font-bold mb-2 text-center">{territorio.nome}</h1>
-                    <p className="text-gray-500 text-center mb-6">Quem será o responsável por este território?</p>
+
+                    {loggedMember ? (
+                        <p className="text-gray-600 dark:text-gray-300 text-center mb-6 text-lg">
+                            Olá, <span className="font-bold">{loggedMember.nome.split(' ')[0]}</span>
+                        </p>
+                    ) : (
+                        <p className="text-gray-500 text-center mb-6">Quem será o responsável por este território?</p>
+                    )}
 
                     <div className="space-y-4">
-                        <select
-                            value={selectedMember}
-                            onChange={(e) => setSelectedMember(e.target.value)}
-                            className="w-full p-3 border rounded-lg bg-gray-50 dark:bg-gray-900 dark:border-gray-600"
-                        >
-                            <option value="">Selecione um irmão...</option>
-                            {membros.map(m => (
-                                <option key={m.id} value={m.id}>{m.nome_completo}</option>
-                            ))}
-                        </select>
+                        {!loggedMember && (
+                            <select
+                                value={selectedMember}
+                                onChange={(e) => setSelectedMember(e.target.value)}
+                                className="w-full p-3 border rounded-lg bg-gray-50 dark:bg-gray-900 dark:border-gray-600"
+                            >
+                                <option value="">Selecione um irmão...</option>
+                                {membros.map(m => (
+                                    <option key={m.id} value={m.id}>{m.nome_completo}</option>
+                                ))}
+                            </select>
+                        )}
 
                         <button
                             onClick={handleAssign}
@@ -161,11 +200,11 @@ export default function TerritorioPage({ params }: { params: Promise<{ id: strin
                     </button>
                     <div>
                         <h1 className="text-xl font-bold">{territorio.nome}</h1>
-                        <div className="flex flex-col">
+                        <div className="flex flex-col gap-1">
                             {territorio.referencia && (
                                 <span className="text-sm text-gray-500">{territorio.referencia}</span>
                             )}
-                            <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full w-fit mt-1">
+                            <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full w-fit">
                                 Resp: {responsavel?.nome_completo || 'Carregando...'}
                             </span>
                         </div>
@@ -175,6 +214,23 @@ export default function TerritorioPage({ params }: { params: Promise<{ id: strin
                     {visitas.length} / {totalQuadras}
                 </div>
             </div>
+
+            {/* Territory type toggle */}
+            <button
+                onClick={handleTogglePessoal}
+                disabled={togglingPessoal}
+                className={`w-full mb-4 p-3 rounded-lg border-2 flex items-center justify-between transition-all ${territorio.territorio_pessoal
+                    ? 'border-red-300 bg-red-50 dark:bg-red-900/20'
+                    : 'border-blue-300 bg-blue-50 dark:bg-blue-900/20'
+                    } ${togglingPessoal ? 'opacity-50' : 'hover:shadow-md'}`}
+            >
+                <span className={`text-sm font-bold ${territorio.territorio_pessoal ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                    {territorio.territorio_pessoal ? '🔴 Território Pessoal' : '🔵 Congregação'}
+                </span>
+                <span className={`text-xs ${territorio.territorio_pessoal ? 'text-red-400' : 'text-blue-400'}`}>
+                    {togglingPessoal ? 'Salvando...' : 'Toque para alterar'}
+                </span>
+            </button>
 
             <div className="mb-6">
                 <MapaInterativo

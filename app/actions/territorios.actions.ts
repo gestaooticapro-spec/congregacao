@@ -335,6 +335,38 @@ export async function getTerritoryReport(serviceYear: number) {
     return { data: reportData }
 }
 
+export async function toggleTerritorioPessoal(territorioId: string) {
+    const supabase = await createClient()
+
+    // Read current value
+    const { data: territorio, error: readError } = await supabase
+        .from('territorios')
+        .select('territorio_pessoal')
+        .eq('id', territorioId)
+        .single()
+
+    if (readError || !territorio) {
+        console.error('Error reading territorio_pessoal:', readError)
+        return { error: 'Erro ao ler território' }
+    }
+
+    const newValue = !territorio.territorio_pessoal
+
+    const { error } = await supabase
+        .from('territorios')
+        .update({ territorio_pessoal: newValue })
+        .eq('id', territorioId)
+
+    if (error) {
+        console.error('Error toggling territorio_pessoal:', error)
+        return { error: 'Erro ao atualizar território' }
+    }
+
+    revalidatePath(`/territorios/${territorioId}`)
+    revalidatePath('/territorios')
+    return { success: true }
+}
+
 export async function releaseTerritory(territorioId: string) {
     const supabase = await createClient()
 

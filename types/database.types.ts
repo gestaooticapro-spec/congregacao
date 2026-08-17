@@ -809,6 +809,7 @@ export interface Database {
           configuracao: Json
           referencia?: string | null
           responsavel_id?: string | null
+          territorio_pessoal: boolean
           created_at: string
         }
         Insert: {
@@ -818,6 +819,7 @@ export interface Database {
           configuracao?: Json
           referencia?: string | null
           responsavel_id?: string | null
+          territorio_pessoal?: boolean
           created_at?: string
         }
         Update: {
@@ -827,6 +829,7 @@ export interface Database {
           configuracao?: Json
           referencia?: string | null
           responsavel_id?: string | null
+          territorio_pessoal?: boolean
           created_at?: string
         }
         Relationships: [

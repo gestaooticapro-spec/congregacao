@@ -117,6 +117,8 @@ export function buildMidweekReminderText({
         : ''
 
     const linhas: string[] = []
+    linhas.push('Por favor, confirmem suas partes! 👇')
+    linhas.push('')
     linhas.push('📋 *Reunião de Meio de Semana*')
     if (data) linhas.push(`Data: ${data}`)
     if (programacao.semana_descricao) {
@@ -155,8 +157,6 @@ export function buildMidweekReminderText({
         }
         linhas.push('')
     }
-
-    linhas.push('Por favor, confirmem suas partes. Obrigado! 🙌')
 
     return linhas.join('\n').trim()
 }

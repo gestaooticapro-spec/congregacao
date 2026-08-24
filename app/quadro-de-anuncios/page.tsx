@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import MidweekReminderCard from '@/components/quadro/MidweekReminderCard'
 
 export default function QuadroDeAnuncios() {
     return (
@@ -37,27 +38,7 @@ export default function QuadroDeAnuncios() {
                 </Link>
 
                 {/* Midweek Meeting Report Card */}
-                <Link
-                    href="/relatorios/reuniao-meio-semana"
-                    className="block p-6 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all hover:border-primary group"
-                >
-                    <div className="flex items-center gap-4 mb-4">
-                        <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
-                            <span className="text-2xl">📖</span>
-                        </div>
-                        <div>
-                            <h3 className="font-bold text-lg text-slate-900 dark:text-white group-hover:text-primary transition-colors">
-                                Reunião de Meio de Semana
-                            </h3>
-                            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                                Programação
-                            </span>
-                        </div>
-                    </div>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                        Visualize a programação completa da reunião de meio de semana, com todas as partes e designados.
-                    </p>
-                </Link>
+                <MidweekReminderCard />
 
                 {/* Cleaning Report Card */}
                 <Link

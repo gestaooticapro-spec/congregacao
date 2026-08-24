@@ -8,6 +8,12 @@ import { format, parseISO, startOfWeek, endOfWeek } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { calculatePartTimes } from '@/lib/scheduleUtils'
 import MeetingAttendanceButton from '@/components/MeetingAttendanceButton'
+import { MessageCircle, Loader2 } from 'lucide-react'
+import {
+    buildMidweekReminderText,
+    isLogadoPresidenteMeioSemana,
+    shareMidweekReminderToWhatsApp,
+} from '@/lib/midweekReminder'
 
 type Programacao = Database['public']['Tables']['programacao_semanal']['Row']
 type Membro = Database['public']['Tables']['membros']['Row']
@@ -32,6 +38,8 @@ function RelatorioContent() {
     const [visitaConfig, setVisitaConfig] = useState<any>(null)
     const [colaboradores, setColaboradores] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const [isPresidenteLogado, setIsPresidenteLogado] = useState(false)
+    const [enviandoLembrete, setEnviandoLembrete] = useState(false)
 
     useEffect(() => {
         fetchDates()
@@ -133,6 +141,15 @@ function RelatorioContent() {
                 setColaboradores([])
             }
 
+            // 5. Verifica se o logado via Supabase é o presidente desta semana.
+            // Só assim o botão de lembrete ao WhatsApp é exibido.
+            if (progData.evento_tipo === 'normal' || progData.evento_tipo === 'visita spte') {
+                const souPresidente = await isLogadoPresidenteMeioSemana(progData.presidente_id)
+                setIsPresidenteLogado(souPresidente)
+            } else {
+                setIsPresidenteLogado(false)
+            }
+
         } catch (error) {
             console.error('Erro ao carregar programação:', error)
             alert('Erro ao carregar relatório.')
@@ -150,6 +167,34 @@ function RelatorioContent() {
     }
 
     const handlePrint = () => window.print()
+
+    const handleEnviarLembreteWhatsApp = async () => {
+        if (!programacao) return
+        setEnviandoLembrete(true)
+        try {
+            // Nomes externos para visita spte (ex.: Superintendente de Circuito)
+            const nomesExternos: Record<string, string> = {}
+            if (colaboradores.length > 0) {
+                const sup = colaboradores.find(
+                    c => c.funcao?.toLowerCase().includes('superintendente')
+                        || c.funcao?.toLowerCase().includes('circuito')
+                )
+                if (sup) nomesExternos[sup.id] = 'Superintendente de Circuito'
+            }
+
+            const texto = buildMidweekReminderText({
+                programacao,
+                membros: membros.map(m => ({ id: m.id, nome_completo: m.nome_completo })),
+                nomesExternos,
+            })
+            shareMidweekReminderToWhatsApp(texto)
+        } catch (err) {
+            console.error('Erro ao gerar lembrete da reunião:', err)
+            alert('Não foi possível gerar o lembrete. Tente novamente.')
+        } finally {
+            setEnviandoLembrete(false)
+        }
+    }
 
     const getMemberName = (id: string | undefined | null) => {
         if (!id) return '______________________'
@@ -419,6 +464,21 @@ function RelatorioContent() {
                             >
                                 <span>🖨️</span> Imprimir
                             </button>
+                            {isPresidenteLogado && (
+                                <button
+                                    onClick={handleEnviarLembreteWhatsApp}
+                                    disabled={enviandoLembrete}
+                                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                                    title="Abrir WhatsApp com lembrete dos designados (você escolhe o contato/grupo)"
+                                >
+                                    {enviandoLembrete ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <MessageCircle className="w-4 h-4" />
+                                    )}
+                                    Lembrete no WhatsApp
+                                </button>
+                            )}
                         </div>
                     </div>
 

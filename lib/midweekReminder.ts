@@ -147,7 +147,8 @@ export function buildMidweekReminderText({
             const nomeParte = nomeParteParaLembrete(p.nome)
             const ehLeitor = /estudo bíblico/i.test(nomeParte)
             if (ajudante) {
-                linhas.push(`• ${nomeParte}: ${nomeEmNegrito(principal)} (${ehLeitor ? '*Leitor*' : 'Ajudante'}: ${ajudante})`)
+                const nomeApoio = ehLeitor ? nomeEmNegrito(ajudante) : ajudante
+                linhas.push(`• ${nomeParte}: ${nomeEmNegrito(principal)} (${ehLeitor ? 'Leitor' : 'Ajudante'}: ${nomeApoio})`)
             } else {
                 linhas.push(`• ${nomeParte}: ${nomeEmNegrito(principal)}`)
             }

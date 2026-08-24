@@ -449,18 +449,18 @@ function RelatorioContent() {
             {/* Editor/Screen View (Hidden on Print) */}
             <div className="print:hidden">
                 <div className="mb-8 print:hidden">
-                    <div className="flex justify-between items-center mb-6">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center mb-6">
                         <h1 className="text-2xl font-bold">Relatório de Reunião</h1>
-                        <div className="flex gap-2">
+                        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                             <button
                                 onClick={() => router.back()}
-                                className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors bg-white shadow-sm"
+                                className="w-full px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors bg-white shadow-sm sm:w-auto"
                             >
                                 Voltar
                             </button>
                             <button
                                 onClick={handlePrint}
-                                className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors flex items-center gap-2 shadow-sm"
+                                className="w-full px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors flex items-center justify-center gap-2 shadow-sm sm:w-auto"
                             >
                                 <span>🖨️</span> Imprimir
                             </button>
@@ -468,7 +468,7 @@ function RelatorioContent() {
                                 <button
                                     onClick={handleEnviarLembreteWhatsApp}
                                     disabled={enviandoLembrete}
-                                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                                    className="w-full min-h-11 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 text-center leading-tight shadow-sm disabled:opacity-60 disabled:cursor-not-allowed sm:w-auto sm:whitespace-nowrap"
                                     title="Abrir WhatsApp com lembrete dos designados (você escolhe o contato/grupo)"
                                 >
                                     {enviandoLembrete ? (

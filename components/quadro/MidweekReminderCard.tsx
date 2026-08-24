@@ -154,7 +154,7 @@ export default function MidweekReminderCard() {
                 <button
                     onClick={handleEnviarLembrete}
                     disabled={enviando}
-                    className="mt-4 w-full px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="mt-4 w-full min-h-11 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 text-center leading-tight shadow-sm disabled:opacity-60 disabled:cursor-not-allowed sm:whitespace-nowrap"
                     title="Abrir WhatsApp com lembrete dos designados (você escolhe o contato/grupo)"
                 >
                     {enviando ? (

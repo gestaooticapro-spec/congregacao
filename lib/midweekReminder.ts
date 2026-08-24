@@ -81,6 +81,13 @@ interface BuildReminderTextParams {
     nomesExternos?: Record<string, string>
 }
 
+/** Mantém o título até o tempo entre parênteses; sem tempo, preserva o texto. */
+function nomeParteParaLembrete(nome: string | null | undefined): string {
+    const texto = nome?.trim() || 'Parte'
+    const match = texto.match(/\(\s*\d+\s*min(?:uto)?s?\s*\)/i)
+    return match ? texto.slice(0, (match.index ?? 0) + match[0].length).trim() : texto
+}
+
 /**
  * Monta o texto de lembrete da reunião de meio de semana, listando TODOS os
  * designados (independente de status de confirmação — é um lembrete de
@@ -133,7 +140,7 @@ export function buildMidweekReminderText({
         for (const p of itens) {
             const principal = nomeDo(p.membro_id)
             const ajudante = p.ajudante_id ? nomeDo(p.ajudante_id) : null
-            const nomeParte = p.nome?.trim() || 'Parte'
+            const nomeParte = nomeParteParaLembrete(p.nome)
             if (ajudante) {
                 linhas.push(`• ${nomeParte}: ${principal} (Ajudante: ${ajudante})`)
             } else {

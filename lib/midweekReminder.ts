@@ -161,6 +161,40 @@ export function buildMidweekReminderText({
     return linhas.join('\n').trim()
 }
 
+export interface SupportReminderAssignment {
+    funcao: string
+    nome: string
+}
+
+/** Monta o lembrete das responsabilidades de apoio para uma reunião. */
+export function buildSupportReminderText(
+    data: string,
+    assignments: SupportReminderAssignment[]
+): string {
+    const dataFormatada = data
+        ? format(parseISO(data), "dd/MM/yyyy", { locale: ptBR })
+        : ''
+    const nomesFuncao: Record<string, string> = {
+        PRESIDENTE: 'Presidente',
+        LEITOR_SENTINELA: 'Leitor de A Sentinela',
+        INDICADOR_AUDITORIO: 'Indicador (Auditório)',
+        INDICADOR_ENTRADA: 'Indicador (Entrada)',
+        MICROFONE_1: 'Microfone 1',
+        MICROFONE_2: 'Microfone 2',
+        SOM: 'Som',
+    }
+
+    const linhas = ['Por favor, confirmem suas partes! 👇', '', '📋 *Responsabilidades de Apoio*']
+    if (dataFormatada) linhas.push(`Data: ${dataFormatada}`)
+    linhas.push('')
+    assignments.forEach(assignment => {
+        const funcao = nomesFuncao[assignment.funcao] || assignment.funcao
+        linhas.push(`• ${funcao}: ${nomeEmNegrito(assignment.nome)}`)
+    })
+
+    return linhas.join('\n').trim()
+}
+
 /**
  * Abre o WhatsApp (sem contato pré-definido) com o texto do lembrete, usando o
  * padrão wa.me/?text=. O usuário escolhe o contato/grupo no WhatsApp.

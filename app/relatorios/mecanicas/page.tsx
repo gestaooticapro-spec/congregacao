@@ -6,6 +6,8 @@ import { Database } from '@/types/database.types'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { format, parseISO, isSaturday, isSunday } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { Loader2, MessageCircle } from 'lucide-react'
+import { buildSupportReminderText, isLogadoPresidenteMeioSemana, shareMidweekReminderToWhatsApp } from '@/lib/midweekReminder'
 
 type SupportAssignment = Database['public']['Tables']['designacoes_suporte']['Row'] & {
     membro: { nome_completo: string; nome_civil: string | null } | null
@@ -20,6 +22,8 @@ function RelatorioContent() {
     const [currentIndex, setCurrentIndex] = useState<number>(-1)
     const [assignments, setAssignments] = useState<SupportAssignment[]>([])
     const [loading, setLoading] = useState(true)
+    const [isPresidenteLogado, setIsPresidenteLogado] = useState(false)
+    const [enviandoLembrete, setEnviandoLembrete] = useState(false)
 
     useEffect(() => {
         fetchDates()
@@ -29,6 +33,23 @@ function RelatorioContent() {
         if (currentIndex >= 0 && dates.length > 0) {
             fetchAssignments(dates[currentIndex])
         }
+    }, [currentIndex, dates])
+
+    useEffect(() => {
+        const verificarPresidente = async () => {
+            const dataReuniao = currentIndex >= 0 ? dates[currentIndex] : undefined
+            if (!dataReuniao) {
+                setIsPresidenteLogado(false)
+                return
+            }
+            const { data } = await supabase
+                .from('programacao_semanal')
+                .select('presidente_id')
+                .eq('data_reuniao', dataReuniao)
+                .maybeSingle()
+            setIsPresidenteLogado(await isLogadoPresidenteMeioSemana(data?.presidente_id))
+        }
+        void verificarPresidente()
     }, [currentIndex, dates])
 
     const fetchDates = async () => {
@@ -96,6 +117,20 @@ function RelatorioContent() {
 
     const handlePrint = () => window.print()
 
+    const handleEnviarLembrete = () => {
+        if (!currentDate) return
+        setEnviandoLembrete(true)
+        try {
+            const texto = buildSupportReminderText(currentDate, assignments.map(assignment => ({
+                funcao: assignment.funcao,
+                nome: assignment.membro?.nome_completo || assignment.membro?.nome_civil || 'Não designado',
+            })))
+            shareMidweekReminderToWhatsApp(texto)
+        } finally {
+            setEnviandoLembrete(false)
+        }
+    }
+
     const getAssignment = (role: string) => {
         return assignments.find(a => a.funcao === role)
     }
@@ -114,21 +149,31 @@ function RelatorioContent() {
         <div className="p-8 max-w-[210mm] mx-auto min-h-screen bg-white text-slate-900" suppressHydrationWarning>
             {/* Header / Controls (Hidden on Print) */}
             <div className="mb-8 print:hidden">
-                <div className="flex justify-between items-center mb-6">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center mb-6">
                     <h1 className="text-2xl font-bold">Relatório de Designações de Apoio</h1>
-                    <div className="flex gap-2">
+                        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                         <button
                             onClick={() => router.back()}
-                            className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors sm:w-auto"
                         >
                             Voltar
                         </button>
                         <button
                             onClick={handlePrint}
-                            className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors flex items-center gap-2"
+                            className="w-full px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors flex items-center justify-center gap-2 sm:w-auto"
                         >
                             <span>🖨️</span> Imprimir
                         </button>
+                        {isPresidenteLogado && (
+                            <button
+                                onClick={handleEnviarLembrete}
+                                disabled={enviandoLembrete}
+                                className="w-full min-h-11 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 sm:w-auto sm:whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                                {enviandoLembrete ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4 h-4" />}
+                                Lembrete no WhatsApp
+                            </button>
+                        )}
                     </div>
                 </div>
 

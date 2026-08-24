@@ -88,6 +88,10 @@ function nomeParteParaLembrete(nome: string | null | undefined): string {
     return match ? texto.slice(0, (match.index ?? 0) + match[0].length).trim() : texto
 }
 
+function nomeEmNegrito(nome: string): string {
+    return `*${nome}*`
+}
+
 /**
  * Monta o texto de lembrete da reunião de meio de semana, listando TODOS os
  * designados (independente de status de confirmação — é um lembrete de
@@ -121,9 +125,9 @@ export function buildMidweekReminderText({
     linhas.push('')
 
     linhas.push('🙏 *Designações:*')
-    linhas.push(`• Presidente: ${nomeDo(programacao.presidente_id)}`)
-    linhas.push(`• Oração Inicial: ${nomeDo(programacao.oracao_inicial_id)}`)
-    linhas.push(`• Oração Final: ${nomeDo(programacao.oracao_final_id)}`)
+    linhas.push(`• Presidente: ${nomeEmNegrito(nomeDo(programacao.presidente_id))}`)
+    linhas.push(`• Oração Inicial: ${nomeEmNegrito(nomeDo(programacao.oracao_inicial_id))}`)
+    linhas.push(`• Oração Final: ${nomeEmNegrito(nomeDo(programacao.oracao_final_id))}`)
     linhas.push('')
 
     const partes = (programacao.partes as unknown as ReminderParte[] | null) || []
@@ -141,10 +145,11 @@ export function buildMidweekReminderText({
             const principal = nomeDo(p.membro_id)
             const ajudante = p.ajudante_id ? nomeDo(p.ajudante_id) : null
             const nomeParte = nomeParteParaLembrete(p.nome)
+            const ehLeitor = /estudo bíblico/i.test(nomeParte)
             if (ajudante) {
-                linhas.push(`• ${nomeParte}: ${principal} (Ajudante: ${ajudante})`)
+                linhas.push(`• ${nomeParte}: ${nomeEmNegrito(principal)} (${ehLeitor ? '*Leitor*' : 'Ajudante'}: ${ajudante})`)
             } else {
-                linhas.push(`• ${nomeParte}: ${principal}`)
+                linhas.push(`• ${nomeParte}: ${nomeEmNegrito(principal)}`)
             }
         }
         linhas.push('')

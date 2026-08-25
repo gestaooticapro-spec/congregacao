@@ -37,6 +37,7 @@ export default function MidweekReminderCard() {
     const [membros, setMembros] = useState<Membro[]>([])
     const [presidenteNome, setPresidenteNome] = useState<string | null>(null)
     const [dataFormatada, setDataFormatada] = useState<string | null>(null)
+    const [nomesExternos, setNomesExternos] = useState<Record<string, string>>({})
     const [isPresidenteLogado, setIsPresidenteLogado] = useState(false)
     const [enviando, setEnviando] = useState(false)
 
@@ -54,7 +55,7 @@ export default function MidweekReminderCard() {
             if (progError) throw progError
             if (!progRows || progRows.length === 0) return
 
-            const today = new Date().toISOString().split('T')[0]
+            const today = format(new Date(), 'yyyy-MM-dd')
             const proxima = progRows.find(p => p.data_reuniao >= today) || progRows[progRows.length - 1]
             setProgramacao(proxima)
 
@@ -88,6 +89,19 @@ export default function MidweekReminderCard() {
                 if (presidente) setPresidenteNome(presidente.nome_completo)
             }
 
+            if (proxima.evento_tipo === 'visita spte') {
+                const { data: colaboradores } = await supabase
+                    .from('colaboradores_externos')
+                    .select('id, nome, funcao')
+                const superintendente = colaboradores?.find(
+                    colaborador => colaborador.funcao?.toLowerCase().includes('superintendente')
+                        || colaborador.funcao?.toLowerCase().includes('circuito')
+                )
+                if (superintendente) {
+                    setNomesExternos({ [superintendente.id]: superintendente.nome || 'Superintendente de Circuito' })
+                }
+            }
+
             // Só mostra o botão se o logado via Supabase for o presidente desta semana
             const souPresidente = await isLogadoPresidenteMeioSemana(proxima.presidente_id)
             setIsPresidenteLogado(souPresidente)
@@ -103,6 +117,7 @@ export default function MidweekReminderCard() {
             const texto = buildMidweekReminderText({
                 programacao,
                 membros: membros.map(m => ({ id: m.id, nome_completo: m.nome_completo })),
+                nomesExternos,
             })
             shareMidweekReminderToWhatsApp(texto)
         } catch (err) {

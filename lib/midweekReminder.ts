@@ -92,6 +92,14 @@ function nomeEmNegrito(nome: string): string {
     return `*${nome}*`
 }
 
+function parteTemLeitor(parte: ReminderParte): boolean {
+    const nomeNormalizado = parte.nome
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+    return parte.tipo === 'VIDA_CRISTA' && nomeNormalizado.includes('estudo biblico')
+}
+
 /**
  * Monta o texto de lembrete da reunião de meio de semana, listando TODOS os
  * designados (independente de status de confirmação — é um lembrete de
@@ -147,7 +155,7 @@ export function buildMidweekReminderText({
             const principal = nomeDo(p.membro_id)
             const ajudante = p.ajudante_id ? nomeDo(p.ajudante_id) : null
             const nomeParte = nomeParteParaLembrete(p.nome)
-            const ehLeitor = /estudo bíblico/i.test(nomeParte)
+            const ehLeitor = parteTemLeitor(p)
             if (ajudante) {
                 const nomeApoio = ehLeitor ? nomeEmNegrito(ajudante) : ajudante
                 linhas.push(`• ${nomeParte}: ${nomeEmNegrito(principal)} (${ehLeitor ? 'Leitor' : 'Ajudante'}: ${nomeApoio})`)

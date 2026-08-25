@@ -42,12 +42,22 @@ function RelatorioContent() {
                 setIsPresidenteLogado(false)
                 return
             }
-            const { data } = await supabase
-                .from('programacao_semanal')
-                .select('presidente_id')
-                .eq('data_reuniao', dataReuniao)
-                .maybeSingle()
-            setIsPresidenteLogado(await isLogadoPresidenteMeioSemana(data?.presidente_id))
+            const [{ data: programacao }, { data: apoioPresidente }] = await Promise.all([
+                supabase
+                    .from('programacao_semanal')
+                    .select('presidente_id')
+                    .eq('data_reuniao', dataReuniao)
+                    .maybeSingle(),
+                supabase
+                    .from('designacoes_suporte')
+                    .select('membro_id')
+                    .eq('data', dataReuniao)
+                    .eq('funcao', 'PRESIDENTE')
+                    .maybeSingle(),
+            ])
+            setIsPresidenteLogado(await isLogadoPresidenteMeioSemana(
+                programacao?.presidente_id || apoioPresidente?.membro_id
+            ))
         }
         void verificarPresidente()
     }, [currentIndex, dates])

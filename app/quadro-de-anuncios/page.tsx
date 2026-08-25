@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import MidweekReminderCard from '@/components/quadro/MidweekReminderCard'
+import SupportReminderCard from '@/components/quadro/SupportReminderCard'
 
 export default function QuadroDeAnuncios() {
     return (
@@ -87,7 +88,9 @@ export default function QuadroDeAnuncios() {
                 </Link>
 
                 {/* Mechanical Assignments Report Card */}
-                <Link
+                <SupportReminderCard />
+                {/*
+                    <Link
                     href="/relatorios/mecanicas"
                     className="block p-6 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all hover:border-primary group"
                 >
@@ -107,7 +110,7 @@ export default function QuadroDeAnuncios() {
                     <p className="text-sm text-slate-600 dark:text-slate-400">
                         Visualize a escala de indicadores, som, vídeo e microfones para cada reunião.
                     </p>
-                </Link>
+                </Link> */}
 
                 {/* Public Talk Report Card */}
                 <Link

@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     siteName: "CongGuaira",
     images: [
       {
-        url: "/opengraph-image.png",
+        url: "https://cong.mentebinaria.com/opengraph-image.png",
         width: 1200,
         height: 630,
         alt: "Logo da Congregacao Guaira",
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    images: ["/opengraph-image.png"],
+    images: ["https://cong.mentebinaria.com/opengraph-image.png"],
   },
   icons: {
     icon: "/icon.svg",

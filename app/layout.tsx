@@ -24,7 +24,31 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "CongGuaíra",
   description: "Sistema de Gestão da Congregação Guaíra",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "https://congregacao-five.vercel.app"),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_BASE_URL || "https://www.cong.mentebinaria.com"
+  ),
+  openGraph: {
+    type: "website",
+    locale: "pt_BR",
+    url: "https://www.cong.mentebinaria.com",
+    siteName: "CongGuaira",
+    images: [
+      {
+        url: "/opengraph-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Logo da Congregacao Guaira",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ["/opengraph-image.png"],
+  },
+  icons: {
+    icon: "/icon.svg",
+    apple: "/apple-icon.png",
+  },
   other: {
     google: "notranslate",
   },

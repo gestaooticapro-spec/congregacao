@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import { Database } from '@/types/database.types'
+import PageHeader from '@/components/PageHeader'
 
 type EscalaCampo = Database['public']['Tables']['escalas_campo']['Row'] & {
     dirigente: {
@@ -70,12 +71,12 @@ export default function CampoPage() {
 
     return (
         <div className="max-w-6xl mx-auto p-8">
-            <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6 print:hidden">
-                <div className="text-center md:text-left">
-                    <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Dirigentes de Campo</h1>
-                    <div className="h-1 w-20 bg-primary rounded-full mx-auto md:mx-0"></div>
-                </div>
-
+            <PageHeader
+                className="mb-12"
+                title="Dirigentes de Campo"
+                backHref="/responsabilidades"
+                backLabel="Responsabilidades"
+                actions={
                 <div className="flex flex-wrap justify-center items-center gap-4">
                     <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
                         <select
@@ -119,7 +120,8 @@ export default function CampoPage() {
                         Nova Escala
                     </button>
                 </div>
-            </div>
+                }
+            />
 
             {/* Print Header */}
             <div className="hidden print:block mb-12 text-center">

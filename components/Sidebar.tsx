@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useMemo, memo, useEffect } from 'react'
+import toast from 'react-hot-toast'
 import { useAuth } from '@/contexts/AuthProvider'
 import { useSidebar } from '@/contexts/SidebarContext'
 import { PerfilAcesso } from '@/types/database.types'
@@ -13,33 +14,24 @@ import {
     Map,
     Calendar,
     LogOut,
-    Settings,
-    Users,
-    FileText,
-    UserCheck,
-    ClipboardList,
     Menu,
     ChevronLeft,
     X,
-    PlusCircle,
     ShieldCheck,
-    BookOpen,
-    Mic,
-    Eraser,
-    LibraryBig,
-    UsersRound,
     UserCircle,
-    HeartHandshake,
-    Clock
+    Clock,
+    SlidersHorizontal,
 } from 'lucide-react'
+import { MENU_GROUPS, PERFIS_ADMINISTRACAO, isMenuLinkVisible, type MenuGroup } from '@/lib/menuConfig'
 
 type MenuItem =
     | { type: 'link'; href: string; label: string; icon: LucideIcon; restricted?: boolean; allowedRoles?: PerfilAcesso[] }
     | { type: 'pin-button'; label: string; icon: LucideIcon; restricted?: boolean; allowedRoles?: PerfilAcesso[] }
     | { type: 'pioneer-button'; label: string; icon: LucideIcon; restricted?: boolean; allowedRoles?: PerfilAcesso[] }
-    | { type: 'separator'; label?: string; restricted?: boolean; allowedRoles?: PerfilAcesso[] }
 
-// Static definition outside component to avoid recreation
+// Static definition outside component to avoid recreation.
+// As antigas secoes "Area Comum" e "Administracao" foram substituidas pelos
+// grupos definidos em lib/menuConfig.ts (botao na Sidebar + pagina de tiles).
 const MENU_ITEMS: MenuItem[] = [
     { type: 'link', href: '/', label: 'Home', icon: Home },
     { type: 'link', href: '/quadro-de-anuncios', label: 'Quadro de Anúncios', icon: LayoutDashboard },
@@ -47,31 +39,6 @@ const MENU_ITEMS: MenuItem[] = [
     { type: 'link', href: '/saidas', label: 'Horário de Campo', icon: Calendar },
     { type: 'pin-button', label: 'Meu Relatório', icon: UserCircle },
     { type: 'pioneer-button', label: 'Painel do Pioneiro', icon: Clock },
-
-    { type: 'separator', label: 'Área Comum', restricted: true },
-    { type: 'link', href: '/admin/meu-login', label: 'Senha e Acesso', icon: ShieldCheck, restricted: true },
-    { type: 'link', href: '/admin/agenda', label: 'Agenda e Lembretes', icon: Calendar, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT', 'IRMAO'] },
-    { type: 'link', href: '/admin/eventos', label: 'Gerenciar Eventos', icon: PlusCircle, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT', 'IRMAO'] },
-    { type: 'link', href: '/admin/pauta-anciaos', label: 'Pauta de Reunião', icon: ClipboardList, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT', 'IRMAO'] },
-    { type: 'link', href: '/admin/relatorios', label: 'Relatórios', icon: FileText, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT', 'IRMAO'] },
-    { type: 'link', href: '/admin/relatorios-grupo', label: 'Meu Grupo', icon: Users, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT', 'IRMAO'] },
-    { type: 'link', href: '/admin/membros', label: 'Membros', icon: UsersRound, restricted: true },
-    { type: 'link', href: '/admin/pastoreio', label: 'Pastoreio', icon: HeartHandshake, restricted: true },
-    { type: 'link', href: '/admin/meus-temas', label: 'Meus Temas', icon: Mic, restricted: true },
-
-    { type: 'separator', label: 'Administração', restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO', 'SUPERINTENDENTE_SERVICO', 'RESP_QUINTA', 'RESP_SABADO', 'RQA', 'RT'] },
-    { type: 'link', href: '/admin/visita', label: 'Visita do Supte.', icon: ClipboardList, restricted: true, allowedRoles: ['ADMIN', 'SUPERINTENDENTE_SERVICO', 'RQA', 'SECRETARIO', 'RESP_QUINTA'] },
-    { type: 'link', href: '/admin/relatorios-secretaria', label: 'Secretário (Relatórios)', icon: FileText, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO'] },
-    { type: 'link', href: '/programacao', label: 'Reunião de Quarta', icon: BookOpen, restricted: true, allowedRoles: ['ADMIN', 'RESP_QUINTA'] },
-    { type: 'link', href: '/admin/discursos', label: 'Discursos', icon: Mic, restricted: true, allowedRoles: ['ADMIN', 'RESP_SABADO'] },
-    { type: 'link', href: '/admin/escalas', label: 'Outras Designações', icon: ClipboardList, restricted: true, allowedRoles: ['ADMIN', 'RQA'] },
-    { type: 'link', href: '/admin/campo', label: 'Campo', icon: Map, restricted: true, allowedRoles: ['ADMIN', 'RQA'] },
-    { type: 'link', href: '/admin/limpeza', label: 'Limpeza', icon: Eraser, restricted: true, allowedRoles: ['ADMIN', 'SUPERINTENDENTE_SERVICO'] },
-    { type: 'link', href: '/admin/cadastros', label: 'Cadastros', icon: LibraryBig, restricted: true, allowedRoles: ['ADMIN', 'RESP_SABADO'] },
-    { type: 'link', href: '/admin/grupos', label: 'Grupos', icon: Users, restricted: true, allowedRoles: ['ADMIN', 'SUPERINTENDENTE_SERVICO'] },
-
-    { type: 'link', href: '/admin/territorios', label: 'Gerenciar Territórios', icon: Settings, restricted: true, allowedRoles: ['ADMIN', 'RT'] },
-    { type: 'link', href: '/admin/permissoes', label: 'Permissões', icon: UserCheck, restricted: true, allowedRoles: ['ADMIN'] },
 ]
 
 function Sidebar() {
@@ -121,6 +88,25 @@ function Sidebar() {
         })
     }, [user, roles.length, loading, hasRole])
 
+    // Um grupo so aparece se o usuario tiver acesso a pelo menos um item dele,
+    // evitando que o botao leve para uma pagina de tiles vazia.
+    const visibleGroups = useMemo(() => {
+        return MENU_GROUPS.filter(group =>
+            group.items.some(item => isMenuLinkVisible(item, { user, roles, loading, hasRole }))
+        )
+    }, [user, roles, loading, hasRole])
+
+    // Mantem o botao do grupo em destaque enquanto o usuario navega
+    // em qualquer pagina que pertenca a ele.
+    const isGroupActive = (group: MenuGroup) => {
+        if (pathname === group.href) return true
+        return group.items.some(item => isActive(item.href))
+    }
+
+    // Mantem a mesma regra do antigo separador "Administracao": o botao nao
+    // aparece para perfis que nao tinham acesso a area (ex.: IRMAO).
+    const showAdminPlaceholder = !loading && !!user && hasRole(PERFIS_ADMINISTRACAO)
+
     const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ')
 
     if (pathname && pathname.includes('/acompanhar')) {
@@ -147,10 +133,11 @@ function Sidebar() {
 
             <aside
                 className={cn(
-                    "fixed top-0 left-0 h-full bg-white dark:bg-slate-950 border-r dark:border-slate-800 z-50 transition-all duration-300 ease-in-out print:hidden",
-                    isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+                    "fixed top-0 left-0 h-full bg-white dark:bg-slate-950 border-r dark:border-slate-800 z-50 transition-all duration-300 ease-in-out print:hidden flex flex-col",
                     isCollapsed ? "md:w-16" : "md:w-64",
-                    "w-64 flex flex-col"
+                    isMobileOpen
+                        ? "w-64 translate-x-0"
+                        : "max-md:w-0 max-md:overflow-hidden max-md:border-0 md:translate-x-0"
                 )}
             >
                 <div className={cn(
@@ -180,7 +167,7 @@ function Sidebar() {
                 </div>
 
                 <nav className="flex-1 overflow-y-auto p-2 space-y-1 thin-scrollbar">
-                    {visibleItems.map((item, index) => {
+                    {visibleItems.map((item) => {
                         if (item.type === 'pin-button') {
                             const Icon = item.icon
                             return (
@@ -228,19 +215,6 @@ function Sidebar() {
                             )
                         }
 
-                        if (item.type === 'separator') {
-                            return (
-                                <div key={`sep-${index}`} className="my-2 px-3">
-                                    <div className="border-t border-gray-100 dark:border-slate-800" />
-                                    {item.label && !isCollapsed && (
-                                        <span className="block mt-2 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
-                                            {item.label}
-                                        </span>
-                                    )}
-                                </div>
-                            )
-                        }
-
                         const Icon = item.icon
                         const active = isActive(item.href)
 
@@ -264,6 +238,67 @@ function Sidebar() {
                             </Link>
                         )
                     })}
+
+                    {visibleGroups.length > 0 && (
+                        <div className="my-2 px-3">
+                            <div className="border-t border-gray-100 dark:border-slate-800" />
+                        </div>
+                    )}
+
+                    {visibleGroups.map(group => {
+                        const GroupIcon = group.icon
+                        const groupActive = isGroupActive(group)
+
+                        return (
+                            <Link
+                                key={group.id}
+                                href={group.href}
+                                onClick={() => setIsMobileOpen(false)}
+                                className={cn(
+                                    "flex items-center gap-3 py-2.5 px-3 rounded-lg transition-all duration-200 font-medium group",
+                                    isCollapsed && "md:justify-center md:px-0",
+                                    groupActive
+                                        ? "bg-blue-600 text-white shadow-sm"
+                                        : "text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800/50 hover:text-blue-600 dark:hover:text-blue-400"
+                                )}
+                                title={isCollapsed ? group.label : undefined}
+                            >
+                                <GroupIcon className={cn("w-5 h-5 shrink-0", groupActive ? "text-white" : "text-gray-400 dark:text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400")} />
+                                <span className={cn("truncate transition-opacity", isCollapsed && "md:hidden")}>
+                                    {group.label}
+                                </span>
+                                <ChevronLeft
+                                    className={cn(
+                                        "w-4 h-4 ml-auto shrink-0 rotate-180 transition-transform",
+                                        groupActive ? "text-white" : "text-gray-400 dark:text-slate-500",
+                                        isCollapsed && "md:hidden"
+                                    )}
+                                />
+                            </Link>
+                        )
+                    })}
+
+                    {showAdminPlaceholder && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                toast('Área de Administração — em breve', { icon: '🚧' })
+                                setIsMobileOpen(false)
+                            }}
+                            aria-label="Administração, em breve"
+                            className={cn(
+                                "w-full flex items-center gap-3 py-2.5 px-3 rounded-lg transition-all duration-200 font-medium group",
+                                "text-gray-400 dark:text-slate-500 hover:bg-gray-50 dark:hover:bg-slate-800/50",
+                                isCollapsed && "md:justify-center md:px-0"
+                            )}
+                            title={isCollapsed ? 'Administração' : undefined}
+                        >
+                            <SlidersHorizontal className="w-5 h-5 shrink-0 text-gray-300 dark:text-slate-600" />
+                            <span className={cn("truncate transition-opacity", isCollapsed && "md:hidden")}>
+                                Administração
+                            </span>
+                        </button>
+                    )}
                 </nav>
 
                 <div className="p-4 border-t dark:border-slate-800 bg-gray-50/50 dark:bg-slate-900/50">

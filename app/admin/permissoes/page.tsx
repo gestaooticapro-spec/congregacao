@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Database, PerfilAcesso } from '@/types/database.types'
+import PageHeader from '@/components/PageHeader'
 
 // Helper to get enum values
 const PERFIS: PerfilAcesso[] = [
@@ -85,10 +86,12 @@ export default function ManagePermissionsPage() {
 
     return (
         <div className="max-w-4xl mx-auto p-8">
-            <div className="text-center mb-12">
-                <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Gerenciar Permissões (v1.1)</h1>
-                <div className="h-1 w-20 bg-primary mx-auto rounded-full"></div>
-            </div>
+            <PageHeader
+                className="mb-12"
+                title="Gerenciar Permissões"
+                backHref="/responsabilidades"
+                backLabel="Responsabilidades"
+            />
 
             {/* Search Card */}
             <div className="bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/50 dark:shadow-none rounded-2xl border border-slate-200 dark:border-slate-800 p-8 mb-8">

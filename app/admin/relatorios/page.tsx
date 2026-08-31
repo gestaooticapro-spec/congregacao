@@ -1,16 +1,17 @@
 'use client'
 
 import Link from 'next/link'
+import PageHeader from '@/components/PageHeader'
 
 export default function RelatoriosDashboard() {
     return (
         <div className="p-8 max-w-7xl mx-auto" suppressHydrationWarning>
-            <div className="mb-8" suppressHydrationWarning>
-                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Relatórios Administrativos</h1>
-                <p className="text-slate-600 dark:text-slate-400 mt-2">
-                    Relatórios restritos e dados sensíveis da congregação.
-                </p>
-            </div>
+            <PageHeader
+                title="Relatórios Administrativos"
+                subtitle="Relatórios restritos e dados sensíveis da congregação."
+                backHref="/anciaos"
+                backLabel="Anciãos"
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" suppressHydrationWarning>
                 {/* Member List Report Card */}

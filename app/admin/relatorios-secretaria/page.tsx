@@ -8,7 +8,6 @@ import {
     CheckCircle2,
     Calendar,
     Clock,
-    FileText,
     Star,
     PieChart,
     ArrowRight,
@@ -18,6 +17,7 @@ import {
 import { addDays, addMonths, eachWeekOfInterval, endOfMonth, format, startOfMonth, subMonths } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import Link from 'next/link'
+import PageHeader from '@/components/PageHeader'
 
 interface GrupoResumo {
     id: string
@@ -310,30 +310,26 @@ export default function RelatoriosSecretariaPage() {
 
     return (
         <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-8">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
-                        <FileText className="w-6 h-6 text-blue-600" />
-                        Secretário (Relatórios)
-                    </h1>
-                    <p className="text-gray-500 dark:text-gray-400">
-                        Visão consolidada do progresso de todos os grupos da congregação.
-                    </p>
-                </div>
-
-                <div className="flex bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl px-4 py-2 items-center gap-2 shadow-sm">
-                    <Calendar className="w-5 h-5 text-gray-400" />
-                    <select
-                        value={mes}
-                        onChange={e => setMes(e.target.value)}
-                        className="bg-white dark:bg-slate-900 border-none focus:ring-0 text-sm font-medium text-gray-700 dark:text-gray-200 py-1 cursor-pointer capitalize"
-                    >
-                        {meses.map(m => (
-                            <option key={m.value} value={m.value} className="bg-white text-gray-900 dark:bg-slate-900 dark:text-gray-200">{m.label}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
+            <PageHeader
+                title="Secretário (Relatórios)"
+                subtitle="Visão consolidada do progresso de todos os grupos da congregação."
+                backHref="/responsabilidades"
+                backLabel="Responsabilidades"
+                actions={
+                    <div className="flex bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl px-4 py-2 items-center gap-2 shadow-sm">
+                        <Calendar className="w-5 h-5 text-gray-400" />
+                        <select
+                            value={mes}
+                            onChange={e => setMes(e.target.value)}
+                            className="bg-white dark:bg-slate-900 border-none focus:ring-0 text-sm font-medium text-gray-700 dark:text-gray-200 py-1 cursor-pointer capitalize"
+                        >
+                            {meses.map(m => (
+                                <option key={m.value} value={m.value} className="bg-white text-gray-900 dark:bg-slate-900 dark:text-gray-200">{m.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                }
+            />
 
             {/* Consolidado Geral */}
             <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">

@@ -49,9 +49,10 @@ export async function updateSession(request: NextRequest) {
         })
     }
 
+    // Os hubs do menu (/anciaos e /responsabilidades) tambem sao area autenticada.
     if (
         !user &&
-        pathname.startsWith('/admin')
+        (pathname.startsWith('/admin') || pathname === '/anciaos' || pathname === '/responsabilidades')
     ) {
         console.warn('[Middleware] Unauthenticated access blocked', { pathname })
         // no user, potentially respond by redirecting the user to the login page

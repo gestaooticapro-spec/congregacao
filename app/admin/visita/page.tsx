@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import PageHeader from '@/components/PageHeader'
 
 export default function VisitasListPage() {
     const router = useRouter()
@@ -37,10 +38,12 @@ export default function VisitasListPage() {
 
     return (
         <div className="max-w-4xl mx-auto p-8">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Visitas do Superintendente</h1>
-                <p className="text-slate-600 mt-1">Selecione uma visita para gerenciar as atividades e horários.</p>
-            </div>
+            <PageHeader
+                title="Visitas do Superintendente"
+                subtitle="Selecione uma visita para gerenciar as atividades e horários."
+                backHref="/responsabilidades"
+                backLabel="Responsabilidades"
+            />
 
             {visitas.length === 0 ? (
                 <div className="bg-white dark:bg-slate-800 p-8 rounded-xl border border-slate-200 dark:border-slate-700 text-center">

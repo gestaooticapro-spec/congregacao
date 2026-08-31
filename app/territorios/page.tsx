@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
+import PageHeader from '@/components/PageHeader'
 
 export default function TerritoriosPage() {
     const [territories, setTerritories] = useState<any[]>([])
@@ -98,9 +99,7 @@ export default function TerritoriosPage() {
 
     return (
         <div className="container mx-auto p-4">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold">Territórios</h1>
-            </div>
+            <PageHeader title="Territórios" />
 
             {/* Search Bar */}
             <div className="mb-4">

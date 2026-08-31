@@ -60,9 +60,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" translate="no" suppressHydrationWarning>
+    <html lang="pt-BR" translate="no" className="overflow-x-clip" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased overflow-x-clip max-w-full`}
         suppressHydrationWarning
       >
         <SidebarProvider>

@@ -12,7 +12,8 @@ export default function Home() {
           <div className="mb-4">
             <div className="flex flex-wrap items-center justify-center gap-3">
               <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-                Gestor Congregação Guaira
+                <span className="md:hidden">Congregação Guaira</span>
+                <span className="hidden md:inline">Gestor Congregação Guaira</span>
               </h1>
               {zoomMeetingUrl && (
                 <a
@@ -29,9 +30,7 @@ export default function Home() {
                 </a>
               )}
             </div>
-            <p className="text-slate-600 dark:text-slate-400 text-sm">
-              Programa para organizar as designações da nossa congregação
-            </p>
+            <div className="h-1 w-20 bg-primary mx-auto rounded-full mt-2" />
           </div>
 
           <HomeMemberSearch />

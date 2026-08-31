@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Database } from '@/types/database.types'
+import PageHeader from '@/components/PageHeader'
 
 type Grupo = Database['public']['Tables']['grupos_servico']['Row']
 type EscalaLimpeza = Database['public']['Tables']['escala_limpeza']['Row']
@@ -169,10 +170,12 @@ export default function EscalaLimpezaPage() {
 
     return (
         <div className="max-w-4xl mx-auto p-8">
-            <div className="text-center mb-12 print:hidden">
-                <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Escala de Limpeza</h1>
-                <div className="h-1 w-20 bg-primary mx-auto rounded-full"></div>
-            </div>
+            <PageHeader
+                className="mb-12"
+                title="Escala de Limpeza"
+                backHref="/responsabilidades"
+                backLabel="Responsabilidades"
+            />
 
             <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-10 print:hidden">
                 <button

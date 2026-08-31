@@ -3,16 +3,16 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Database } from '@/types/database.types'
-import { useRouter } from 'next/navigation'
 import { format, startOfMonth, endOfMonth, subMonths, addMonths, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { ChevronLeft, ChevronRight, Printer } from 'lucide-react'
+import PageHeader from '@/components/PageHeader'
 
 type EscalaCampo = Database['public']['Tables']['escalas_campo']['Row'] & {
     membros: { nome_completo: string; nome_civil: string | null } | null
 }
 
 export default function RelatorioCampoPage() {
-    const router = useRouter()
     const [currentDate, setCurrentDate] = useState(new Date())
     const [schedule, setSchedule] = useState<EscalaCampo[]>([])
     const [loading, setLoading] = useState(true)
@@ -65,48 +65,34 @@ export default function RelatorioCampoPage() {
     }
 
     return (
-        <div className="p-8 max-w-[210mm] mx-auto min-h-screen bg-white text-slate-900" suppressHydrationWarning>
-            {/* Header / Controls (Hidden on Print) */}
-            <div className="mb-8 print:hidden">
-                <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-2xl font-bold">Relatório de Dirigente de Campo</h1>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => router.back()}
-                            className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-                        >
-                            Voltar
-                        </button>
-                        <button
-                            onClick={handlePrint}
-                            className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors flex items-center gap-2"
-                        >
-                            <span>🖨️</span> Imprimir
-                        </button>
-                    </div>
-                </div>
-
-                <div className="flex items-center justify-center gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
-                    <button
-                        onClick={handlePrevMonth}
-                        className="p-2 hover:bg-slate-200 rounded-full transition-colors"
-                    >
-                        ◀️
-                    </button>
-                    <h2 className="text-xl font-bold capitalize w-48 text-center">
-                        {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
-                    </h2>
-                    <button
-                        onClick={handleNextMonth}
-                        className="p-2 hover:bg-slate-200 rounded-full transition-colors"
-                    >
-                        ▶️
-                    </button>
-                </div>
+        <div className="w-full min-w-0 max-w-[210mm] mx-auto min-h-screen overflow-x-clip py-4 md:p-8 print:p-0 print:overflow-visible" suppressHydrationWarning>
+            <div className="print:hidden">
+                <PageHeader
+                    title="Dirigentes de Campo"
+                    subtitle={format(currentDate, 'MMMM yyyy', { locale: ptBR })}
+                    backHref="/quadro-de-anuncios"
+                    backLabel=""
+                    actions={
+                        <>
+                            <button type="button" onClick={handlePrevMonth} className="inline-flex items-center gap-1 p-2 rounded-full text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Mês anterior">
+                                <ChevronLeft className="w-5 h-5" />
+                                <span className="hidden sm:inline">Anterior</span>
+                            </button>
+                            <button type="button" onClick={handleNextMonth} className="inline-flex items-center gap-1 p-2 rounded-full text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Próximo mês">
+                                <span className="hidden sm:inline">Próximo</span>
+                                <ChevronRight className="w-5 h-5" />
+                            </button>
+                            <button type="button" onClick={handlePrint} className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors shadow-sm">
+                                <Printer className="w-4 h-4" />
+                                Imprimir
+                            </button>
+                        </>
+                    }
+                />
             </div>
 
             {/* Report Content */}
-            <div className="print-content">
+            <div className="print-content bg-white text-slate-900">
                 <div className="text-center mb-8">
                     <h2 className="text-2xl font-bold uppercase mb-2">Escala de Campo</h2>
                     <p className="text-lg font-medium capitalize text-slate-600">

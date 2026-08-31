@@ -12,14 +12,14 @@ import {
     ChevronDown,
     Shield,
     Clock,
-    Star,
-    ArrowLeft
+    Star
 } from 'lucide-react'
 import { format, startOfMonth, subMonths } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Database } from '@/types/database.types'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
+import PageHeader from '@/components/PageHeader'
 
 type Membro = Database['public']['Tables']['membros']['Row']
 type Relatorio = Database['public']['Tables']['relatorios_servico']['Row']
@@ -45,7 +45,6 @@ const getMonthOptions = () => {
 function RelatoriosGrupoContent() {
     const { user } = useAuth()
     const searchParams = useSearchParams()
-    const router = useRouter()
     const queryMes = searchParams.get('mes')
     const queryGrupoId = searchParams.get('grupo_id')
 
@@ -261,38 +260,26 @@ function RelatoriosGrupoContent() {
     return (
         <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
 
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    {queryGrupoId && (
-                        <button 
-                            onClick={() => router.back()}
-                            className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mb-2 transition-colors"
+            <PageHeader
+                title={`Relatórios do ${nomeGrupo || 'Grupo'}`}
+                subtitle="Acompanhe a entrega dos relatórios do seu grupo de serviço."
+                backHref={queryGrupoId ? '/admin/relatorios-secretaria' : '/anciaos'}
+                backLabel={queryGrupoId ? 'Secretário (Relatórios)' : 'Anciãos'}
+                actions={
+                    <div className="flex bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl px-4 py-2 items-center gap-2 shadow-sm">
+                        <Calendar className="w-5 h-5 text-gray-400" />
+                        <select
+                            value={mes}
+                            onChange={e => setMes(e.target.value)}
+                            className="bg-transparent border-none focus:ring-0 text-sm font-medium text-gray-700 dark:text-gray-300 py-1 cursor-pointer capitalize"
                         >
-                            <ArrowLeft className="w-4 h-4" /> Voltar
-                        </button>
-                    )}
-                    <h1 className="text-2xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
-                        <Users className="w-6 h-6 text-blue-600" />
-                        Relatórios do {nomeGrupo || 'Grupo'}
-                    </h1>
-                    <p className="text-gray-500 dark:text-gray-400">
-                        Acompanhe a entrega dos relatórios do seu grupo de serviço.
-                    </p>
-                </div>
-
-                <div className="flex bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl px-4 py-2 items-center gap-2 shadow-sm">
-                    <Calendar className="w-5 h-5 text-gray-400" />
-                    <select
-                        value={mes}
-                        onChange={e => setMes(e.target.value)}
-                        className="bg-transparent border-none focus:ring-0 text-sm font-medium text-gray-700 dark:text-gray-300 py-1 cursor-pointer capitalize"
-                    >
-                        {meses.map(m => (
-                            <option key={m.value} value={m.value}>{m.label}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
+                            {meses.map(m => (
+                                <option key={m.value} value={m.value}>{m.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                }
+            />
 
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

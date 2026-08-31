@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import PageHeader from '@/components/PageHeader'
 
 // Typed client for new table not yet in generated types
 const db = supabase as any
@@ -192,12 +193,12 @@ export default function PautaAnciaosPage() {
 
     return (
         <div className="p-6 max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-6">
-                📋 Pauta de Reunião de Anciãos
-            </h1>
-            <p className="text-slate-600 dark:text-slate-400 mb-8">
-                Sugestões de assuntos para as reuniões trimestrais. Qualquer ancião pode adicionar sugestões.
-            </p>
+            <PageHeader
+                title="Pauta de Reunião de Anciãos"
+                subtitle="Sugestões de assuntos para as reuniões trimestrais. Qualquer ancião pode adicionar sugestões."
+                backHref="/anciaos"
+                backLabel="Anciãos"
+            />
 
             {/* Collapsible Form */}
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm mb-8 overflow-hidden">

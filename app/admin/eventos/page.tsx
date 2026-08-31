@@ -3,13 +3,18 @@
 import { useState } from 'react'
 import EventosCongregacao from '@/components/admin/eventos/EventosCongregacao'
 import EventosAnciaos from '@/components/admin/eventos/EventosAnciaos'
+import PageHeader from '@/components/PageHeader'
 
 export default function AdminEventosPage() {
     const [activeTab, setActiveTab] = useState<'congregacao' | 'anciaos'>('congregacao')
 
     return (
         <div className="p-8 max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-8">Gerenciar Eventos</h1>
+            <PageHeader
+                title="Gerenciar Eventos"
+                backHref="/anciaos"
+                backLabel="Anciãos"
+            />
 
             {/* Tabs */}
             <div className="flex space-x-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-8 w-fit">

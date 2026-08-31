@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { format, addDays, startOfWeek, endOfWeek, nextDay, Day } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { BookOpen, ChevronLeft, ChevronRight, Mic, UserRound } from 'lucide-react'
 import MeetingAttendanceButton from '@/components/MeetingAttendanceButton'
+import PageHeader from '@/components/PageHeader'
 
 // Helper to get the next meeting date (Saturday or Sunday)
 const getNextWeekendMeetingDate = (baseDate: Date) => {
@@ -18,7 +19,6 @@ const getNextWeekendMeetingDate = (baseDate: Date) => {
 }
 
 export default function ReuniaoFimSemanaPage() {
-    const router = useRouter()
     const [currentDate, setCurrentDate] = useState(getNextWeekendMeetingDate(new Date()))
     const [loading, setLoading] = useState(true)
     const [data, setData] = useState<any>(null)
@@ -152,40 +152,34 @@ export default function ReuniaoFimSemanaPage() {
         return data?.assignments?.find((a: any) => a.funcao === role)?.membro?.nome_completo || 'Não designado'
     }
 
+    const displayDate = format(
+        data?.displayDate ? new Date(data.displayDate + 'T12:00:00') : currentDate,
+        "dd 'de' MMMM 'de' yyyy",
+        { locale: ptBR }
+    )
+
+    const navButtonClass = 'inline-flex items-center gap-1 p-2 rounded-full text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors'
+
     return (
-        <div className="p-8 max-w-4xl mx-auto">
-            <div className="mb-6">
-                <button
-                    onClick={() => router.back()}
-                    className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700 shadow-sm"
-                >
-                    Voltar
-                </button>
-            </div>
-            <div className="flex justify-between items-center mb-8">
-                <button
-                    onClick={handlePrevious}
-                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
-                >
-                    ⬅️ Anterior
-                </button>
-
-                <h1 className="text-2xl font-bold text-center">
-                    Reunião de Fim de Semana
-                    <div className="text-base font-normal text-slate-500 mt-1">
-                        {format(data?.displayDate ? new Date(data.displayDate + 'T12:00:00') : currentDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                    </div>
-                </h1>
-
-                <MeetingAttendanceButton date={data?.displayDate} meetingType="FIM_SEMANA" />
-
-                <button
-                    onClick={handleNext}
-                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
-                >
-                    Próximo ➡️
-                </button>
-            </div>
+        <div className="max-w-4xl mx-auto">
+            <PageHeader
+                title="Reunião de Fim de Semana"
+                subtitle={displayDate}
+                backHref="/quadro-de-anuncios"
+                backLabel=""
+                actions={
+                    <>
+                        <button type="button" onClick={handlePrevious} className={navButtonClass} aria-label="Semana anterior">
+                            <ChevronLeft className="w-5 h-5" />
+                            <span className="hidden sm:inline">Anterior</span>
+                        </button>
+                        <button type="button" onClick={handleNext} className={navButtonClass} aria-label="Próxima semana">
+                            <span className="hidden sm:inline">Próximo</span>
+                            <ChevronRight className="w-5 h-5" />
+                        </button>
+                    </>
+                }
+            />
 
             {loading ? (
                 <div className="text-center py-12 text-slate-500">Carregando...</div>
@@ -201,9 +195,9 @@ export default function ReuniaoFimSemanaPage() {
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
                         <h2 className="text-sm uppercase tracking-wide text-slate-500 font-semibold mb-4">Presidência</h2>
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-xl">
-                                👔
-                            </div>
+                            <span className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 shrink-0">
+                                <UserRound className="w-6 h-6" />
+                            </span>
                             <div>
                                 <p className="text-lg font-bold text-slate-900 dark:text-white">
                                     {getAssignment('PRESIDENTE')}
@@ -218,9 +212,9 @@ export default function ReuniaoFimSemanaPage() {
                         <h2 className="text-sm uppercase tracking-wide text-slate-500 font-semibold mb-4">Discurso Público</h2>
                         <div className="space-y-4">
                             <div className="flex items-start gap-4">
-                                <div className="w-12 h-12 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400 text-xl shrink-0">
-                                    🎤
-                                </div>
+                                <span className="p-3 rounded-xl bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 shrink-0">
+                                    <Mic className="w-6 h-6" />
+                                </span>
                                 <div>
                                     <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">
                                         {data?.visitTheme ? data.visitTheme : (
@@ -258,9 +252,9 @@ export default function ReuniaoFimSemanaPage() {
                             <h2 className="text-sm uppercase tracking-wide text-slate-500 font-semibold mb-4">Discurso Final</h2>
                             <div className="space-y-4">
                                 <div className="flex items-start gap-4">
-                                    <div className="w-12 h-12 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400 text-xl shrink-0">
-                                        🎤
-                                    </div>
+                                    <span className="p-3 rounded-xl bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 shrink-0">
+                                        <Mic className="w-6 h-6" />
+                                    </span>
                                     <div>
                                         <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">
                                             {data.visitConfig.weekend_discurso_final_tema}
@@ -288,9 +282,9 @@ export default function ReuniaoFimSemanaPage() {
                         <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
                             <h2 className="text-sm uppercase tracking-wide text-slate-500 font-semibold mb-4">Estudo de A Sentinela</h2>
                             <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400 text-xl">
-                                    📖
-                                </div>
+                                <span className="p-3 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 shrink-0">
+                                    <BookOpen className="w-6 h-6" />
+                                </span>
                                 <div>
                                     <p className="text-lg font-bold text-slate-900 dark:text-white">
                                         {getAssignment('LEITOR_SENTINELA')}
@@ -302,6 +296,10 @@ export default function ReuniaoFimSemanaPage() {
                     )}
                 </div>
             )}
+
+            <div className="mt-8 flex justify-center print:hidden">
+                <MeetingAttendanceButton date={data?.displayDate} meetingType="FIM_SEMANA" />
+            </div>
         </div>
     )
 }

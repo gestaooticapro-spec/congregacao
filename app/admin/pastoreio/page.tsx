@@ -8,6 +8,7 @@ import { format, subDays, parseISO, isValid } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import toast from 'react-hot-toast'
 import { Info, AlertTriangle, Loader2 } from 'lucide-react'
+import PageHeader from '@/components/PageHeader'
 
 type Membro = Database['public']['Tables']['membros']['Row']
 
@@ -176,17 +177,20 @@ export default function PastoreioPage() {
 
     return (
         <div className="max-w-5xl mx-auto space-y-6 p-4">
-            {/* Header */}
-            <div className="text-center mb-2">
-                <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Gestão de Pastoreio</h1>
-                <div className="h-1 w-20 bg-blue-600 mx-auto rounded-full mb-3" />
-                <p className="text-slate-500 dark:text-slate-400">
-                    Superintendente:{' '}
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">{sgNome}</span>
-                    {' · '}
-                    {membros.length} membro{membros.length !== 1 ? 's' : ''} no grupo
-                </p>
-            </div>
+            <PageHeader
+                className="mb-2"
+                title="Gestão de Pastoreio"
+                subtitle={
+                    <>
+                        Superintendente:{' '}
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">{sgNome}</span>
+                        {' · '}
+                        {membros.length} membro{membros.length !== 1 ? 's' : ''} no grupo
+                    </>
+                }
+                backHref="/anciaos"
+                backLabel="Anciãos"
+            />
 
             {/* Aviso */}
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">

@@ -17,6 +17,13 @@ type Designacao = {
     detalhe?: string
 }
 
+function formatarDescricaoCompromisso(desig: Designacao): string {
+    if (desig.tipo !== 'REUNIAO') return desig.descricao
+    const match = desig.descricao.match(/^(PARTE|AJUDANTE|LEITOR)\s*-\s*(\d+)/i)
+    if (!match) return desig.descricao
+    return `${match[1].toUpperCase()} - ${match[2]}`
+}
+
 type EscalaLimpezaComGrupo = Pick<Database['public']['Tables']['escala_limpeza']['Row'], 'id' | 'data_inicio' | 'grupo_id'> & {
     grupos_servico?: { nome: string | null } | null
 }
@@ -781,7 +788,8 @@ export default function HomeMemberSearch(): React.ReactNode {
                                                 <div className="flex-1">
                                                     <div className="flex items-start justify-between gap-2">
                                                         <h3 className="font-bold text-slate-900 dark:text-white text-left">
-                                                            {desig.descricao}
+                                                            <span className="md:hidden">{formatarDescricaoCompromisso(desig)}</span>
+                                                            <span className="hidden md:inline">{desig.descricao}</span>
                                                         </h3>
                                                         <span className={`
                                                         text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider

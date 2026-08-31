@@ -1,0 +1,156 @@
+import {
+    BookOpen,
+    Briefcase,
+    Calendar,
+    ClipboardList,
+    Eraser,
+    FileText,
+    HeartHandshake,
+    LibraryBig,
+    Map,
+    Mic,
+    PlusCircle,
+    Settings,
+    Shield,
+    ShieldCheck,
+    UserCheck,
+    Users,
+    UsersRound,
+} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import type { User } from '@supabase/supabase-js'
+import type { PerfilAcesso } from '@/types/database.types'
+
+/**
+ * Fonte unica de verdade dos agrupamentos do menu.
+ *
+ * Este arquivo e compartilhado entre:
+ * - `components/Sidebar.tsx` (renderiza apenas o botao do grupo)
+ * - `components/MenuHub.tsx` (renderiza a grade de tiles do grupo)
+ *
+ * Os `href` continuam apontando para as mesmas paginas de sempre.
+ * Este refactor muda apenas o CAMINHO para chegar ate elas.
+ */
+
+export type MenuLink = {
+    label: string
+    href: string
+    icon: LucideIcon
+    /** Itens restritos exigem sessao ativa para aparecer. */
+    restricted: boolean
+    /** Quando informado, o item so aparece para esses perfis. */
+    allowedRoles?: PerfilAcesso[]
+}
+
+export type MenuGroupId = 'anciaos' | 'responsabilidades'
+
+export type MenuGroup = {
+    id: MenuGroupId
+    label: string
+    /** Rota da pagina intermediaria (hub) que lista os itens do grupo. */
+    href: string
+    icon: LucideIcon
+    description: string
+    items: MenuLink[]
+}
+
+export type MenuVisibilityContext = {
+    user: User | null
+    roles: PerfilAcesso[]
+    loading: boolean
+    hasRole: (requiredRoles: PerfilAcesso[]) => boolean
+}
+
+/** Perfis que enxergam a maior parte dos itens do grupo "Anciaos". */
+const PERFIS_ANCIAOS: PerfilAcesso[] = [
+    'ADMIN',
+    'SECRETARIO',
+    'SUPERINTENDENTE_SERVICO',
+    'RESP_QUINTA',
+    'RESP_SABADO',
+    'RQA',
+    'RT',
+    'IRMAO',
+]
+
+/** Perfis que enxergavam o antigo separador "Administracao" da Sidebar. */
+export const PERFIS_ADMINISTRACAO: PerfilAcesso[] = [
+    'ADMIN',
+    'SECRETARIO',
+    'SUPERINTENDENTE_SERVICO',
+    'RESP_QUINTA',
+    'RESP_SABADO',
+    'RQA',
+    'RT',
+]
+
+/**
+ * Replica exatamente a regra de visibilidade que a Sidebar ja aplicava
+ * antes do refactor, para que nenhum item mude de comportamento.
+ */
+export function isMenuLinkVisible(item: MenuLink, ctx: MenuVisibilityContext): boolean {
+    if (!item.restricted) return true
+    if (ctx.loading && ctx.roles.length === 0) return false
+    if (!ctx.user) return false
+    if (item.allowedRoles && !ctx.hasRole(item.allowedRoles)) return false
+    return true
+}
+
+export function getVisibleMenuLinks(group: MenuGroup, ctx: MenuVisibilityContext): MenuLink[] {
+    return group.items.filter(item => isMenuLinkVisible(item, ctx))
+}
+
+/** Ex-secacao "Area Comum" da Sidebar. */
+export const ANCIAOS_GROUP: MenuGroup = {
+    id: 'anciaos',
+    label: 'Anciãos',
+    href: '/anciaos',
+    icon: Shield,
+    description: 'Ferramentas do corpo de anciãos da congregação.',
+    items: [
+        { label: 'Senha e Acesso', href: '/admin/meu-login', icon: ShieldCheck, restricted: true },
+        { label: 'Agenda e Lembretes', href: '/admin/agenda', icon: Calendar, restricted: true, allowedRoles: [...PERFIS_ANCIAOS] },
+        { label: 'Gerenciar Eventos', href: '/admin/eventos', icon: PlusCircle, restricted: true, allowedRoles: [...PERFIS_ANCIAOS] },
+        { label: 'Pauta de Reunião', href: '/admin/pauta-anciaos', icon: ClipboardList, restricted: true, allowedRoles: [...PERFIS_ANCIAOS] },
+        { label: 'Relatórios', href: '/admin/relatorios', icon: FileText, restricted: true, allowedRoles: [...PERFIS_ANCIAOS] },
+        { label: 'Meu Grupo', href: '/admin/relatorios-grupo', icon: Users, restricted: true, allowedRoles: [...PERFIS_ANCIAOS] },
+        { label: 'Membros', href: '/admin/membros', icon: UsersRound, restricted: true },
+        { label: 'Pastoreio', href: '/admin/pastoreio', icon: HeartHandshake, restricted: true },
+        { label: 'Meus Temas', href: '/admin/meus-temas', icon: Mic, restricted: true },
+    ],
+}
+
+/** Ex-secacao "Administracao" da Sidebar (inclui os itens que ficavam no final dela). */
+export const RESPONSABILIDADES_GROUP: MenuGroup = {
+    id: 'responsabilidades',
+    label: 'Responsabilidades',
+    href: '/responsabilidades',
+    icon: Briefcase,
+    description: 'Encargos e designações de serviço da congregação.',
+    items: [
+        { label: 'Visita do Supte.', href: '/admin/visita', icon: ClipboardList, restricted: true, allowedRoles: ['ADMIN', 'SUPERINTENDENTE_SERVICO', 'RQA', 'SECRETARIO', 'RESP_QUINTA'] },
+        { label: 'Secretário (Relatórios)', href: '/admin/relatorios-secretaria', icon: FileText, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO'] },
+        { label: 'Reunião de Quarta', href: '/programacao', icon: BookOpen, restricted: true, allowedRoles: ['ADMIN', 'RESP_QUINTA'] },
+        { label: 'Discursos', href: '/admin/discursos', icon: Mic, restricted: true, allowedRoles: ['ADMIN', 'RESP_SABADO'] },
+        { label: 'Outras Designações', href: '/admin/escalas', icon: ClipboardList, restricted: true, allowedRoles: ['ADMIN', 'RQA'] },
+        { label: 'Campo', href: '/admin/campo', icon: Map, restricted: true, allowedRoles: ['ADMIN', 'RQA'] },
+        { label: 'Limpeza', href: '/admin/limpeza', icon: Eraser, restricted: true, allowedRoles: ['ADMIN', 'SUPERINTENDENTE_SERVICO'] },
+        { label: 'Cadastros', href: '/admin/cadastros', icon: LibraryBig, restricted: true, allowedRoles: ['ADMIN', 'RESP_SABADO'] },
+        { label: 'Grupos', href: '/admin/grupos', icon: Users, restricted: true, allowedRoles: ['ADMIN', 'SUPERINTENDENTE_SERVICO'] },
+        { label: 'Gerenciar Territórios', href: '/admin/territorios', icon: Settings, restricted: true, allowedRoles: ['ADMIN', 'RT'] },
+        { label: 'Permissões', href: '/admin/permissoes', icon: UserCheck, restricted: true, allowedRoles: ['ADMIN'] },
+    ],
+}
+
+export const MENU_GROUPS: MenuGroup[] = [ANCIAOS_GROUP, RESPONSABILIDADES_GROUP]
+
+/**
+ * Resolve um grupo pelo id dentro do proprio componente client.
+ * Isso evita passar objetos com `icon` (funcoes) como props vindas de
+ * Server Components, o que o React nao consegue serializar.
+ */
+export function getMenuGroup(id: MenuGroupId): MenuGroup {
+    const group = MENU_GROUPS.find(item => item.id === id)
+    if (!group) throw new Error(`Grupo de menu desconhecido: ${id}`)
+    return group
+}

@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { Database } from '@/types/database.types'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import PageHeader from '@/components/PageHeader'
 
 type Membro = Database['public']['Tables']['membros']['Row']
 
@@ -139,10 +140,12 @@ export default function MembrosPage() {
                 }
             `}</style>
 
-            <div className="text-center mb-12 no-print">
-                <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Gerenciamento de Membros</h1>
-                <div className="h-1 w-20 bg-primary mx-auto rounded-full"></div>
-            </div>
+            <PageHeader
+                className="mb-12 no-print"
+                title="Gerenciamento de Membros"
+                backHref="/anciaos"
+                backLabel="Anciãos"
+            />
 
             <div className="bg-slate-100 dark:bg-slate-800/50 p-4 md:p-6 rounded-xl border border-slate-200 dark:border-slate-700 mb-8 no-print">
                 <div className="flex flex-col md:flex-row gap-4">

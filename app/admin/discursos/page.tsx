@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { Database } from '@/types/database.types'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import PageHeader from '@/components/PageHeader'
 
 type DiscursoLocal = Database['public']['Tables']['agenda_discursos_locais']['Row'] & {
     tema: { numero: number, titulo: string },
@@ -73,10 +74,12 @@ export default function DiscursosPage() {
 
     return (
         <div className="max-w-6xl mx-auto p-8">
-            <div className="text-center mb-12">
-                <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Gestão de Discursos</h1>
-                <div className="h-1 w-20 bg-primary mx-auto rounded-full"></div>
-            </div>
+            <PageHeader
+                className="mb-12"
+                title="Gestão de Discursos"
+                backHref="/responsabilidades"
+                backLabel="Responsabilidades"
+            />
 
             {/* Tabs */}
             <div className="flex justify-center mb-8">

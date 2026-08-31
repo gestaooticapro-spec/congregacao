@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuth } from '@/contexts/AuthProvider'
+import PageHeader from '@/components/PageHeader'
 
 type Tema = { id: string; numero: number; titulo: string; membro_tema_id?: string; is_paused?: boolean }
 
@@ -290,13 +291,16 @@ export default function MeusTemasPage() {
     // --- Page Content ---
     return (
         <div className="max-w-4xl mx-auto p-4 sm:p-8">
-            <div className="text-center mb-8">
-                <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Meus Temas</h1>
-                <div className="h-1 w-20 bg-primary mx-auto rounded-full mb-3"></div>
-                <p className="text-slate-500 dark:text-slate-400">
-                    Temas preparados de <span className="font-semibold text-slate-700 dark:text-slate-300">{membroNome}</span>
-                </p>
-            </div>
+            <PageHeader
+                title="Meus Temas"
+                subtitle={
+                    <>
+                        Temas preparados de <span className="font-semibold text-slate-700 dark:text-slate-300">{membroNome}</span>
+                    </>
+                }
+                backHref="/anciaos"
+                backLabel="Anciãos"
+            />
 
             <div className="bg-white dark:bg-slate-900 shadow-xl rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
 

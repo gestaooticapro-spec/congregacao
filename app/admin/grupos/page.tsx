@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Database } from '@/types/database.types'
+import PageHeader from '@/components/PageHeader'
 
 type Grupo = Database['public']['Tables']['grupos_servico']['Row']
 type Membro = Database['public']['Tables']['membros']['Row']
@@ -194,10 +195,12 @@ export default function GruposPage() {
                 }
             `}</style>
 
-            <div className="text-center mb-12 no-print">
-                <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Grupos de Serviço</h1>
-                <div className="h-1 w-20 bg-primary mx-auto rounded-full"></div>
-            </div>
+            <PageHeader
+                className="mb-12 no-print"
+                title="Grupos de Serviço"
+                backHref="/responsabilidades"
+                backLabel="Responsabilidades"
+            />
 
             <div className="flex justify-end mb-8 gap-3 no-print">
                 <button

@@ -3,12 +3,13 @@
 import { useEffect, useState, Suspense } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Database } from '@/types/database.types'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { format, parseISO, startOfWeek, endOfWeek } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { calculatePartTimes } from '@/lib/scheduleUtils'
 import MeetingAttendanceButton from '@/components/MeetingAttendanceButton'
-import { MessageCircle, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2, MessageCircle, Printer } from 'lucide-react'
+import PageHeader from '@/components/PageHeader'
 import {
     buildMidweekReminderText,
     isLogadoPresidenteMeioSemana,
@@ -27,7 +28,6 @@ interface Parte {
 }
 
 function RelatorioContent() {
-    const router = useRouter()
     const searchParams = useSearchParams()
     const targetDate = searchParams.get('data')
 
@@ -448,27 +448,47 @@ function RelatorioContent() {
 
             {/* Editor/Screen View (Hidden on Print) */}
             <div className="print:hidden">
-                <div className="mb-8 print:hidden">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center mb-6">
-                        <h1 className="text-2xl font-bold">Relatório de Reunião</h1>
-                        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                <PageHeader
+                    title="Reunião de Meio de Semana"
+                    subtitle={currentDate ? format(parseISO(currentDate), "d 'de' MMMM 'de' yyyy", { locale: ptBR }) : 'Carregando...'}
+                    backHref="/quadro-de-anuncios"
+                    backLabel=""
+                    actions={
+                        <>
                             <button
-                                onClick={() => router.back()}
-                                className="w-full px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors bg-white shadow-sm sm:w-auto"
+                                type="button"
+                                onClick={handlePrev}
+                                disabled={currentIndex <= 0}
+                                className="inline-flex items-center gap-1 p-2 rounded-full text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-30"
+                                aria-label="Semana anterior"
                             >
-                                Voltar
+                                <ChevronLeft className="w-5 h-5" />
+                                <span className="hidden sm:inline">Anterior</span>
                             </button>
                             <button
-                                onClick={handlePrint}
-                                className="w-full px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors flex items-center justify-center gap-2 shadow-sm sm:w-auto"
+                                type="button"
+                                onClick={handleNext}
+                                disabled={currentIndex >= dates.length - 1}
+                                className="inline-flex items-center gap-1 p-2 rounded-full text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-30"
+                                aria-label="Próxima semana"
                             >
-                                <span>🖨️</span> Imprimir
+                                <span className="hidden sm:inline">Próximo</span>
+                                <ChevronRight className="w-5 h-5" />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handlePrint}
+                                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors shadow-sm"
+                            >
+                                <Printer className="w-4 h-4" />
+                                Imprimir
                             </button>
                             {isPresidenteLogado && (
                                 <button
+                                    type="button"
                                     onClick={handleEnviarLembreteWhatsApp}
                                     disabled={enviandoLembrete}
-                                    className="w-full min-h-11 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 text-center leading-tight shadow-sm disabled:opacity-60 disabled:cursor-not-allowed sm:w-auto sm:whitespace-nowrap"
+                                    className="inline-flex items-center justify-center gap-2 min-h-11 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
                                     title="Abrir WhatsApp com lembrete dos designados (você escolhe o contato/grupo)"
                                 >
                                     {enviandoLembrete ? (
@@ -479,33 +499,9 @@ function RelatorioContent() {
                                     Lembrete no WhatsApp
                                 </button>
                             )}
-                        </div>
-                    </div>
-
-                    <div className="mb-4 flex justify-end">
-                        <MeetingAttendanceButton date={dates[currentIndex]} meetingType="MEIO_SEMANA" />
-                    </div>
-
-                    <div className="flex items-center justify-center gap-4 bg-white shadow-sm p-4 rounded-lg border border-slate-200">
-                        <button
-                            onClick={handlePrev}
-                            disabled={currentIndex <= 0}
-                            className="p-2 hover:bg-slate-100 rounded-full transition-colors disabled:opacity-30"
-                        >
-                            ◀️
-                        </button>
-                        <h2 className="text-xl font-bold capitalize w-64 text-center">
-                            {currentDate ? format(parseISO(currentDate), "d 'de' MMMM", { locale: ptBR }) : 'Carregando...'}
-                        </h2>
-                        <button
-                            onClick={handleNext}
-                            disabled={currentIndex >= dates.length - 1}
-                            className="p-2 hover:bg-slate-100 rounded-full transition-colors disabled:opacity-30"
-                        >
-                            ▶️
-                        </button>
-                    </div>
-                </div>
+                        </>
+                    }
+                />
 
                 {/* Report Content for Screen */}
                 <div className="max-w-[210mm] mx-auto bg-white border border-slate-200 p-8 shadow-sm rounded-lg print:hidden">
@@ -521,7 +517,6 @@ function RelatorioContent() {
 
                     {['normal', 'visita spte'].includes(programacao?.evento_tipo || '') ? (
                         <>
-                            {/* Top Roles */}
                             <div className="grid grid-cols-2 gap-8 mb-8 bg-slate-50 p-4 rounded-lg border border-slate-200">
                                 <div>
                                     <span className="block text-xs font-bold uppercase text-slate-500 mb-1">Presidente</span>
@@ -601,6 +596,10 @@ function RelatorioContent() {
                             </h2>
                         </div>
                     )}
+                </div>
+
+                <div className="mt-8 flex justify-center">
+                    <MeetingAttendanceButton date={dates[currentIndex]} meetingType="MEIO_SEMANA" />
                 </div>
             </div>
         </div>

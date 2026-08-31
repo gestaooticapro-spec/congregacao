@@ -3,10 +3,11 @@
 import { useEffect, useState, Suspense } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Database } from '@/types/database.types'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { format, parseISO, isSaturday, isSunday } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Loader2, MessageCircle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2, MessageCircle, Printer } from 'lucide-react'
+import PageHeader from '@/components/PageHeader'
 import { buildSupportReminderText, isLogadoPresidenteMeioSemana, shareMidweekReminderToWhatsApp } from '@/lib/midweekReminder'
 
 type SupportAssignment = Database['public']['Tables']['designacoes_suporte']['Row'] & {
@@ -14,7 +15,6 @@ type SupportAssignment = Database['public']['Tables']['designacoes_suporte']['Ro
 }
 
 function RelatorioContent() {
-    const router = useRouter()
     const searchParams = useSearchParams()
     const targetDate = searchParams.get('data')
 
@@ -156,60 +156,61 @@ function RelatorioContent() {
     if (dates.length === 0 && !loading) return <div className="p-8 text-center">Nenhuma designação encontrada.</div>
 
     return (
-        <div className="p-8 max-w-[210mm] mx-auto min-h-screen bg-white text-slate-900" suppressHydrationWarning>
-            {/* Header / Controls (Hidden on Print) */}
-            <div className="mb-8 print:hidden">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center mb-6">
-                    <h1 className="text-2xl font-bold">Relatório de Designações de Apoio</h1>
-                        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-                        <button
-                            onClick={() => router.back()}
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors sm:w-auto"
-                        >
-                            Voltar
-                        </button>
-                        <button
-                            onClick={handlePrint}
-                            className="w-full px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors flex items-center justify-center gap-2 sm:w-auto"
-                        >
-                            <span>🖨️</span> Imprimir
-                        </button>
-                        {isPresidenteLogado && (
+        <div className="w-full min-w-0 max-w-[210mm] mx-auto min-h-screen overflow-x-clip py-4 md:p-8 print:p-0 print:overflow-visible" suppressHydrationWarning>
+            <div className="print:hidden">
+                <PageHeader
+                    title="Designações de Apoio"
+                    subtitle={currentDate ? format(parseISO(currentDate), "eeee, d 'de' MMMM 'de' yyyy", { locale: ptBR }) : 'Carregando...'}
+                    backHref="/quadro-de-anuncios"
+                    backLabel=""
+                    actions={
+                        <>
                             <button
-                                onClick={handleEnviarLembrete}
-                                disabled={enviandoLembrete}
-                                className="w-full min-h-11 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 sm:w-auto sm:whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
+                                type="button"
+                                onClick={handlePrev}
+                                disabled={currentIndex <= 0}
+                                className="inline-flex items-center gap-1 p-2 rounded-full text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-30"
+                                aria-label="Anterior"
                             >
-                                {enviandoLembrete ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4 h-4" />}
-                                Lembrete no WhatsApp
+                                <ChevronLeft className="w-5 h-5" />
+                                <span className="hidden sm:inline">Anterior</span>
                             </button>
-                        )}
-                    </div>
-                </div>
-
-                <div className="flex items-center justify-center gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
-                    <button
-                        onClick={handlePrev}
-                        disabled={currentIndex <= 0}
-                        className="p-2 hover:bg-slate-200 rounded-full transition-colors disabled:opacity-30"
-                    >
-                        ◀️
-                    </button>
-                    <h2 className="text-xl font-bold capitalize w-64 text-center">
-                        {currentDate ? format(parseISO(currentDate), "eeee, d 'de' MMMM", { locale: ptBR }) : 'Carregando...'}
-                    </h2>
-                    <button
-                        onClick={handleNext}
-                        disabled={currentIndex >= dates.length - 1}
-                        className="p-2 hover:bg-slate-200 rounded-full transition-colors disabled:opacity-30"
-                    >
-                        ▶️
-                    </button>
-                </div>
+                            <button
+                                type="button"
+                                onClick={handleNext}
+                                disabled={currentIndex >= dates.length - 1}
+                                className="inline-flex items-center gap-1 p-2 rounded-full text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-30"
+                                aria-label="Próximo"
+                            >
+                                <span className="hidden sm:inline">Próximo</span>
+                                <ChevronRight className="w-5 h-5" />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handlePrint}
+                                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors shadow-sm"
+                            >
+                                <Printer className="w-4 h-4" />
+                                Imprimir
+                            </button>
+                            {isPresidenteLogado && (
+                                <button
+                                    type="button"
+                                    onClick={handleEnviarLembrete}
+                                    disabled={enviandoLembrete}
+                                    className="inline-flex items-center justify-center gap-2 min-h-11 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                                >
+                                    {enviandoLembrete ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4 h-4" />}
+                                    Lembrete no WhatsApp
+                                </button>
+                            )}
+                        </>
+                    }
+                />
             </div>
 
             {/* Report Content */}
-            <div className="print-content">
+            <div className="print-content bg-white text-slate-900">
                 <div className="text-center mb-8">
                     <h2 className="text-2xl font-bold uppercase mb-2">Designações de Apoio</h2>
                     <p className="text-lg font-medium capitalize text-slate-600">

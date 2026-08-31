@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import PageHeader from '@/components/PageHeader'
 
 export default function AdminTerritoriosPage() {
     const [territories, setTerritories] = useState<any[]>([])
@@ -45,23 +46,27 @@ export default function AdminTerritoriosPage() {
 
     return (
         <div className="container mx-auto p-4 max-w-6xl">
-            <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-                <h1 className="text-2xl font-bold">Gerenciar Territórios</h1>
-                <div className="flex gap-2">
-                    <Link
-                        href="/admin/territorios/relatorio"
-                        className="bg-gray-100 text-gray-900 px-4 py-2 rounded-md hover:bg-gray-200 transition-colors border"
-                    >
-                        📄 Relatório
-                    </Link>
-                    <Link
-                        href="/admin/territorios/novo"
-                        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-                    >
-                        + Novo Território
-                    </Link>
-                </div>
-            </div>
+            <PageHeader
+                title="Gerenciar Territórios"
+                backHref="/responsabilidades"
+                backLabel="Responsabilidades"
+                actions={
+                    <div className="flex gap-2">
+                        <Link
+                            href="/admin/territorios/relatorio"
+                            className="bg-gray-100 text-gray-900 px-4 py-2 rounded-md hover:bg-gray-200 transition-colors border"
+                        >
+                            📄 Relatório
+                        </Link>
+                        <Link
+                            href="/admin/territorios/novo"
+                            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                        >
+                            + Novo Território
+                        </Link>
+                    </div>
+                }
+            />
 
             {/* Search Bar */}
             <div className="mb-6">

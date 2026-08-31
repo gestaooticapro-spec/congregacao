@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Database } from '@/types/database.types'
+import PageHeader from '@/components/PageHeader'
 
 type Tema = Database['public']['Tables']['temas']['Row']
 type Visitante = Database['public']['Tables']['oradores_visitantes']['Row']
@@ -12,10 +13,12 @@ export default function CadastrosPage() {
 
     return (
         <div className="max-w-6xl mx-auto p-8">
-            <div className="text-center mb-12">
-                <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Cadastros</h1>
-                <div className="h-1 w-20 bg-primary mx-auto rounded-full"></div>
-            </div>
+            <PageHeader
+                className="mb-12"
+                title="Cadastros"
+                backHref="/responsabilidades"
+                backLabel="Responsabilidades"
+            />
 
             {/* Tabs */}
             <div className="flex justify-center mb-8">

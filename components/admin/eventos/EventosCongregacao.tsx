@@ -1,13 +1,22 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { Pencil, Trash2 } from 'lucide-react'
+
+const INITIAL_PAST = 3
+const LOAD_MORE = 5
+
+function eventEndDate(event: { data_inicio: string; data_fim?: string | null }) {
+    return event.data_fim || event.data_inicio
+}
 
 export default function EventosCongregacao() {
     const [loading, setLoading] = useState(true)
     const [events, setEvents] = useState<any[]>([])
+    const [extraPast, setExtraPast] = useState(0)
     const [editingId, setEditingId] = useState<string | null>(null)
     const [formData, setFormData] = useState({
         titulo: '',
@@ -32,6 +41,7 @@ export default function EventosCongregacao() {
 
             if (error) throw error
             setEvents(data || [])
+            setExtraPast(0)
         } catch (error) {
             console.error('Error fetching events:', error)
         } finally {
@@ -106,6 +116,18 @@ export default function EventosCongregacao() {
             setLoading(false)
         }
     }
+
+    const { visibleEvents, hasMorePast } = useMemo(() => {
+        const today = format(new Date(), 'yyyy-MM-dd')
+        const byDesc = (a: any, b: any) => eventEndDate(b).localeCompare(eventEndDate(a))
+        const upcoming = events.filter(event => eventEndDate(event) >= today).sort(byDesc)
+        const past = events.filter(event => eventEndDate(event) < today).sort(byDesc)
+        const pastLimit = INITIAL_PAST + extraPast
+        return {
+            visibleEvents: [...upcoming, ...past.slice(0, pastLimit)],
+            hasMorePast: past.length > pastLimit,
+        }
+    }, [events, extraPast])
 
     const handleDelete = async (id: string) => {
         if (!confirm('Tem certeza que deseja excluir este evento?')) return
@@ -232,47 +254,57 @@ export default function EventosCongregacao() {
             </div>
 
             {/* List */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden min-w-0">
+                <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-700">
                     <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Eventos Cadastrados</h2>
                 </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
+                <div className="w-full min-w-0 overflow-x-clip">
+                    <table className="w-full max-w-full table-fixed text-left text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                         <thead className="bg-slate-50 dark:bg-slate-700/50 text-slate-900 dark:text-white font-semibold">
                             <tr>
-                                <th className="p-4">Data</th>
-                                <th className="p-4">Título</th>
-                                <th className="p-4">Tipo</th>
-                                <th className="p-4 text-right">Ações</th>
+                                <th className="p-2 sm:p-4 w-[28%] sm:w-[22%]">Data</th>
+                                <th className="p-2 sm:p-4">Título</th>
+                                <th className="p-2 sm:p-4 w-[18%] hidden sm:table-cell">Tipo</th>
+                                <th className="p-2 sm:p-4 w-[22%] sm:w-[18%] text-right">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                            {events.length === 0 ? (
+                            {visibleEvents.length === 0 ? (
                                 <tr>
                                     <td colSpan={4} className="p-8 text-center text-slate-500">
                                         Nenhum evento cadastrado.
                                     </td>
                                 </tr>
                             ) : (
-                                events.map(event => (
+                                visibleEvents.map(event => (
                                     <tr key={event.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                                        <td className="p-4 whitespace-nowrap">
-                                            <div>
-                                                {format(new Date(event.data_inicio + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })}
+                                        <td className="p-2 sm:p-4 align-top">
+                                            <div className="leading-tight break-words">
+                                                {format(new Date(event.data_inicio + 'T12:00:00'), "dd/MM/yy", { locale: ptBR })}
                                                 {event.data_fim && event.data_fim !== event.data_inicio && (
-                                                    <> - {format(new Date(event.data_fim + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })}</>
+                                                    <> – {format(new Date(event.data_fim + 'T12:00:00'), "dd/MM/yy", { locale: ptBR })}</>
                                                 )}
                                             </div>
                                             {event.hora_inicio && (
-                                                <div className="text-xs text-slate-500 dark:text-slate-400">
-                                                    às {event.hora_inicio.substring(0, 5)}
+                                                <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
+                                                    {event.hora_inicio.substring(0, 5)}
                                                 </div>
                                             )}
                                         </td>
-                                        <td className="p-4 font-medium text-slate-900 dark:text-white">
+                                        <td className="p-2 sm:p-4 font-medium text-slate-900 dark:text-white align-top break-words leading-tight">
                                             {event.titulo}
+                                            <span className={`sm:hidden mt-1 block w-fit px-2 py-0.5 rounded-full text-[10px] font-medium capitalize
+                                                ${event.tipo === 'assembleia' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                                                    event.tipo === 'congresso' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                                                        event.tipo === 'limpeza' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                                            event.tipo === 'visita' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' :
+                                                                'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+                                                }
+                                            `}>
+                                                {event.tipo}
+                                            </span>
                                         </td>
-                                        <td className="p-4 capitalize">
+                                        <td className="p-2 sm:p-4 capitalize hidden sm:table-cell align-top">
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium
                                                 ${event.tipo === 'assembleia' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
                                                     event.tipo === 'congresso' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
@@ -284,23 +316,21 @@ export default function EventosCongregacao() {
                                                 {event.tipo}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-right">
-                                            <div className="flex items-center justify-end gap-3">
+                                        <td className="p-2 sm:p-4 text-right align-top">
+                                            <div className="flex items-center justify-end gap-2">
                                                 <button
                                                     onClick={() => handleEdit(event)}
-                                                    className="text-blue-600 hover:text-blue-800 dark:hover:text-blue-400 transition-colors"
+                                                    className="p-1 text-blue-600 hover:text-blue-800 dark:hover:text-blue-400 transition-colors"
                                                     title="Editar"
                                                 >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                                                    </svg>
+                                                    <Pencil className="w-4 h-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(event.id)}
-                                                    className="text-red-600 hover:text-red-800 dark:hover:text-red-400 transition-colors"
+                                                    className="p-1 text-red-600 hover:text-red-800 dark:hover:text-red-400 transition-colors"
                                                     title="Excluir"
                                                 >
-                                                    Excluir
+                                                    <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </div>
                                         </td>
@@ -310,6 +340,17 @@ export default function EventosCongregacao() {
                         </tbody>
                     </table>
                 </div>
+                {hasMorePast && (
+                    <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex justify-center">
+                        <button
+                            type="button"
+                            onClick={() => setExtraPast(count => count + LOAD_MORE)}
+                            className="px-4 py-2 text-sm font-medium rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                        >
+                            Carregar mais 5 eventos
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     )

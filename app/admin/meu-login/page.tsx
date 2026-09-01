@@ -126,8 +126,8 @@ export default function MeuLoginPage() {
                         ? 'Crie um login individual para você e deixe de usar a senha compartilhada.'
                         : 'Mantenha sua conta segura alterando sua senha periodicamente.'
                 }
-                backHref="/anciaos"
-                backLabel="Anciãos"
+                backHref="/administracao"
+                backLabel=""
             />
 
             <div className="bg-white dark:bg-slate-900 shadow-xl rounded-2xl border border-slate-200 dark:border-slate-800 p-8">

@@ -9,13 +9,14 @@ import {
     LibraryBig,
     Map,
     Mic,
-    PlusCircle,
     Settings,
     Shield,
     ShieldCheck,
+    SlidersHorizontal,
     UserCheck,
     Users,
     UsersRound,
+    Building2,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
@@ -40,9 +41,11 @@ export type MenuLink = {
     restricted: boolean
     /** Quando informado, o item so aparece para esses perfis. */
     allowedRoles?: PerfilAcesso[]
+    /** Card visivel que ainda nao abre uma pagina. */
+    placeholder?: boolean
 }
 
-export type MenuGroupId = 'anciaos' | 'responsabilidades'
+export type MenuGroupId = 'anciaos' | 'responsabilidades' | 'administracao'
 
 export type MenuGroup = {
     id: MenuGroupId
@@ -108,9 +111,7 @@ export const ANCIAOS_GROUP: MenuGroup = {
     icon: Shield,
     description: 'Ferramentas do corpo de anciãos da congregação.',
     items: [
-        { label: 'Senha e Acesso', href: '/admin/meu-login', icon: ShieldCheck, restricted: true },
         { label: 'Agenda e Lembretes', href: '/admin/agenda', icon: Calendar, restricted: true, allowedRoles: [...PERFIS_ANCIAOS] },
-        { label: 'Gerenciar Eventos', href: '/admin/eventos', icon: PlusCircle, restricted: true, allowedRoles: [...PERFIS_ANCIAOS] },
         { label: 'Pauta de Reunião', href: '/admin/pauta-anciaos', icon: ClipboardList, restricted: true, allowedRoles: [...PERFIS_ANCIAOS] },
         { label: 'Relatórios', href: '/admin/relatorios', icon: FileText, restricted: true, allowedRoles: [...PERFIS_ANCIAOS] },
         { label: 'Meu Grupo', href: '/admin/relatorios-grupo', icon: Users, restricted: true, allowedRoles: [...PERFIS_ANCIAOS] },
@@ -142,7 +143,19 @@ export const RESPONSABILIDADES_GROUP: MenuGroup = {
     ],
 }
 
-export const MENU_GROUPS: MenuGroup[] = [ANCIAOS_GROUP, RESPONSABILIDADES_GROUP]
+export const ADMINISTRACAO_GROUP: MenuGroup = {
+    id: 'administracao',
+    label: 'Administração',
+    href: '/administracao',
+    icon: SlidersHorizontal,
+    description: 'Acesso e dados da congregação.',
+    items: [
+        { label: 'Senha e Acesso', href: '/admin/meu-login', icon: ShieldCheck, restricted: true },
+        { label: 'Dados da congregação', href: '/administracao/dados', icon: Building2, restricted: true, placeholder: true, allowedRoles: [...PERFIS_ADMINISTRACAO] },
+    ],
+}
+
+export const MENU_GROUPS: MenuGroup[] = [ANCIAOS_GROUP, RESPONSABILIDADES_GROUP, ADMINISTRACAO_GROUP]
 
 /**
  * Resolve um grupo pelo id dentro do proprio componente client.

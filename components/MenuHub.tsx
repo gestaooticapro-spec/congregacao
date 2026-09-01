@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useMemo } from 'react'
+import toast from 'react-hot-toast'
 import { useAuth } from '@/contexts/AuthProvider'
 import { getMenuGroup, getVisibleMenuLinks, type MenuGroupId } from '@/lib/menuConfig'
 import PageHeader from '@/components/PageHeader'
@@ -67,12 +68,31 @@ export default function MenuHub({ groupId }: { groupId: MenuGroupId }) {
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                     {visibleItems.map(item => {
                         const ItemIcon = item.icon
+                        const tileClass = 'group flex flex-col items-center justify-center gap-3 p-5 min-h-[128px] rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-center transition-all duration-200 hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-lg hover:-translate-y-0.5'
+
+                        if (item.placeholder) {
+                            return (
+                                <button
+                                    key={item.href}
+                                    type="button"
+                                    onClick={() => toast('Em breve', { icon: '🚧' })}
+                                    className={tileClass}
+                                >
+                                    <span className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 transition-colors group-hover:bg-blue-600 group-hover:text-white">
+                                        <ItemIcon className="w-6 h-6" />
+                                    </span>
+                                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-tight">
+                                        {item.label}
+                                    </span>
+                                </button>
+                            )
+                        }
 
                         return (
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className="group flex flex-col items-center justify-center gap-3 p-5 min-h-[128px] rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-center transition-all duration-200 hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-lg hover:-translate-y-0.5"
+                                className={tileClass}
                             >
                                 <span className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 transition-colors group-hover:bg-blue-600 group-hover:text-white">
                                     <ItemIcon className="w-6 h-6" />

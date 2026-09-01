@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useMemo, memo, useEffect } from 'react'
-import toast from 'react-hot-toast'
 import { useAuth } from '@/contexts/AuthProvider'
 import { useSidebar } from '@/contexts/SidebarContext'
 import { PerfilAcesso } from '@/types/database.types'
@@ -20,9 +19,8 @@ import {
     ShieldCheck,
     UserCircle,
     Clock,
-    SlidersHorizontal,
 } from 'lucide-react'
-import { MENU_GROUPS, PERFIS_ADMINISTRACAO, isMenuLinkVisible, type MenuGroup } from '@/lib/menuConfig'
+import { MENU_GROUPS, isMenuLinkVisible, type MenuGroup } from '@/lib/menuConfig'
 
 type MenuItem =
     | { type: 'link'; href: string; label: string; icon: LucideIcon; restricted?: boolean; allowedRoles?: PerfilAcesso[] }
@@ -102,10 +100,6 @@ function Sidebar() {
         if (pathname === group.href) return true
         return group.items.some(item => isActive(item.href))
     }
-
-    // Mantem a mesma regra do antigo separador "Administracao": o botao nao
-    // aparece para perfis que nao tinham acesso a area (ex.: IRMAO).
-    const showAdminPlaceholder = !loading && !!user && hasRole(PERFIS_ADMINISTRACAO)
 
     const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ')
 
@@ -267,38 +261,9 @@ function Sidebar() {
                                 <span className={cn("truncate transition-opacity", isCollapsed && "md:hidden")}>
                                     {group.label}
                                 </span>
-                                <ChevronLeft
-                                    className={cn(
-                                        "w-4 h-4 ml-auto shrink-0 rotate-180 transition-transform",
-                                        groupActive ? "text-white" : "text-gray-400 dark:text-slate-500",
-                                        isCollapsed && "md:hidden"
-                                    )}
-                                />
                             </Link>
                         )
                     })}
-
-                    {showAdminPlaceholder && (
-                        <button
-                            type="button"
-                            onClick={() => {
-                                toast('Área de Administração — em breve', { icon: '🚧' })
-                                setIsMobileOpen(false)
-                            }}
-                            aria-label="Administração, em breve"
-                            className={cn(
-                                "w-full flex items-center gap-3 py-2.5 px-3 rounded-lg transition-all duration-200 font-medium group",
-                                "text-gray-400 dark:text-slate-500 hover:bg-gray-50 dark:hover:bg-slate-800/50",
-                                isCollapsed && "md:justify-center md:px-0"
-                            )}
-                            title={isCollapsed ? 'Administração' : undefined}
-                        >
-                            <SlidersHorizontal className="w-5 h-5 shrink-0 text-gray-300 dark:text-slate-600" />
-                            <span className={cn("truncate transition-opacity", isCollapsed && "md:hidden")}>
-                                Administração
-                            </span>
-                        </button>
-                    )}
                 </nav>
 
                 <div className="p-4 border-t dark:border-slate-800 bg-gray-50/50 dark:bg-slate-900/50">

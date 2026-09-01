@@ -6,7 +6,8 @@ import { CategoriaMinisterio, Database } from '@/types/database.types'
 import RadialProgress from './RadialProgress'
 import TimerCard from './TimerCard'
 import ManualEntryModal from './ManualEntryModal'
-import { Trash2, History, Settings2, Sparkles } from 'lucide-react'
+import PastMonthsHoursModal from './PastMonthsHoursModal'
+import { Trash2, History, Settings2, Sparkles, CalendarDays } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { toast } from 'react-hot-toast'
@@ -36,6 +37,7 @@ export default function PioneerDashboard({ membroId, onOnboardingCompleted }: Pi
     const [initialStartTime, setInitialStartTime] = useState<string | null>(null)
     const [initialEndTime, setInitialEndTime] = useState<string | null>(null)
     const [editingLog, setEditingLog] = useState<LogEntry | null>(null)
+    const [isPastMonthsOpen, setIsPastMonthsOpen] = useState(false)
 
     // Service Year Bounds
     const getServiceYearRange = () => {
@@ -245,6 +247,8 @@ export default function PioneerDashboard({ membroId, onOnboardingCompleted }: Pi
         const minutes = totalMinutes % 60
         return `${hours}h ${minutes.toString().padStart(2, '0')}min`
     }
+    const startOfMonth = format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd')
+    const currentMonthLogs = logs.filter((log) => log.data >= startOfMonth)
 
     // Color logic
     const monthsElapsed = Math.min(getMonthsElapsed(pioneerStartDate), getMonthsFromStart(pioneerStartDate))
@@ -293,6 +297,9 @@ export default function PioneerDashboard({ membroId, onOnboardingCompleted }: Pi
                         />
                     </div>
                     
+                    <p className="mt-5 text-center text-xs font-medium text-slate-400">
+                        A meta mensal recomeça no dia 1º. As horas dos meses anteriores continuam salvas.
+                    </p>
                     <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 shadow-inner rounded-2xl">
                         <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-[11px] md:text-sm font-medium text-slate-600 dark:text-slate-400">
                             <div className="flex items-center gap-1.5">
@@ -323,18 +330,28 @@ export default function PioneerDashboard({ membroId, onOnboardingCompleted }: Pi
 
             {/* History Section */}
             <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-                <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
                     <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
                         <History className="w-5 h-5 text-slate-400" />
-                        Histórico Recente
+                        Histórico deste mês
                     </h3>
-                    <span className="text-xs font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-2.5 py-1 rounded-lg">
-                        {logs.length} lançamentos
-                    </span>
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setIsPastMonthsOpen(true)}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-600 transition hover:bg-blue-50 hover:text-blue-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-blue-950/40 dark:hover:text-blue-300"
+                        >
+                            <CalendarDays className="h-3.5 w-3.5" />
+                            Meses anteriores
+                        </button>
+                        <span className="text-xs font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-2.5 py-1 rounded-lg">
+                            {currentMonthLogs.length} lançamentos
+                        </span>
+                    </div>
                 </div>
                 
                 <div className="divide-y divide-slate-50 dark:divide-slate-800">
-                    {logs.length > 0 ? logs.slice(0, 10).map((log) => (
+                    {currentMonthLogs.length > 0 ? currentMonthLogs.slice(0, 10).map((log) => (
                         <div
                             key={log.id}
                             role="button"
@@ -389,7 +406,14 @@ export default function PioneerDashboard({ membroId, onOnboardingCompleted }: Pi
                     )) : (
                         <div className="p-12 text-center">
                             <Sparkles className="w-8 h-8 text-slate-200 mx-auto mb-3" />
-                            <p className="text-sm text-slate-400">Nenhum registro encontrado neste ano.</p>
+                            <p className="text-sm text-slate-400">Nenhum registro neste mês.</p>
+                            <button
+                                type="button"
+                                onClick={() => setIsPastMonthsOpen(true)}
+                                className="mt-3 text-sm font-bold text-blue-600 hover:underline"
+                            >
+                                Ver horas dos meses anteriores
+                            </button>
                         </div>
                     )}
                 </div>
@@ -454,6 +478,12 @@ export default function PioneerDashboard({ membroId, onOnboardingCompleted }: Pi
                     </div>
                 </div>
             )}
+
+            <PastMonthsHoursModal
+                isOpen={isPastMonthsOpen}
+                onClose={() => setIsPastMonthsOpen(false)}
+                membroId={membroId}
+            />
 
             <ManualEntryModal 
                 isOpen={isModalOpen} 

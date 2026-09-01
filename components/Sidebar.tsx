@@ -44,7 +44,7 @@ function Sidebar() {
     const router = useRouter()
     const [isMobileOpen, setIsMobileOpen] = useState(false)
     const { isCollapsed, toggleCollapsed } = useSidebar()
-    const { user, roles, hasRole, loading, signOut } = useAuth()
+    const { user, roles, hasRole, loading, signOut, canAccessPastoreio } = useAuth()
     const [isPioneiroSession, setIsPioneiroSession] = useState(false)
 
     useEffect(() => {
@@ -90,9 +90,9 @@ function Sidebar() {
     // evitando que o botao leve para uma pagina de tiles vazia.
     const visibleGroups = useMemo(() => {
         return MENU_GROUPS.filter(group =>
-            group.items.some(item => isMenuLinkVisible(item, { user, roles, loading, hasRole }))
+            group.items.some(item => isMenuLinkVisible(item, { user, roles, loading, hasRole, canAccessPastoreio }))
         )
-    }, [user, roles, loading, hasRole])
+    }, [user, roles, loading, hasRole, canAccessPastoreio])
 
     // Mantem o botao do grupo em destaque enquanto o usuario navega
     // em qualquer pagina que pertenca a ele.

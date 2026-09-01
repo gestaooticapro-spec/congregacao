@@ -8,6 +8,7 @@ import PageHeader from '@/components/PageHeader'
 // Helper to get enum values
 const PERFIS: PerfilAcesso[] = [
     'ADMIN',
+    'COORDENADOR',
     'SECRETARIO',
     'SUPERINTENDENTE_SERVICO',
     'RESP_QUINTA',

@@ -23,6 +23,7 @@ export default function MeusTemasPage() {
     const [searchTerm, setSearchTerm] = useState('')
     const [showResults, setShowResults] = useState(false)
     const [addingTema, setAddingTema] = useState(false)
+    const [formOpen, setFormOpen] = useState(false)
 
     // Share
     const [isShareModalOpen, setIsShareModalOpen] = useState(false)
@@ -162,6 +163,7 @@ export default function MeusTemasPage() {
             } else {
                 setTemaSelecionadoId('')
                 setSearchTerm('')
+                setShowResults(false)
                 fetchTemasPreparados()
             }
         } catch (error: any) {
@@ -300,7 +302,89 @@ export default function MeusTemasPage() {
                 }
                 backHref="/anciaos"
                 backLabel="Anciãos"
+                actions={
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setFormOpen(!formOpen)
+                            if (formOpen) {
+                                setSearchTerm('')
+                                setTemaSelecionadoId('')
+                                setShowResults(false)
+                            }
+                        }}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm"
+                    >
+                        + Novo Tema
+                    </button>
+                }
             />
+
+            <div className={`bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm mb-8 overflow-hidden ${formOpen ? '' : 'hidden'}`}>
+                <div className="p-4 border-b border-slate-100 dark:border-slate-700">
+                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Novo Tema</h2>
+                </div>
+                <div className="p-6">
+                    <div className="flex flex-col sm:flex-row gap-4 relative z-20">
+                        <div className="flex-1 relative">
+                            <input
+                                type="text"
+                                value={searchTerm}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value)
+                                    setShowResults(true)
+                                    setTemaSelecionadoId('')
+                                }}
+                                onFocus={() => setShowResults(true)}
+                                placeholder="Digite o número ou nome do tema..."
+                                className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-transparent dark:text-white"
+                            />
+
+                            {showResults && (
+                                <div className="absolute z-30 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                    {filteredTemas.length === 0 ? (
+                                        <div className="p-3 text-slate-500 dark:text-slate-400 text-center">
+                                            Nenhum tema encontrado
+                                        </div>
+                                    ) : (
+                                        filteredTemas.map(t => (
+                                            <button
+                                                key={t.id}
+                                                type="button"
+                                                onClick={() => {
+                                                    setTemaSelecionadoId(t.id)
+                                                    setSearchTerm(`#${t.numero} - ${t.titulo}`)
+                                                    setShowResults(false)
+                                                }}
+                                                className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-0 text-slate-900 dark:text-white"
+                                            >
+                                                <span className="font-bold text-blue-600 dark:text-blue-400">#{t.numero}</span>
+                                                <span className="ml-2">{t.titulo}</span>
+                                            </button>
+                                        ))
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={handleAddTema}
+                            disabled={addingTema || !temaSelecionadoId}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 sm:w-auto w-full"
+                        >
+                            {addingTema ? 'Adicionando...' : 'Adicionar'}
+                        </button>
+                    </div>
+
+                    {showResults && (
+                        <div
+                            className="fixed inset-0 z-10"
+                            onClick={() => setShowResults(false)}
+                        />
+                    )}
+                </div>
+            </div>
 
             <div className="bg-white dark:bg-slate-900 shadow-xl rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
 
@@ -323,66 +407,6 @@ export default function MeusTemasPage() {
                     )}
                 </div>
 
-                {/* Add Theme Section */}
-                <div className="p-6 border-b border-slate-100 dark:border-slate-800">
-                    <div className="flex flex-col sm:flex-row gap-4 relative z-20">
-                        <div className="flex-1 relative">
-                            <input
-                                type="text"
-                                value={searchTerm}
-                                onChange={(e) => {
-                                    setSearchTerm(e.target.value)
-                                    setShowResults(true)
-                                    setTemaSelecionadoId('')
-                                }}
-                                onFocus={() => setShowResults(true)}
-                                placeholder="Digite o número ou nome do tema..."
-                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all dark:text-white"
-                            />
-
-                            {showResults && (
-                                <div className="absolute z-30 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                                    {filteredTemas.length === 0 ? (
-                                        <div className="p-3 text-slate-500 dark:text-slate-400 text-center">
-                                            Nenhum tema encontrado
-                                        </div>
-                                    ) : (
-                                        filteredTemas.map(t => (
-                                            <button
-                                                key={t.id}
-                                                onClick={() => {
-                                                    setTemaSelecionadoId(t.id)
-                                                    setSearchTerm(`#${t.numero} - ${t.titulo}`)
-                                                    setShowResults(false)
-                                                }}
-                                                className="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-b border-slate-100 dark:border-slate-800 last:border-0"
-                                            >
-                                                <span className="font-bold text-primary">#{t.numero}</span>
-                                                <span className="ml-2 text-slate-700 dark:text-slate-300">{t.titulo}</span>
-                                            </button>
-                                        ))
-                                    )}
-                                </div>
-                            )}
-                        </div>
-
-                        <button
-                            onClick={handleAddTema}
-                            disabled={addingTema || !temaSelecionadoId}
-                            className="px-6 py-2.5 bg-primary text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-all sm:w-auto w-full"
-                        >
-                            {addingTema ? 'Adicionando...' : 'Adicionar'}
-                        </button>
-                    </div>
-
-                    {showResults && (
-                        <div
-                            className="fixed inset-0 z-10"
-                            onClick={() => setShowResults(false)}
-                        ></div>
-                    )}
-                </div>
-
                 {/* Themes List */}
                 <div className="p-6">
                     <div className="grid grid-cols-1 gap-2">
@@ -390,7 +414,7 @@ export default function MeusTemasPage() {
                             <div className="text-center py-12">
                                 <span className="text-5xl block mb-4">📝</span>
                                 <p className="text-slate-500 dark:text-slate-400 italic">Nenhum tema cadastrado ainda.</p>
-                                <p className="text-sm text-slate-400 dark:text-slate-500 mt-1">Use o campo acima para adicionar seus temas preparados.</p>
+                                <p className="text-sm text-slate-400 dark:text-slate-500 mt-1">Use o botão + Novo Tema para adicionar seus temas preparados.</p>
                             </div>
                         ) : (
                             temasPreparados.map((tema) => (

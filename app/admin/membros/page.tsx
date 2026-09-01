@@ -86,7 +86,7 @@ export default function MembrosPage() {
     if (loading) return <div className="p-8">Carregando...</div>
 
     return (
-        <div className="max-w-6xl mx-auto p-8 print:p-0 print:max-w-none">
+        <div className="w-full min-w-0 mx-auto print:p-0 print:max-w-none">
             <style jsx global>{`
                 @media print {
                     @page {
@@ -199,12 +199,12 @@ export default function MembrosPage() {
             </div>
 
             {/* Screen View Table */}
-            <div className="bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/50 dark:shadow-none rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden no-print">
-                <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+            <div className="bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/50 dark:shadow-none rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden no-print min-w-0">
+                <table className="w-full max-w-full table-fixed divide-y divide-slate-200 dark:divide-slate-800">
                     <thead className="bg-slate-50 dark:bg-slate-800/50">
                         <tr>
-                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Nome</th>
-                            <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-32">PIN de Acesso</th>
+                            <th className="px-4 sm:px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Nome</th>
+                            <th className="px-3 sm:px-6 py-4 text-right text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-24 sm:w-32">PIN</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -214,26 +214,28 @@ export default function MembrosPage() {
                                 onClick={() => router.push(`/admin/membros/${membro.id}`)}
                                 className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
                             >
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900 dark:text-white group-hover:text-primary transition-colors">
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex gap-1">
+                                <td className="px-4 sm:px-6 py-3 sm:py-4 text-sm font-semibold text-slate-900 dark:text-white group-hover:text-primary transition-colors align-top">
+                                    <div className="break-words leading-tight">
+                                        {membro.nome_civil || membro.nome_completo}
+                                    </div>
+                                    {getBadges(membro).length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-1.5">
                                             {getBadges(membro).map((badge, idx) => (
                                                 <span key={idx} className={`px-2 py-0.5 inline-flex text-[10px] leading-4 font-bold rounded-full ${badge.color}`}>
                                                     {badge.label}
                                                 </span>
                                             ))}
                                         </div>
-                                        <span>{membro.nome_civil || membro.nome_completo}</span>
-                                    </div>
+                                    )}
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right">
+                                <td className="px-3 sm:px-6 py-3 sm:py-4 text-right align-top">
                                     {membro.pin ? (
-                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                                            <span>🔑</span>
+                                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] sm:text-xs font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                            <span className="hidden sm:inline">🔑</span>
                                             {membro.pin}
                                         </span>
                                     ) : (
-                                        <span className="text-xs text-slate-400 italic">Sem PIN</span>
+                                        <span className="text-xs text-slate-400 italic">—</span>
                                     )}
                                 </td>
                             </tr>

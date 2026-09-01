@@ -6,10 +6,10 @@ import { toast } from 'react-hot-toast'
 import {
     Users,
     CheckCircle2,
+    XCircle,
     Calendar,
     Clock,
-    Star,
-    PieChart,
+    BookOpen,
     ArrowRight,
     X,
     UserCheck
@@ -308,11 +308,13 @@ export default function RelatoriosSecretariaPage() {
         ? '-'
         : media.toLocaleString('pt-BR', { maximumFractionDigits: 1 })
 
+    const pendentes = totais.membros - totais.entregues
+
     return (
-        <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-8">
+        <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
             <PageHeader
-                title="Secretário (Relatórios)"
-                subtitle="Visão consolidada do progresso de todos os grupos da congregação."
+                title="Relatórios"
+                subtitle="Acompanhe a entrega dos relatórios de todos os grupos da congregação."
                 backHref="/responsabilidades"
                 backLabel="Responsabilidades"
                 actions={
@@ -321,96 +323,106 @@ export default function RelatoriosSecretariaPage() {
                         <select
                             value={mes}
                             onChange={e => setMes(e.target.value)}
-                            className="bg-white dark:bg-slate-900 border-none focus:ring-0 text-sm font-medium text-gray-700 dark:text-gray-200 py-1 cursor-pointer capitalize"
+                            className="bg-transparent border-none focus:ring-0 text-sm font-medium text-gray-700 dark:text-gray-300 py-1 cursor-pointer capitalize"
                         >
                             {meses.map(m => (
-                                <option key={m.value} value={m.value} className="bg-white text-gray-900 dark:bg-slate-900 dark:text-gray-200">{m.label}</option>
+                                <option key={m.value} value={m.value}>{m.label}</option>
                             ))}
                         </select>
                     </div>
                 }
             />
 
-            {/* Consolidado Geral */}
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <PieChart className="w-5 h-5 text-gray-500" /> Total da Congregação
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                <div
-                    className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm"
-                    title="Ver detalhes da assistência"
-                >
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Membros vs Entregues</p>
-                    <div className="flex items-end gap-2 mb-4">
-                        <h3 className="text-3xl font-bold text-gray-900 dark:text-white">{totais.entregues}</h3>
-                        <span className="text-gray-400 mb-1">/ {totais.membros}</span>
-                    </div>
-                    <div className="w-full bg-gray-100 dark:bg-slate-800 rounded-full h-1.5">
-                        <div className="bg-blue-600 h-1.5 rounded-full transition-all duration-500" style={{ width: `${pgsGeral}%` }}></div>
-                    </div>
-                </div>
-
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-                    <div>
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total de Horas</p>
-                        <h3 className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{totais.horas}</h3>
-                    </div>
-                    <Clock className="w-8 h-8 text-indigo-100 dark:text-indigo-900/30 absolute right-6 bottom-6" />
-                </div>
-
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-                    <div>
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total de Estudos</p>
-                        <h3 className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{totais.estudos}</h3>
-                    </div>
-                    <BookOpen className="w-8 h-8 text-teal-100 dark:text-teal-900/30 absolute right-6 bottom-6" />
-                </div>
-
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm">
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Pioneiros Relatados</p>
-                    <div className="flex gap-4 mt-2">
-                        <button
-                            type="button"
-                            onClick={() => setMostrarResumoPR(true)}
-                            className="text-left rounded-lg px-2 -mx-2 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500"
-                            title="Ver resumo dos pioneiros regulares"
-                        >
-                            <span className="block text-2xl font-bold text-amber-600 dark:text-amber-500">{totais.pr}</span>
-                            <span className="text-[10px] uppercase font-bold text-gray-400">Regulares</span>
-                        </button>
-                        <div>
-                            <span className="block text-2xl font-bold text-blue-600 dark:text-blue-500">{totais.pa}</span>
-                            <span className="text-[10px] uppercase font-bold text-gray-400">Auxiliares</span>
+            <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm">
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Total</p>
+                        <div className="flex items-end justify-between mt-1">
+                            <span className="text-2xl font-bold text-gray-900 dark:text-white leading-none">{totais.membros}</span>
+                            <Users className="w-4 h-4 text-blue-500 dark:text-blue-400 mb-0.5" />
                         </div>
                     </div>
-                </div>
 
-                <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setMostrarResumoAssistencia(true)}
-                    onKeyDown={event => {
-                        if (event.key === 'Enter' || event.key === ' ') setMostrarResumoAssistencia(true)
-                    }}
-                    className="cursor-pointer bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm transition-colors hover:border-indigo-300 dark:hover:border-indigo-700"
-                    title="Ver detalhes da assistência"
-                >
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Assistência às reuniões</p>
-                            <div className="mt-2 flex gap-4">
-                                <div>
-                                    <span className="block text-2xl font-bold text-indigo-600 dark:text-indigo-400">{totais.assistenciaQuarta}</span>
-                                    <span className="text-[10px] uppercase font-bold text-gray-400">Quartas</span>
-                                </div>
-                                <div>
-                                    <span className="block text-2xl font-bold text-cyan-600 dark:text-cyan-400">{totais.assistenciaSabado}</span>
-                                    <span className="text-[10px] uppercase font-bold text-gray-400">Sábados</span>
-                                </div>
+                    <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm">
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Pendentes</p>
+                        <div className="flex items-end justify-between mt-1">
+                            <span className="text-2xl font-bold text-gray-900 dark:text-white leading-none">{pendentes}</span>
+                            <XCircle className="w-4 h-4 text-red-500 dark:text-red-400 mb-0.5" />
+                        </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm">
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Pioneiros</p>
+                        <div className="flex items-end gap-3 mt-1">
+                            <button
+                                type="button"
+                                onClick={() => setMostrarResumoPR(true)}
+                                className="text-left rounded-md hover:bg-amber-50 dark:hover:bg-amber-900/20 focus:outline-none"
+                                title="Ver resumo dos pioneiros regulares"
+                            >
+                                <span className="block text-lg font-bold text-amber-600 dark:text-amber-500 leading-none">{totais.pr}</span>
+                                <span className="text-[9px] uppercase font-bold text-gray-400">Reg</span>
+                            </button>
+                            <div>
+                                <span className="block text-lg font-bold text-blue-600 dark:text-blue-500 leading-none">{totais.pa}</span>
+                                <span className="text-[9px] uppercase font-bold text-gray-400">Aux</span>
                             </div>
                         </div>
-                        <UserCheck className="h-8 w-8 text-indigo-100 dark:text-indigo-900/30" />
                     </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm">
+                    <div className="flex justify-between items-start mb-3">
+                        <div>
+                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Entregues</p>
+                            <h3 className="text-3xl font-bold text-gray-900 dark:text-white mt-0.5">{totais.entregues}</h3>
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-green-600 dark:text-green-400">
+                            <CheckCircle2 className="w-5 h-5" />
+                        </div>
+                    </div>
+                    <div className="w-full bg-gray-100 dark:bg-slate-800 rounded-full h-1.5">
+                        <div className="bg-green-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${pgsGeral}%` }}></div>
+                    </div>
+                    <p className="mt-3 text-xs sm:text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                        Clique no grupo para lançar o relatório de quem ainda não entregou pelo programa.
+                    </p>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm">
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Horas</p>
+                        <div className="flex items-end justify-between mt-1">
+                            <span className="text-2xl font-bold text-gray-900 dark:text-white leading-none">{totais.horas}</span>
+                            <Clock className="w-4 h-4 text-indigo-500 dark:text-indigo-400 mb-0.5" />
+                        </div>
+                    </div>
+                    <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm">
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Estudos</p>
+                        <div className="flex items-end justify-between mt-1">
+                            <span className="text-2xl font-bold text-gray-900 dark:text-white leading-none">{totais.estudos}</span>
+                            <BookOpen className="w-4 h-4 text-teal-500 dark:text-teal-400 mb-0.5" />
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setMostrarResumoAssistencia(true)}
+                        className="text-left bg-white dark:bg-slate-900 p-3 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors"
+                        title="Ver detalhes da assistência"
+                    >
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Assistência</p>
+                        <div className="flex items-end gap-3 mt-1">
+                            <div>
+                                <span className="block text-lg font-bold text-indigo-600 dark:text-indigo-400 leading-none">{totais.assistenciaQuarta}</span>
+                                <span className="text-[9px] uppercase font-bold text-gray-400">Qua</span>
+                            </div>
+                            <div>
+                                <span className="block text-lg font-bold text-cyan-600 dark:text-cyan-400 leading-none">{totais.assistenciaSabado}</span>
+                                <span className="text-[9px] uppercase font-bold text-gray-400">Sáb</span>
+                            </div>
+                            <UserCheck className="w-4 h-4 text-indigo-400 mb-0.5 ml-auto" />
+                        </div>
+                    </button>
                 </div>
             </div>
 
@@ -627,12 +639,63 @@ export default function RelatoriosSecretariaPage() {
                 </div>
             )}
 
-            {/* Resumo por Grupo */}
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 mt-8">
-                <Users className="w-5 h-5 text-gray-500" /> Progresso por Grupo
-            </h2>
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden">
-                <div className="overflow-x-auto">
+                <div className="md:hidden divide-y divide-gray-100 dark:divide-slate-800">
+                    {resumoGrupos.map(grp => {
+                        const progresso = Math.round((grp.entregues / grp.totalMembros) * 100) || 0
+                        return (
+                            <Link
+                                key={grp.id}
+                                href={`/admin/relatorios-grupo?grupo_id=${grp.id}&mes=${mes}`}
+                                className="block p-4 hover:bg-gray-50/50 dark:hover:bg-slate-800/20 transition-colors"
+                            >
+                                <div className="flex items-start justify-between gap-2">
+                                    <p className="font-medium text-gray-900 dark:text-white leading-tight">{grp.nome}</p>
+                                    <ArrowRight className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+                                </div>
+                                <div className="mt-2">
+                                    <div className="flex items-center justify-between text-xs mb-1">
+                                        <span className="text-gray-500 dark:text-gray-400">{grp.entregues} de {grp.totalMembros}</span>
+                                        <span className={progresso === 100 ? 'text-green-600 font-medium' : 'text-gray-600 dark:text-gray-300 font-medium'}>{progresso}%</span>
+                                    </div>
+                                    <div className="w-full bg-gray-100 dark:bg-slate-800 rounded-full h-1.5">
+                                        <div className={`h-1.5 rounded-full ${progresso === 100 ? 'bg-green-500' : 'bg-blue-500'}`} style={{ width: `${progresso}%` }} />
+                                    </div>
+                                </div>
+                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400">
+                                        PR {grp.pioneirosRegulares}
+                                    </span>
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400">
+                                        PA {grp.pioneirosAuxiliares}
+                                    </span>
+                                    {(grp.horasPR + grp.horasPA) > 0 && (
+                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                            {grp.horasPR + grp.horasPA}h
+                                        </span>
+                                    )}
+                                    {(grp.abonoPR + grp.abonoPA) > 0 && (
+                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400">
+                                            Abono {grp.abonoPR + grp.abonoPA}
+                                        </span>
+                                    )}
+                                    {grp.estudos > 0 && (
+                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                            {grp.estudos} est.
+                                        </span>
+                                    )}
+                                </div>
+                            </Link>
+                        )
+                    })}
+                    {resumoGrupos.length === 0 && (
+                        <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                            Nenhum grupo encontrado.
+                        </div>
+                    )}
+                </div>
+
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/30">
@@ -699,8 +762,4 @@ export default function RelatoriosSecretariaPage() {
             </div>
         </div>
     )
-}
-
-function BookOpen(props: any) {
-    return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>
 }

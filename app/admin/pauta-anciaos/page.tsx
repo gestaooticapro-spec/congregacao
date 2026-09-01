@@ -198,35 +198,31 @@ export default function PautaAnciaosPage() {
                 subtitle="Sugestões de assuntos para as reuniões trimestrais. Qualquer ancião pode adicionar sugestões."
                 backHref="/anciaos"
                 backLabel="Anciãos"
+                actions={
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setFormOpen(!formOpen)
+                            if (!formOpen && !editingId) {
+                                resetForm()
+                            }
+                        }}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm"
+                    >
+                        {editingId ? 'Editar Sugestão' : '+ Nova Sugestão'}
+                    </button>
+                }
             />
 
             {/* Collapsible Form */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm mb-8 overflow-hidden">
-                <button
-                    type="button"
-                    onClick={() => {
-                        setFormOpen(!formOpen)
-                        if (!formOpen && !editingId) {
-                            resetForm()
-                        }
-                    }}
-                    className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-                >
-                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                        {editingId ? '✏️ Editar Sugestão' : '➕ Nova Sugestão'}
+            <div className={`bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm mb-8 overflow-hidden ${(formOpen || editingId) ? '' : 'hidden'}`}>
+                <div className="p-4 border-b border-slate-100 dark:border-slate-700">
+                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+                        {editingId ? 'Editar Sugestão' : 'Nova Sugestão'}
                     </h2>
-                    <svg
-                        className={`w-5 h-5 text-slate-500 transition-transform duration-200 ${formOpen ? 'rotate-180' : ''}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                </button>
+                </div>
 
-                {(formOpen || editingId) && (
-                    <div className="p-6 pt-2 border-t border-slate-100 dark:border-slate-700">
+                <div className="p-6">
                         {editingId && (
                             <div className="flex justify-end mb-4">
                                 <button
@@ -331,7 +327,6 @@ export default function PautaAnciaosPage() {
                             </div>
                         </form>
                     </div>
-                )}
             </div>
 
             {/* Items on Agenda */}

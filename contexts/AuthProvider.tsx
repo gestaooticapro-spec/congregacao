@@ -11,6 +11,7 @@ type AuthContextType = {
     session: Session | null
     roles: PerfilAcesso[]
     loading: boolean
+    canAccessPastoreio: boolean
     hasRole: (requiredRoles: PerfilAcesso[]) => boolean
     signOut: () => Promise<void>
 }
@@ -41,41 +42,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null)
     const [session, setSession] = useState<Session | null>(null)
     const [roles, setRoles] = useState<PerfilAcesso[]>([])
+    const [canAccessPastoreio, setCanAccessPastoreio] = useState(false)
     const [loading, setLoading] = useState(true)
     const mountedRef = useRef(false)
     const syncIdRef = useRef(0)
     const rolesRef = useRef<PerfilAcesso[]>([])
+    const pastoreioRef = useRef(false)
     const router = useRouter()
 
     useEffect(() => {
         rolesRef.current = roles
     }, [roles])
 
-    const fetchRolesForUser = useCallback(async (userId: string, syncId: number): Promise<PerfilAcesso[] | null> => {
+    useEffect(() => {
+        pastoreioRef.current = canAccessPastoreio
+    }, [canAccessPastoreio])
+
+    const fetchRolesForUser = useCallback(async (userId: string, syncId: number): Promise<{ roles: PerfilAcesso[]; canAccessPastoreio: boolean } | null> => {
         logAuth('Fetching roles', { userId, syncId })
 
         try {
             return await retry(async () => {
                 const { data: member, error: memberError } = await supabase
                     .from('membros')
-                    .select('id')
+                    .select('id, is_sg, is_ajudante')
                     .eq('user_id', userId)
                     .maybeSingle()
 
                 if (memberError) throw memberError
                 if (!member) {
                     logAuth('No member linked to user', { userId, syncId })
-                    return []
+                    return { roles: [], canAccessPastoreio: false }
                 }
 
-                const { data: roleRows, error: rolesError } = await supabase
-                    .from('membro_perfis')
-                    .select('perfil')
-                    .eq('membro_id', member.id)
+                const [{ data: roleRows, error: rolesError }, { data: grupo, error: grupoError }] = await Promise.all([
+                    supabase
+                        .from('membro_perfis')
+                        .select('perfil')
+                        .eq('membro_id', member.id),
+                    supabase
+                        .from('grupos_servico')
+                        .select('id')
+                        .or(`superintendente_id.eq.${member.id},ajudante_id.eq.${member.id}`)
+                        .maybeSingle(),
+                ])
 
                 if (rolesError) throw rolesError
+                if (grupoError) throw grupoError
 
-                return roleRows.map(row => row.perfil as PerfilAcesso)
+                return {
+                    roles: (roleRows || []).map(row => row.perfil as PerfilAcesso),
+                    canAccessPastoreio: !!(member.is_sg || member.is_ajudante || grupo),
+                }
             })
         } catch (error) {
             logAuth('Failed to fetch roles', {
@@ -108,6 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (!nextUser) {
             setRoles([])
+            setCanAccessPastoreio(false)
             setLoading(false)
             logAuth('Sync finished without active session', { source, syncId })
             return
@@ -116,7 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(true)
 
         try {
-            const fetchedRoles = await fetchRolesForUser(nextUser.id, syncId)
+            const fetchedAccess = await fetchRolesForUser(nextUser.id, syncId)
 
             if (!mountedRef.current || syncId !== syncIdRef.current) {
                 logAuth('Discarding stale sync result', {
@@ -127,7 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return
             }
 
-            if (fetchedRoles === null) {
+            if (fetchedAccess === null) {
                 if (isBackgroundSync && hadRoles) {
                     logAuth('Background sync failed, preserving existing roles', {
                         source,
@@ -138,20 +157,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
 
                 setRoles([])
+                setCanAccessPastoreio(false)
                 logAuth('Sync failed before roles could be resolved', { source, syncId })
                 return
             }
 
             setRoles(prevRoles => {
                 const current = prevRoles.join('|')
-                const next = fetchedRoles.join('|')
-                return current === next ? prevRoles : fetchedRoles
+                const next = fetchedAccess.roles.join('|')
+                return current === next ? prevRoles : fetchedAccess.roles
             })
+            setCanAccessPastoreio(fetchedAccess.canAccessPastoreio)
 
             logAuth('Roles applied', {
                 source,
                 syncId,
-                roles: fetchedRoles,
+                roles: fetchedAccess.roles,
+                canAccessPastoreio: fetchedAccess.canAccessPastoreio,
             })
         } finally {
             if (mountedRef.current && syncId === syncIdRef.current) {
@@ -166,6 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(null)
         setUser(null)
         setRoles([])
+        setCanAccessPastoreio(false)
         setLoading(false)
 
         try {
@@ -226,6 +249,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setSession(null)
                 setUser(null)
                 setRoles([])
+                setCanAccessPastoreio(false)
                 setLoading(false)
                 return
             }
@@ -302,9 +326,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         roles,
         loading,
+        canAccessPastoreio,
         hasRole,
         signOut,
-    }), [user, session, roles, loading, hasRole, signOut])
+    }), [user, session, roles, loading, canAccessPastoreio, hasRole, signOut])
 
     return (
         <AuthContext.Provider value={value}>

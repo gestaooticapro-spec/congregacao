@@ -8,6 +8,7 @@ export type Json =
 
 export type PerfilAcesso =
   | 'ADMIN'
+  | 'COORDENADOR'
   | 'SECRETARIO'
   | 'SUPERINTENDENTE_SERVICO'
   | 'RESP_QUINTA'

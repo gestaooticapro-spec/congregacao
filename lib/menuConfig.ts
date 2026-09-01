@@ -7,7 +7,7 @@ import {
     FileText,
     HeartHandshake,
     LibraryBig,
-    Map,
+    Map as MapIcon,
     Mic,
     Settings,
     Shield,
@@ -43,6 +43,10 @@ export type MenuLink = {
     allowedRoles?: PerfilAcesso[]
     /** Card visivel que ainda nao abre uma pagina. */
     placeholder?: boolean
+    /** Quando informado, o hub desenha uma linha entre secoes diferentes. */
+    section?: number
+    /** So aparece para superintendente de grupo ou ajudante. */
+    requiresPastoreio?: boolean
 }
 
 export type MenuGroupId = 'anciaos' | 'responsabilidades' | 'administracao'
@@ -62,11 +66,15 @@ export type MenuVisibilityContext = {
     roles: PerfilAcesso[]
     loading: boolean
     hasRole: (requiredRoles: PerfilAcesso[]) => boolean
+    canAccessPastoreio?: boolean
 }
+
+/** Admin do sistema e Coordenador: mesma visao de menu. */
+const PERFIS_ADMIN: PerfilAcesso[] = ['ADMIN', 'COORDENADOR']
 
 /** Perfis que enxergam a maior parte dos itens do grupo "Anciaos". */
 const PERFIS_ANCIAOS: PerfilAcesso[] = [
-    'ADMIN',
+    ...PERFIS_ADMIN,
     'SECRETARIO',
     'SUPERINTENDENTE_SERVICO',
     'RESP_QUINTA',
@@ -78,7 +86,7 @@ const PERFIS_ANCIAOS: PerfilAcesso[] = [
 
 /** Perfis que enxergavam o antigo separador "Administracao" da Sidebar. */
 export const PERFIS_ADMINISTRACAO: PerfilAcesso[] = [
-    'ADMIN',
+    ...PERFIS_ADMIN,
     'SECRETARIO',
     'SUPERINTENDENTE_SERVICO',
     'RESP_QUINTA',
@@ -96,11 +104,30 @@ export function isMenuLinkVisible(item: MenuLink, ctx: MenuVisibilityContext): b
     if (ctx.loading && ctx.roles.length === 0) return false
     if (!ctx.user) return false
     if (item.allowedRoles && !ctx.hasRole(item.allowedRoles)) return false
+    if (item.requiresPastoreio && !ctx.canAccessPastoreio) return false
     return true
 }
 
 export function getVisibleMenuLinks(group: MenuGroup, ctx: MenuVisibilityContext): MenuLink[] {
     return group.items.filter(item => isMenuLinkVisible(item, ctx))
+}
+
+export function getVisibleMenuSections(group: MenuGroup, ctx: MenuVisibilityContext): MenuLink[][] {
+    const items = getVisibleMenuLinks(group, ctx)
+    if (items.length === 0) return []
+    if (items.every(item => item.section == null)) return [items]
+
+    const sections = new Map<number, MenuLink[]>()
+    for (const item of items) {
+        const key = item.section ?? 0
+        const list = sections.get(key) ?? []
+        list.push(item)
+        sections.set(key, list)
+    }
+
+    return [...sections.entries()]
+        .sort((a, b) => a[0] - b[0])
+        .map(([, list]) => list)
 }
 
 /** Ex-secacao "Area Comum" da Sidebar. */
@@ -111,13 +138,12 @@ export const ANCIAOS_GROUP: MenuGroup = {
     icon: Shield,
     description: 'Ferramentas do corpo de anciãos da congregação.',
     items: [
-        { label: 'Agenda e Lembretes', href: '/admin/agenda', icon: Calendar, restricted: true, allowedRoles: [...PERFIS_ANCIAOS] },
-        { label: 'Pauta de Reunião', href: '/admin/pauta-anciaos', icon: ClipboardList, restricted: true, allowedRoles: [...PERFIS_ANCIAOS] },
-        { label: 'Relatórios', href: '/admin/relatorios', icon: FileText, restricted: true, allowedRoles: [...PERFIS_ANCIAOS] },
-        { label: 'Meu Grupo', href: '/admin/relatorios-grupo', icon: Users, restricted: true, allowedRoles: [...PERFIS_ANCIAOS] },
-        { label: 'Membros', href: '/admin/membros', icon: UsersRound, restricted: true },
-        { label: 'Pastoreio', href: '/admin/pastoreio', icon: HeartHandshake, restricted: true },
-        { label: 'Meus Temas', href: '/admin/meus-temas', icon: Mic, restricted: true },
+        { label: 'Agenda e Lembretes', href: '/admin/agenda', icon: Calendar, restricted: true, allowedRoles: [...PERFIS_ANCIAOS], section: 1 },
+        { label: 'Pauta de Reunião', href: '/admin/pauta-anciaos', icon: ClipboardList, restricted: true, allowedRoles: [...PERFIS_ANCIAOS], section: 1 },
+        { label: 'Membros', href: '/admin/membros', icon: UsersRound, restricted: true, section: 1 },
+        { label: 'Meu Grupo', href: '/admin/relatorios-grupo', icon: Users, restricted: true, allowedRoles: [...PERFIS_ANCIAOS], section: 2 },
+        { label: 'Pastoreio', href: '/admin/pastoreio', icon: HeartHandshake, restricted: true, requiresPastoreio: true, section: 2 },
+        { label: 'Meus Temas', href: '/admin/meus-temas', icon: Mic, restricted: true, section: 2 },
     ],
 }
 
@@ -129,17 +155,17 @@ export const RESPONSABILIDADES_GROUP: MenuGroup = {
     icon: Briefcase,
     description: 'Encargos e designações de serviço da congregação.',
     items: [
-        { label: 'Visita do Supte.', href: '/admin/visita', icon: ClipboardList, restricted: true, allowedRoles: ['ADMIN', 'SUPERINTENDENTE_SERVICO', 'RQA', 'SECRETARIO', 'RESP_QUINTA'] },
-        { label: 'Secretário (Relatórios)', href: '/admin/relatorios-secretaria', icon: FileText, restricted: true, allowedRoles: ['ADMIN', 'SECRETARIO'] },
-        { label: 'Reunião de Quarta', href: '/programacao', icon: BookOpen, restricted: true, allowedRoles: ['ADMIN', 'RESP_QUINTA'] },
-        { label: 'Discursos', href: '/admin/discursos', icon: Mic, restricted: true, allowedRoles: ['ADMIN', 'RESP_SABADO'] },
-        { label: 'Outras Designações', href: '/admin/escalas', icon: ClipboardList, restricted: true, allowedRoles: ['ADMIN', 'RQA'] },
-        { label: 'Campo', href: '/admin/campo', icon: Map, restricted: true, allowedRoles: ['ADMIN', 'RQA'] },
-        { label: 'Limpeza', href: '/admin/limpeza', icon: Eraser, restricted: true, allowedRoles: ['ADMIN', 'SUPERINTENDENTE_SERVICO'] },
-        { label: 'Cadastros', href: '/admin/cadastros', icon: LibraryBig, restricted: true, allowedRoles: ['ADMIN', 'RESP_SABADO'] },
-        { label: 'Grupos', href: '/admin/grupos', icon: Users, restricted: true, allowedRoles: ['ADMIN', 'SUPERINTENDENTE_SERVICO'] },
-        { label: 'Gerenciar Territórios', href: '/admin/territorios', icon: Settings, restricted: true, allowedRoles: ['ADMIN', 'RT'] },
-        { label: 'Permissões', href: '/admin/permissoes', icon: UserCheck, restricted: true, allowedRoles: ['ADMIN'] },
+        { label: 'Visita do Supte.', href: '/admin/visita', icon: ClipboardList, restricted: true, allowedRoles: [...PERFIS_ADMIN, 'SUPERINTENDENTE_SERVICO', 'RQA', 'SECRETARIO', 'RESP_QUINTA'] },
+        { label: 'Relatórios', href: '/admin/relatorios-secretaria', icon: FileText, restricted: true, allowedRoles: [...PERFIS_ADMIN, 'SECRETARIO'] },
+        { label: 'Reunião de Meio de Semana', href: '/programacao', icon: BookOpen, restricted: true, allowedRoles: [...PERFIS_ADMIN, 'RESP_QUINTA'] },
+        { label: 'Discursos', href: '/admin/discursos', icon: Mic, restricted: true, allowedRoles: [...PERFIS_ADMIN, 'RESP_SABADO'] },
+        { label: 'Designações de Apoio', href: '/admin/escalas', icon: ClipboardList, restricted: true, allowedRoles: [...PERFIS_ADMIN, 'RQA'] },
+        { label: 'Campo', href: '/admin/campo', icon: MapIcon, restricted: true, allowedRoles: [...PERFIS_ADMIN, 'RQA'] },
+        { label: 'Limpeza', href: '/admin/limpeza', icon: Eraser, restricted: true, allowedRoles: [...PERFIS_ADMIN, 'SUPERINTENDENTE_SERVICO'] },
+        { label: 'Cadastros', href: '/admin/cadastros', icon: LibraryBig, restricted: true, allowedRoles: [...PERFIS_ADMIN, 'RESP_SABADO'] },
+        { label: 'Grupos', href: '/admin/grupos', icon: Users, restricted: true, allowedRoles: [...PERFIS_ADMIN, 'SUPERINTENDENTE_SERVICO'] },
+        { label: 'Gerenciar Territórios', href: '/admin/territorios', icon: Settings, restricted: true, allowedRoles: [...PERFIS_ADMIN, 'RT'] },
+        { label: 'Permissões', href: '/admin/permissoes', icon: UserCheck, restricted: true, allowedRoles: [...PERFIS_ADMIN] },
     ],
 }
 

@@ -40,6 +40,7 @@ export default function PastoreioPage() {
     const [savingId, setSavingId] = useState<string | null>(null)
     const [observacoes, setObservacoes] = useState<Record<string, string>>({})
     const [sgNome, setSgNome] = useState<string>('')
+    const [papel, setPapel] = useState<'Superintendente' | 'Ajudante'>('Superintendente')
     const [popoverOpen, setPopoverOpen] = useState<string | null>(null)
     const [overdueMembers, setOverdueMembers] = useState<Membro[]>([])
 
@@ -59,30 +60,46 @@ export default function PastoreioPage() {
 
             const { data: sgData, error: sgError } = await supabase
                 .from('membros')
-                .select('id, nome_completo, grupo_id, is_sg')
+                .select('id, nome_completo, grupo_id, is_sg, is_ajudante')
                 .eq('user_id', user.id)
                 .single()
 
-            if (sgError || !sgData || !sgData.is_sg) {
-                toast.error('Acesso restrito a Superintendentes de Grupo.', { duration: 4000 })
+            if (sgError || !sgData) {
+                toast.error('Não foi possível identificar o membro logado.', { duration: 4000 })
                 router.push('/')
                 return
             }
 
+            const { data: grupo } = await supabase
+                .from('grupos_servico')
+                .select('id, nome, superintendente_id, ajudante_id')
+                .or(`superintendente_id.eq.${sgData.id},ajudante_id.eq.${sgData.id}`)
+                .maybeSingle()
+
+            const isOverseer = !!(sgData.is_sg || grupo?.superintendente_id === sgData.id)
+            const isAssistant = !!(sgData.is_ajudante || grupo?.ajudante_id === sgData.id)
+
+            if (!isOverseer && !isAssistant) {
+                toast.error('Acesso restrito a Superintendentes de Grupo e ajudantes.', { duration: 4000 })
+                router.push('/')
+                return
+            }
+
+            setPapel(isOverseer ? 'Superintendente' : 'Ajudante')
             setSgNome(sgData.nome_completo)
 
-            if (!sgData.grupo_id) {
-                toast.error('Este SG não possui grupo de serviço vinculado.', { duration: 4000 })
+            const grupoId = sgData.grupo_id || grupo?.id
+            if (!grupoId) {
+                toast.error('Este irmão não possui grupo de serviço vinculado.', { duration: 4000 })
                 setLoading(false)
                 return
             }
 
-            // Busca membros do grupo do SG
             const { data: membrosData, error: membrosError } = await supabase
                 .from('membros')
                 .select('*')
-                .eq('grupo_id', sgData.grupo_id)
-                .neq('id', sgData.id) // exclui o próprio SG
+                .eq('grupo_id', grupoId)
+                .neq('id', sgData.id)
                 .order('nome_completo')
 
             if (membrosError) throw membrosError
@@ -182,7 +199,7 @@ export default function PastoreioPage() {
                 title="Gestão de Pastoreio"
                 subtitle={
                     <>
-                        Superintendente:{' '}
+                        {papel}:{' '}
                         <span className="font-semibold text-slate-700 dark:text-slate-300">{sgNome}</span>
                         {' · '}
                         {membros.length} membro{membros.length !== 1 ? 's' : ''} no grupo
@@ -223,9 +240,107 @@ export default function PastoreioPage() {
                 </div>
             )}
 
-            {/* Tabela */}
-            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
+            {/* Lista */}
+            <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+                    {membros.map(membro => {
+                        const nome = membro.nome_civil || membro.nome_completo
+                        const temOverdue = isOverdue(membro.proxima_visita)
+                        const isPopoverOpen = popoverOpen === membro.id
+
+                        return (
+                            <div key={membro.id} className="p-4 space-y-3">
+                                <div className="flex items-center justify-between gap-2">
+                                    <p className="font-medium text-slate-800 dark:text-white leading-tight">{nome}</p>
+                                    {temOverdue && <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />}
+                                </div>
+
+                                <div>
+                                    <p className="text-[11px] uppercase font-semibold text-slate-400 mb-1">Última visita</p>
+                                    {membro.ultima_visita ? (
+                                        <div className="relative inline-block">
+                                            <button
+                                                type="button"
+                                                onClick={() => setPopoverOpen(isPopoverOpen ? null : membro.id)}
+                                                className="flex items-center gap-1 text-sm text-slate-700 dark:text-slate-300"
+                                            >
+                                                <span>{formatDateBR(membro.ultima_visita)}</span>
+                                                <Info className="w-3.5 h-3.5 text-blue-500" />
+                                            </button>
+                                            {isPopoverOpen && (
+                                                <>
+                                                    <div className="fixed inset-0 z-10" onClick={() => setPopoverOpen(null)} />
+                                                    <div className="absolute z-20 left-0 top-full mt-2 w-64 max-w-[80vw] bg-slate-800 text-white text-xs rounded-lg p-3 shadow-xl">
+                                                        {membro.ultima_visita_obs ? (
+                                                            <>
+                                                                <p className="font-semibold mb-1">Observação:</p>
+                                                                <p className="whitespace-pre-wrap">{membro.ultima_visita_obs}</p>
+                                                            </>
+                                                        ) : (
+                                                            <p>Sem observações registradas.</p>
+                                                        )}
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <span className="text-sm text-slate-400">—</span>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <p className="text-[11px] uppercase font-semibold text-slate-400 mb-1">Próxima visita</p>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="date"
+                                            value={membro.proxima_visita || ''}
+                                            onChange={e => handleDateChange(membro.id, e.target.value)}
+                                            className={`flex-1 min-w-0 text-xs border rounded px-2 py-1.5 ${
+                                                temOverdue
+                                                    ? 'border-red-400 bg-red-50 text-red-700'
+                                                    : 'border-slate-300 bg-white text-slate-800'
+                                            }`}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => handleSaveDate(membro)}
+                                            disabled={savingId === membro.id || !membro.proxima_visita}
+                                            className="shrink-0 text-xs text-blue-600 font-medium disabled:opacity-50"
+                                        >
+                                            {savingId === membro.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : (membro.proxima_visita ? '✓' : 'Agendar')}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <p className="text-[11px] uppercase font-semibold text-slate-400 mb-1">Observações</p>
+                                    <textarea
+                                        value={observacoes[membro.id] || ''}
+                                        onChange={e =>
+                                            setObservacoes(prev => ({
+                                                ...prev,
+                                                [membro.id]: e.target.value,
+                                            }))
+                                        }
+                                        placeholder="Registre o que foi conversado..."
+                                        rows={2}
+                                        className="w-full text-xs border border-slate-300 rounded px-2 py-1.5 resize-none text-slate-800 placeholder:text-slate-400"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSalvarVisita(membro)}
+                                        disabled={savingId === membro.id || !(observacoes[membro.id] || '').trim()}
+                                        className="mt-2 w-full text-xs bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {savingId === membro.id ? 'Salvando...' : 'Salvar visita'}
+                                    </button>
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
+
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-slate-50 border-b border-slate-200">

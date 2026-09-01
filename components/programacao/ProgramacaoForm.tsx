@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import { Database } from '@/types/database.types'
+import PageHeader from '@/components/PageHeader'
 
 type Programacao = Database['public']['Tables']['programacao_semanal']['Row']
 
@@ -169,46 +170,52 @@ export default function ProgramacaoForm({ initialData, isEditing = false }: Prog
         const sectionPartes = partes.filter(p => p.tipo === tipo)
 
         return (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 mb-6">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className={`text-lg font-semibold ${colorClass}`}>{title}</h3>
+            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 sm:p-6 mb-6 overflow-hidden">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                    <h3 className={`text-lg font-semibold leading-tight ${colorClass}`}>{title}</h3>
                     <button
+                        type="button"
                         onClick={() => addParte(tipo)}
-                        className="text-sm px-3 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm w-full sm:w-auto shrink-0"
                     >
                         + Adicionar Parte
                     </button>
                 </div>
                 <div className="space-y-3">
                     {sectionPartes.map((parte) => (
-                        <div key={parte.id} className="flex gap-4 items-center">
+                        <div key={parte.id} className="flex items-center gap-2 min-w-0">
                             <input
                                 type="text"
-                                placeholder="Nome da Parte"
+                                placeholder="Nome da parte"
                                 value={parte.nome}
                                 onChange={(e) => updateParte(parte.id, 'nome', e.target.value)}
-                                className="flex-1 p-2 border border-gray-300 dark:border-gray-600 rounded bg-transparent"
+                                className="flex-1 min-w-0 p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-transparent text-slate-900 dark:text-white"
                             />
-                            <div className="w-24">
+                            <div className="flex items-center gap-1 shrink-0">
                                 <input
                                     type="number"
-                                    placeholder="Min"
+                                    inputMode="numeric"
+                                    placeholder="min"
                                     value={parte.tempo}
                                     onChange={(e) => updateParte(parte.id, 'tempo', parseInt(e.target.value) || 0)}
-                                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-transparent text-center"
+                                    className="w-14 p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-transparent text-center text-slate-900 dark:text-white"
+                                    aria-label="Minutos"
                                 />
+                                <span className="text-xs text-slate-400 w-7">min</span>
                             </div>
                             <button
+                                type="button"
                                 onClick={() => removeParte(parte.id)}
-                                className="text-red-500 hover:text-red-700 p-2"
+                                className="shrink-0 text-red-500 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
                                 title="Remover"
+                                aria-label="Remover parte"
                             >
                                 ✕
                             </button>
                         </div>
                     ))}
                     {sectionPartes.length === 0 && (
-                        <p className="text-gray-500 text-sm italic text-center py-2">Nenhuma parte adicionada.</p>
+                        <p className="text-slate-500 text-sm italic text-center py-2">Nenhuma parte adicionada.</p>
                     )}
                 </div>
             </div>
@@ -216,41 +223,42 @@ export default function ProgramacaoForm({ initialData, isEditing = false }: Prog
     }
 
     return (
-        <div className="max-w-4xl mx-auto p-8 pb-24">
-            <h1 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white">
-                {isEditing ? 'Editar Programação' : 'Nova Programação (Manual)'}
-            </h1>
+        <div className="max-w-4xl mx-auto p-4 md:p-8 pb-32 overflow-x-clip">
+            <PageHeader
+                title={isEditing ? 'Editar Programação' : 'Nova Programação'}
+                backHref="/programacao"
+                backLabel="Reunião de Meio de Semana"
+            />
 
-            {/* Basic Info */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 mb-6">
-                <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Informações Gerais</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 sm:p-6 mb-6">
+                <h2 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Informações Gerais</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Data</label>
                         <input
                             type="date"
                             value={dataReuniao}
                             onChange={(e) => setDataReuniao(e.target.value)}
-                            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-transparent"
+                            className="w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-transparent text-slate-900 dark:text-white"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Semana (Descrição)</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Semana (Descrição)</label>
                         <input
                             type="text"
                             placeholder="Ex: Romanos 1-2"
                             value={semanaDescricao}
                             onChange={(e) => setSemanaDescricao(e.target.value)}
-                            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-transparent"
+                            className="w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-transparent text-slate-900 dark:text-white"
                         />
                     </div>
                 </div>
                 <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo de Evento</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tipo de Evento</label>
                     <select
                         value={eventoTipo}
                         onChange={(e) => handleEventoTipoChange(e.target.value)}
-                        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                        className="w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                     >
                         <option value="normal">Normal</option>
                         <option value="assembleia">Assembleia</option>
@@ -262,7 +270,7 @@ export default function ProgramacaoForm({ initialData, isEditing = false }: Prog
             </div>
 
             {eventoTipo === 'visita spte' && (
-                <div className="mb-6 p-4 bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 rounded-lg flex items-start gap-3 shadow-sm">
+                <div className="mb-6 p-4 bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 rounded-xl flex items-start gap-3">
                     <span className="text-teal-600 dark:text-teal-400 text-xl">📌</span>
                     <div>
                         <h3 className="text-teal-800 dark:text-teal-300 font-bold">Semana de Visita do Superintendente</h3>
@@ -273,39 +281,28 @@ export default function ProgramacaoForm({ initialData, isEditing = false }: Prog
                 </div>
             )}
 
-            {/* Treasures Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 mb-6">
-                <h2 className="text-xl font-semibold mb-4 text-gray-600 dark:text-gray-300">Tesouros da Palavra de Deus</h2>
-
-
-
-                {renderSection('Partes do Tesouros', 'TESOUROS', 'text-gray-600')}
-            </div>
-
-            {/* Ministry Section */}
+            {renderSection('Tesouros da Palavra de Deus', 'TESOUROS', 'text-slate-600 dark:text-slate-300')}
             {renderSection('Faça Seu Melhor no Ministério', 'MINISTERIO', 'text-yellow-600')}
+            {renderSection('Nossa Vida Cristã', 'VIDA_CRISTA', 'text-red-600')}
 
-            {/* Living as Christians Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 mb-6">
-                <h2 className="text-xl font-semibold mb-4 text-red-600">Nossa Vida Cristã</h2>
-                {renderSection('Partes da Vida Cristã', 'VIDA_CRISTA', 'text-red-600')}
-            </div>
-
-            {/* Actions */}
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-4 max-w-4xl mx-auto">
-                <button
-                    onClick={() => router.back()}
-                    className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                >
-                    Cancelar
-                </button>
-                <button
-                    onClick={handleSalvar}
-                    disabled={saving}
-                    className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 font-medium shadow-sm"
-                >
-                    {saving ? 'Salvando...' : 'Salvar Programação'}
-                </button>
+            <div className="fixed bottom-0 left-0 right-0 p-3 sm:p-4 bg-white/95 dark:bg-slate-900/95 border-t border-slate-200 dark:border-slate-800 z-40">
+                <div className="max-w-4xl mx-auto flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-4">
+                    <button
+                        type="button"
+                        onClick={() => router.back()}
+                        className="px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-medium text-sm"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleSalvar}
+                        disabled={saving}
+                        className="px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium text-sm shadow-sm"
+                    >
+                        {saving ? 'Salvando...' : 'Salvar Programação'}
+                    </button>
+                </div>
             </div>
         </div>
     )

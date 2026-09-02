@@ -53,7 +53,23 @@ export async function generateAutoAssignments(programacaoId: string): Promise<{ 
 
         if (membError || !membros) throw new Error('Erro ao buscar membros')
 
-        // 3. Fetch History (Last 6 months should be enough for "recent" check, but let's get all to be safe for "longest time")
+        // 3. Fetch assignments that already occupy members on this date.
+        // The automatic engine must respect whoever was assigned first in support,
+        // public talks or field service.
+        const [{ data: supportAssignments, error: supportError }, { data: localTalks, error: talksError }, { data: fieldAssignments, error: fieldError }] = await Promise.all([
+            supabase.from('designacoes_suporte').select('membro_id').eq('data', programacao.data_reuniao),
+            supabase.from('agenda_discursos_locais').select('orador_local_id').eq('data', programacao.data_reuniao),
+            supabase.from('escalas_campo').select('dirigente_id').eq('data', programacao.data_reuniao),
+        ])
+
+        if (supportError || talksError || fieldError) throw new Error('Erro ao verificar conflitos de designação')
+
+        const unavailableMembers = new Set<string>()
+        supportAssignments?.forEach(assignment => assignment.membro_id && unavailableMembers.add(assignment.membro_id))
+        localTalks?.forEach(talk => talk.orador_local_id && unavailableMembers.add(talk.orador_local_id))
+        fieldAssignments?.forEach(assignment => assignment.dirigente_id && unavailableMembers.add(assignment.dirigente_id))
+
+        // 4. Fetch History (Last 6 months should be enough for "recent" check, but let's get all to be safe for "longest time")
         const { data: historico, error: histError } = await supabase
             .from('historico_designacoes')
             .select('*')
@@ -82,7 +98,7 @@ export async function generateAutoAssignments(programacaoId: string): Promise<{ 
         // Helper to pick best candidate
         const pickCandidate = (candidates: Membro[]) => {
             // Filter out already assigned in this meeting
-            const availableCandidates = candidates.filter(m => !assignedMembers.has(m.id))
+            const availableCandidates = candidates.filter(m => !assignedMembers.has(m.id) && !unavailableMembers.has(m.id))
 
             if (availableCandidates.length === 0) return null
 

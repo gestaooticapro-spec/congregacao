@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Database } from '@/types/database.types'
 import PageHeader from '@/components/PageHeader'
+import { Pencil, Plus, Printer, Trash2, Users, X } from 'lucide-react'
 
 type Grupo = Database['public']['Tables']['grupos_servico']['Row']
 type Membro = Database['public']['Tables']['membros']['Row']
@@ -202,18 +203,20 @@ export default function GruposPage() {
                 backLabel="Responsabilidades"
             />
 
-            <div className="flex justify-end mb-8 gap-3 no-print">
+            <div className="flex flex-col sm:flex-row justify-end mb-8 gap-3 no-print">
                 <button
+                    type="button"
                     onClick={handlePrint}
-                    className="px-6 py-2 bg-slate-700 text-white rounded-lg font-semibold hover:bg-slate-800 transition-colors shadow-md flex items-center gap-2"
+                    className="w-full sm:w-auto px-4 sm:px-6 py-2.5 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition-all shadow-lg shadow-slate-200 dark:shadow-none flex items-center justify-center gap-2"
                 >
-                    <span>🖨️</span> Imprimir Grupos
+                    <Printer className="w-5 h-5" /> Imprimir Grupos
                 </button>
                 <button
+                    type="button"
                     onClick={handleNew}
-                    className="px-6 py-2 bg-primary text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-md flex items-center gap-2"
+                    className="w-full sm:w-auto px-4 sm:px-6 py-2.5 bg-primary text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
                 >
-                    <span>+</span> Novo Grupo
+                    <Plus className="w-5 h-5" /> Novo Grupo
                 </button>
             </div>
 
@@ -223,11 +226,11 @@ export default function GruposPage() {
                         <div className="flex justify-between items-start mb-6">
                             <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{grupo.nome}</h2>
                             <div className="flex gap-3">
-                                <button onClick={() => handleEdit(grupo)} className="p-2 text-primary hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors" title="Editar">
-                                    ✏️
+                                <button type="button" onClick={() => handleEdit(grupo)} className="p-2 text-primary hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors" title="Editar">
+                                    <Pencil className="w-5 h-5" />
                                 </button>
-                                <button onClick={() => handleDelete(grupo.id)} className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors" title="Excluir">
-                                    🗑️
+                                <button type="button" onClick={() => handleDelete(grupo.id)} className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors" title="Excluir">
+                                    <Trash2 className="w-5 h-5" />
                                 </button>
                             </div>
                         </div>
@@ -250,9 +253,11 @@ export default function GruposPage() {
                         </div>
 
                         <button
+                            type="button"
                             onClick={() => handleViewMembers(grupo)}
-                            className="w-full py-3 px-4 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm font-bold shadow-sm"
+                            className="w-full py-3 px-4 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-sm font-bold shadow-sm flex items-center justify-center gap-2"
                         >
+                            <Users className="w-4 h-4" />
                             Gerenciar Membros
                         </button>
                     </div>
@@ -392,15 +397,17 @@ export default function GruposPage() {
 
                         <div className="flex justify-end gap-3 mt-6">
                             <button
+                                type="button"
                                 onClick={() => setIsModalOpen(false)}
-                                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                                className="px-4 py-2.5 text-slate-600 dark:text-slate-300 font-semibold rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                             >
                                 Cancelar
                             </button>
                             <button
+                                type="button"
                                 onClick={handleSave}
                                 disabled={saving}
-                                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                                className="px-5 py-2.5 bg-primary text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {saving ? 'Salvando...' : 'Salvar'}
                             </button>
@@ -418,10 +425,12 @@ export default function GruposPage() {
                                 Membros do {viewingMembersGrupo.nome}
                             </h2>
                             <button
+                                type="button"
                                 onClick={() => setViewingMembersGrupo(null)}
-                                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                                className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-700 rounded-lg transition-colors"
+                                aria-label="Fechar"
                             >
-                                ✕
+                                <X className="w-5 h-5" />
                             </button>
                         </div>
 
@@ -505,8 +514,9 @@ export default function GruposPage() {
 
                         <div className="flex justify-end mt-6">
                             <button
+                                type="button"
                                 onClick={() => setViewingMembersGrupo(null)}
-                                className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+                                className="px-5 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-semibold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
                             >
                                 Fechar
                             </button>

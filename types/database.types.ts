@@ -87,6 +87,45 @@ export interface Database {
         }
         Relationships: []
       }
+      dados_congregacao: {
+        Row: {
+          id: boolean
+          nome: string
+          numero: string
+          circuito: string
+          cep: string
+          endereco: string
+          cidade: string
+          estado: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: boolean
+          nome?: string
+          numero?: string
+          circuito?: string
+          cep?: string
+          endereco?: string
+          cidade?: string
+          estado?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: boolean
+          nome?: string
+          numero?: string
+          circuito?: string
+          cep?: string
+          endereco?: string
+          cidade?: string
+          estado?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       escalas_campo: {
         Row: {
           id: string

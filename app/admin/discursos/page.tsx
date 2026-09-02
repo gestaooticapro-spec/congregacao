@@ -7,6 +7,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import PageHeader from '@/components/PageHeader'
 import Link from 'next/link'
+import { checkConflicts, conflictMessage } from '@/lib/conflictCheck'
 
 type DiscursoLocal = Database['public']['Tables']['agenda_discursos_locais']['Row'] & {
     tema: { numero: number, titulo: string },
@@ -300,6 +301,22 @@ function DiscursosLocaisList({ discursos, onUpdate }: { discursos: DiscursoLocal
         }
     }
 
+    const handleLocalSpeakerChange = async (membroId: string) => {
+        if (!membroId) {
+            setOradorLocalId('')
+            return
+        }
+
+        const conflicts = await checkConflicts(data, membroId, { ignoreTalkId: editingId })
+        if (conflicts.length > 0) {
+            const memberName = membros.find(member => member.id === membroId)?.nome_completo || 'Este irmão'
+            alert(conflictMessage(memberName, conflicts))
+            return
+        }
+
+        setOradorLocalId(membroId)
+    }
+
     const handleSave = async () => {
         if (!data || (!oradorLocalId && !oradorVisitanteId)) {
             alert('Preencha os campos obrigatórios')
@@ -313,6 +330,15 @@ function DiscursosLocaisList({ discursos, onUpdate }: { discursos: DiscursoLocal
         if (tipoOrador === 'VISITANTE' && !temaId) {
             alert('Selecione um tema')
             return
+        }
+
+        if (tipoOrador === 'LOCAL' && oradorLocalId) {
+            const conflicts = await checkConflicts(data, oradorLocalId, { ignoreTalkId: editingId })
+            if (conflicts.length > 0) {
+                const memberName = membros.find(member => member.id === oradorLocalId)?.nome_completo || 'Este irmão'
+                alert(conflictMessage(memberName, conflicts))
+                return
+            }
         }
 
         setSaving(true)
@@ -571,7 +597,7 @@ ${midiaTexto}`
                             {tipoOrador === 'LOCAL' ? (
                                 <div>
                                     <label className="block text-sm font-bold mb-1">Orador</label>
-                                    <select value={oradorLocalId} onChange={e => setOradorLocalId(e.target.value)} className="w-full p-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700">
+                                    <select value={oradorLocalId} onChange={e => void handleLocalSpeakerChange(e.target.value)} className="w-full p-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700">
                                         <option value="">Selecione...</option>
                                         {membros.map(m => <option key={m.id} value={m.id}>{m.nome_completo}</option>)}
                                     </select>

@@ -1,50 +1,83 @@
 import { supabase } from './supabaseClient'
 
-export async function checkConflicts(date: string, membroId: string): Promise<string[]> {
+type ConflictCheckOptions = {
+    ignoreSupportRole?: string
+    ignoreProgramacaoId?: string
+    ignoreProgramacaoTopLevelRole?: 'PRESIDENTE' | 'ORACAO_INICIAL' | 'ORACAO_FINAL'
+    ignoreTalkId?: string | null
+}
+
+const supportRoleLabels: Record<string, string> = {
+    PRESIDENTE: 'Presidente',
+    SOM: 'Som',
+    MICROFONE_1: 'Microfone 1',
+    MICROFONE_2: 'Microfone 2',
+    INDICADOR_ENTRADA: 'Indicador de Entrada',
+    INDICADOR_AUDITORIO: 'Indicador de Auditório',
+    LEITOR_SENTINELA: 'Leitor da Sentinela',
+    VIDEO: 'Vídeo',
+}
+
+export async function checkConflicts(date: string, membroId: string, options: ConflictCheckOptions = {}): Promise<string[]> {
     const conflicts: string[] = []
 
     try {
-        // 1. Check Mechanical Assignments (Escalas)
-        const { data: escalasData, error: escalasError } = await supabase
+        const { data: supportData, error: supportError } = await supabase
             .from('designacoes_suporte')
             .select('funcao')
             .eq('data', date)
             .eq('membro_id', membroId)
 
-        if (escalasError) throw escalasError
+        if (supportError) throw supportError
 
-        if (escalasData) {
-            escalasData.forEach(escala => {
-                conflicts.push(`Suporte: ${formatRoleName(escala.funcao)}`)
-            })
-        }
+        supportData?.forEach(assignment => {
+            if (assignment.funcao !== options.ignoreSupportRole) {
+                conflicts.push(supportRoleLabels[assignment.funcao] || assignment.funcao)
+            }
+        })
 
-        // 2. Check Spiritual Assignments (Programação Semanal)
-        const { data: progData, error: progError } = await supabase
+        const { data: programacao, error: programacaoError } = await supabase
             .from('programacao_semanal')
-            .select('*')
+            .select('id, presidente_id, oracao_inicial_id, oracao_final_id, partes')
             .eq('data_reuniao', date)
             .maybeSingle()
 
-        if (progError) throw progError
+        if (programacaoError) throw programacaoError
 
-        if (progData) {
-            if (progData.presidente_id === membroId) conflicts.push('Presidente')
-            if (progData.oracao_inicial_id === membroId) conflicts.push('Oração Inicial')
-            if (progData.oracao_final_id === membroId) conflicts.push('Oração Final')
+        if (programacao && programacao.id !== options.ignoreProgramacaoId) {
+            if (programacao.presidente_id === membroId && options.ignoreProgramacaoTopLevelRole !== 'PRESIDENTE') {
+                conflicts.push('Presidente')
+            }
+            if (programacao.oracao_inicial_id === membroId && options.ignoreProgramacaoTopLevelRole !== 'ORACAO_INICIAL') {
+                conflicts.push('Oração Inicial')
+            }
+            if (programacao.oracao_final_id === membroId && options.ignoreProgramacaoTopLevelRole !== 'ORACAO_FINAL') {
+                conflicts.push('Oração Final')
+            }
 
-            const partes = (progData.partes as any[]) || []
+            const partes = (programacao.partes as any[]) || []
             partes.forEach((parte: any) => {
-                if (parte.membro_id === membroId) {
-                    conflicts.push(`Parte: ${parte.nome}`)
-                }
-                if (parte.ajudante_id === membroId) {
-                    conflicts.push(`Ajudante: ${parte.nome}`)
-                }
+                if (parte.membro_id === membroId) conflicts.push(`Parte: ${parte.nome}`)
+                if (parte.ajudante_id === membroId) conflicts.push(`Ajudante: ${parte.nome}`)
             })
         }
 
-        // 3. Check Field Service Leaders (Escalas Campo)
+        let talksQuery = supabase
+            .from('agenda_discursos_locais')
+            .select('id, tema:temas(numero, titulo)')
+            .eq('data', date)
+            .eq('orador_local_id', membroId)
+
+        if (options.ignoreTalkId) talksQuery = talksQuery.neq('id', options.ignoreTalkId)
+
+        const { data: talksData, error: talksError } = await talksQuery
+        if (talksError) throw talksError
+
+        talksData?.forEach((talk: any) => {
+            const tema = talk.tema?.numero ? ` #${talk.tema.numero}` : ''
+            conflicts.push(`Orador de Discurso Público${tema}`)
+        })
+
         const { data: campoData, error: campoError } = await supabase
             .from('escalas_campo')
             .select('id')
@@ -52,26 +85,14 @@ export async function checkConflicts(date: string, membroId: string): Promise<st
             .eq('dirigente_id', membroId)
 
         if (campoError) throw campoError
-
-        if (campoData && campoData.length > 0) {
-            conflicts.push('Dirigente de Campo')
-        }
-
+        if (campoData?.length) conflicts.push('Dirigente de Campo')
     } catch (error) {
-        console.error('Error checking conflicts:', error)
+        console.error('Erro ao verificar conflitos de designação:', error)
     }
 
-    return conflicts
+    return Array.from(new Set(conflicts))
 }
 
-function formatRoleName(role: string): string {
-    const roles: Record<string, string> = {
-        'PRESIDENTE': 'Presidente', // Legacy?
-        'SOM': 'Som',
-        'MICROFONE_1': 'Microfone 1',
-        'MICROFONE_2': 'Microfone 2',
-        'INDICADOR_ENTRADA': 'Indicador Entrada',
-        'INDICADOR_AUDITORIO': 'Indicador Auditório',
-    }
-    return roles[role] || role
+export function conflictMessage(memberName: string, conflicts: string[]): string {
+    return `${memberName} já está escalado como ${conflicts.join(', ')} para este dia. Se precisar, peça uma substituição para o responsável.`
 }

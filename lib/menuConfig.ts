@@ -177,7 +177,7 @@ export const ADMINISTRACAO_GROUP: MenuGroup = {
     description: 'Acesso e dados da congregação.',
     items: [
         { label: 'Senha e Acesso', href: '/admin/meu-login', icon: ShieldCheck, restricted: true },
-        { label: 'Dados da congregação', href: '/administracao/dados', icon: Building2, restricted: true, placeholder: true, allowedRoles: [...PERFIS_ADMINISTRACAO] },
+        { label: 'Dados da congregação', href: '/administracao/dados', icon: Building2, restricted: true, allowedRoles: [...PERFIS_ADMINISTRACAO] },
     ],
 }
 

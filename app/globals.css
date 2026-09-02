@@ -3,7 +3,7 @@
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
-  --primary: #2563eb;
+  --primary: #F2B705;
   --secondary: #334155;
   --card-bg: #f1f5f9;
   --header-text: #1e293b;
@@ -29,13 +29,24 @@
 }
 
 
+html, body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  position: relative;
 }
 
 @media print {
+  html, body {
+    overflow: visible;
+    max-width: none;
+  }
   nav {
     display: none !important;
   }

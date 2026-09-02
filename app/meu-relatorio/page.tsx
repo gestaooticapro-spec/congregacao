@@ -86,15 +86,17 @@ export default function MeuRelatorioPage() {
 
                 // 2. Fetch Logs from Pioneer Panel to use as draft
                 if (parsed.is_pioneiro) {
+                    if (!parsed.pin) throw new Error('Sessão de pioneiro inválida.')
                     const startOfMonth = mes
                     const endOfMonth = format(new Date(new Date(mes).getFullYear(), new Date(mes).getMonth() + 1, 0), 'yyyy-MM-dd')
                     
-                    const { data: logs } = await supabase
-                        .from('ministerio_logs')
-                        .select('minutos, categoria')
-                        .eq('membro_id', parsed.id)
-                        .gte('data', startOfMonth)
-                        .lte('data', endOfMonth)
+                    const { data: logs, error: logsError } = await supabase.rpc('listar_logs_pioneiro', {
+                        p_membro_id: parsed.id,
+                        p_pin: parsed.pin,
+                        p_data_inicio: startOfMonth,
+                        p_data_fim: endOfMonth,
+                    })
+                    if (logsError) throw logsError
 
                     if (logs && logs.length > 0) {
                         let totalMin = 0

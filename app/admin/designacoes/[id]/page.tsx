@@ -4,12 +4,13 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useParams, useRouter } from 'next/navigation'
 import { Database } from '@/types/database.types'
-import { checkConflicts } from '@/lib/conflictCheck'
+import { checkConflicts, conflictMessage } from '@/lib/conflictCheck'
 import { format, parseISO, startOfWeek, endOfWeek } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { generateAutoAssignments } from '@/app/actions/autoAssign'
 import HistoryModal from '@/components/HistoryModal'
 import { calculatePartTimes } from '@/lib/scheduleUtils'
+import { ArrowLeft } from 'lucide-react'
 
 type Programacao = Database['public']['Tables']['programacao_semanal']['Row']
 type Membro = Database['public']['Tables']['membros']['Row']
@@ -206,16 +207,24 @@ export default function EditarDesignacoesPage() {
 
             // 2. Database Conflict Check
             if (programacao) {
-                const dbConflicts = await checkConflicts(programacao.data_reuniao, value)
-                allConflicts.push(...dbConflicts)
+                try {
+                    const dbConflicts = await checkConflicts(programacao.data_reuniao, value, {
+                        ignoreProgramacaoId: programacao.id,
+                    })
+                    allConflicts.push(...dbConflicts)
+                } catch (error: any) {
+                    alert(error.message || 'Não foi possível verificar os conflitos desta data.')
+                    return
+                }
             }
 
             // 3. Deduplicate and Show Alert
             const uniqueConflicts = Array.from(new Set(allConflicts))
 
             if (uniqueConflicts.length > 0) {
-                const proceed = confirm(`Este irmão já tem outras designações nesta data: ${uniqueConflicts.join(', ')}. Deseja continuar?`)
-                if (!proceed) return
+                const memberName = membros.find(member => member.id === value)?.nome_completo || 'Este irmão'
+                alert(conflictMessage(memberName, uniqueConflicts))
+                return
             }
         }
 
@@ -241,16 +250,25 @@ export default function EditarDesignacoesPage() {
 
             // 2. Database Conflict Check
             if (programacao) {
-                const dbConflicts = await checkConflicts(programacao.data_reuniao, value)
-                allConflicts.push(...dbConflicts)
+                try {
+                    const dbConflicts = await checkConflicts(programacao.data_reuniao, value, {
+                        ignoreProgramacaoId: programacao.id,
+                        ignoreSupportRole: role === 'presidente_id' ? 'PRESIDENTE' : undefined,
+                    })
+                    allConflicts.push(...dbConflicts)
+                } catch (error: any) {
+                    alert(error.message || 'Não foi possível verificar os conflitos desta data.')
+                    return
+                }
             }
 
             // 3. Deduplicate and Show Alert
             const uniqueConflicts = Array.from(new Set(allConflicts))
 
             if (uniqueConflicts.length > 0) {
-                const proceed = confirm(`Este irmão já tem outras designações nesta data: ${uniqueConflicts.join(', ')}. Deseja continuar?`)
-                if (!proceed) return
+                const memberName = membros.find(member => member.id === value)?.nome_completo || 'Este irmão'
+                alert(conflictMessage(memberName, uniqueConflicts))
+                return
             }
         }
 
@@ -484,12 +502,21 @@ export default function EditarDesignacoesPage() {
 
     return (
         <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 overflow-x-hidden">
+            <button
+                type="button"
+                onClick={() => router.back()}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mb-4 transition-colors"
+            >
+                <ArrowLeft className="w-5 h-5" />
+                Voltar
+            </button>
             <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Designações</h1>
                     <p className="text-gray-600 dark:text-gray-400 mt-1 capitalize">
                         {new Date(programacao.data_reuniao + 'T00:00:00').toLocaleDateString('pt-BR')} - {programacao.evento_tipo !== 'normal' ? programacao.evento_tipo : programacao.semana_descricao}
                     </p>
+                    <div className="h-1 w-20 bg-primary rounded-full mt-3" />
                 </div>
                 <div className="flex w-full flex-wrap gap-2 sm:w-auto">
                     {programacao?.evento_tipo === 'visita spte' && (
@@ -513,12 +540,6 @@ export default function EditarDesignacoesPage() {
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                         Imprimir
-                    </button>
-                    <button
-                        onClick={() => router.back()}
-                        className="flex min-w-0 flex-1 items-center justify-center rounded-md border border-gray-300 px-3 py-2 text-center text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800 sm:flex-none sm:px-4"
-                    >
-                        Voltar
                     </button>
                 </div>
             </div>

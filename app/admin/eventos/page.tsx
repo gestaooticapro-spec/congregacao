@@ -1,17 +1,48 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import EventosCongregacao from '@/components/admin/eventos/EventosCongregacao'
 import EventosAnciaos from '@/components/admin/eventos/EventosAnciaos'
+import PageHeader from '@/components/PageHeader'
+import { useAuth } from '@/contexts/AuthProvider'
 
-export default function AdminEventosPage() {
-    const [activeTab, setActiveTab] = useState<'congregacao' | 'anciaos'>('congregacao')
+type EventosTab = 'congregacao' | 'anciaos'
+
+function parseTab(value: string | null): EventosTab {
+    return value === 'anciaos' ? 'anciaos' : 'congregacao'
+}
+
+function AdminEventosContent() {
+    const router = useRouter()
+    const searchParams = useSearchParams()
+    const { user, session, loading: authLoading } = useAuth()
+    const activeTab = parseTab(searchParams.get('aba'))
+
+    useEffect(() => {
+        if (!authLoading && (!user || !session)) {
+            router.replace('/login')
+        }
+    }, [authLoading, user, session, router])
+
+    const setActiveTab = (tab: EventosTab) => {
+        router.replace(`/admin/eventos?aba=${tab}`)
+    }
+
+    const backHref = activeTab === 'anciaos' ? '/admin/agenda' : '/calendario'
+
+    if (authLoading || !user || !session) {
+        return <div className="p-8 text-center text-slate-500">Carregando...</div>
+    }
 
     return (
-        <div className="p-8 max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-8">Gerenciar Eventos</h1>
+        <div className="w-full min-w-0 max-w-6xl mx-auto px-2 py-4 md:p-8 overflow-x-clip">
+            <PageHeader
+                title="Gerenciar Eventos"
+                backHref={backHref}
+                backLabel=""
+            />
 
-            {/* Tabs */}
             <div className="flex space-x-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-8 w-fit">
                 <button
                     onClick={() => setActiveTab('congregacao')}
@@ -33,8 +64,15 @@ export default function AdminEventosPage() {
                 </button>
             </div>
 
-            {/* Content */}
             {activeTab === 'congregacao' ? <EventosCongregacao /> : <EventosAnciaos />}
         </div>
+    )
+}
+
+export default function AdminEventosPage() {
+    return (
+        <Suspense fallback={<div className="p-8 text-center text-slate-500">Carregando...</div>}>
+            <AdminEventosContent />
+        </Suspense>
     )
 }

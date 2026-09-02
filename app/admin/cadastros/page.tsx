@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Database } from '@/types/database.types'
+import PageHeader from '@/components/PageHeader'
 
 type Tema = Database['public']['Tables']['temas']['Row']
 type Visitante = Database['public']['Tables']['oradores_visitantes']['Row']
@@ -10,48 +11,56 @@ type Visitante = Database['public']['Tables']['oradores_visitantes']['Row']
 export default function CadastrosPage() {
     const [activeTab, setActiveTab] = useState<'TEMAS' | 'VISITANTES' | 'COLABORADORES'>('TEMAS')
 
+    useEffect(() => {
+        const aba = new URLSearchParams(window.location.search).get('aba')
+        if (aba === 'visitantes') setActiveTab('VISITANTES')
+        if (aba === 'colaboradores') setActiveTab('COLABORADORES')
+        if (aba === 'temas') setActiveTab('TEMAS')
+    }, [])
+
     return (
-        <div className="max-w-6xl mx-auto p-8">
-            <div className="text-center mb-12">
-                <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Cadastros</h1>
-                <div className="h-1 w-20 bg-primary mx-auto rounded-full"></div>
+        <div className="w-full min-w-0">
+            <PageHeader
+                className="mb-6"
+                title="Cadastros"
+                backHref="/responsabilidades"
+                backLabel="Responsabilidades"
+            />
+
+            <div className="w-full min-w-0 grid grid-cols-3 gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-6">
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('TEMAS')}
+                    className={`px-1.5 sm:px-4 py-2 rounded-lg font-semibold text-[11px] sm:text-sm leading-tight text-center transition-all ${activeTab === 'TEMAS'
+                        ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                        }`}
+                >
+                    📚 Discursos Públicos
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('VISITANTES')}
+                    className={`px-1.5 sm:px-4 py-2 rounded-lg font-semibold text-[11px] sm:text-sm leading-tight text-center transition-all ${activeTab === 'VISITANTES'
+                        ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                        }`}
+                >
+                    🎤 Oradores de Fora
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('COLABORADORES')}
+                    className={`px-1.5 sm:px-4 py-2 rounded-lg font-semibold text-[11px] sm:text-sm leading-tight text-center transition-all ${activeTab === 'COLABORADORES'
+                        ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                        }`}
+                >
+                    🤝 Colaboradores
+                </button>
             </div>
 
-            {/* Tabs */}
-            <div className="flex justify-center mb-8">
-                <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl inline-flex">
-                    <button
-                        onClick={() => setActiveTab('TEMAS')}
-                        className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'TEMAS'
-                            ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
-                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                            }`}
-                    >
-                        📚 Discursos Públicos
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('VISITANTES')}
-                        className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'VISITANTES'
-                            ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
-                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                            }`}
-                    >
-                        🎤 Oradores de Fora
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('COLABORADORES')}
-                        className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'COLABORADORES'
-                            ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
-                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                            }`}
-                    >
-                        🤝 Colaboradores
-                    </button>
-                </div>
-            </div>
-
-            {/* Content */}
-            <div className="bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/50 dark:shadow-none rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+            <div className="bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/50 dark:shadow-none rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 overflow-hidden min-w-0">
                 {activeTab === 'TEMAS' && <TemasList />}
                 {activeTab === 'VISITANTES' && <VisitantesList />}
                 {activeTab === 'COLABORADORES' && <ColaboradoresList />}
@@ -151,17 +160,18 @@ function TemasList() {
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row gap-3 mb-6">
                 <input
                     type="text"
                     placeholder="Buscar tema..."
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
-                    className="p-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 w-64"
+                    className="w-full min-w-0 p-2.5 border border-slate-300 dark:border-slate-700 rounded-lg dark:bg-slate-800"
                 />
                 <button
+                    type="button"
                     onClick={() => { resetForm(); setShowModal(true) }}
-                    className="px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-blue-700 transition-colors"
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm w-full sm:w-auto shrink-0"
                 >
                     + Novo Tema
                 </button>
@@ -191,21 +201,41 @@ function TemasList() {
                 </div>
             )}
 
-            <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-                <table className="w-full text-left border-collapse">
+            <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800 -mx-4">
+                {filteredTemas.map(t => (
+                    <div key={t.id} className="flex items-start justify-between gap-3 p-4">
+                        <div className="min-w-0 flex items-start gap-3">
+                            <span className="w-10 h-10 shrink-0 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-bold rounded-lg text-sm">
+                                {t.numero}
+                            </span>
+                            <p className="font-medium text-slate-800 dark:text-slate-200 leading-snug break-words">{t.titulo}</p>
+                        </div>
+                        <div className="flex items-center shrink-0">
+                            <button type="button" onClick={() => handleEdit(t)} className="p-2" title="Editar">✏️</button>
+                            <button type="button" onClick={() => handleDelete(t.id)} className="p-2" title="Excluir">🗑️</button>
+                        </div>
+                    </div>
+                ))}
+                {filteredTemas.length === 0 && (
+                    <div className="p-8 text-center text-slate-500">Nenhum tema encontrado.</div>
+                )}
+            </div>
+
+            <div className="hidden md:block max-h-[600px] overflow-y-auto">
+                <table className="w-full text-left border-collapse table-fixed">
                     <thead className="sticky top-0 bg-white dark:bg-slate-900">
                         <tr className="text-slate-500 dark:text-slate-400 text-sm border-b border-slate-100 dark:border-slate-800">
                             <th className="py-3 px-4 font-bold w-20">Nº</th>
                             <th className="py-3 px-4 font-bold">Título</th>
-                            <th className="py-3 px-4 font-bold text-right">Ações</th>
+                            <th className="py-3 px-4 font-bold text-right w-28">Ações</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                         {filteredTemas.map(t => (
                             <tr key={t.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                 <td className="py-3 px-4 font-bold text-primary">{t.numero}</td>
-                                <td className="py-3 px-4 text-slate-700 dark:text-slate-300">{t.titulo}</td>
-                                <td className="py-3 px-4 text-right">
+                                <td className="py-3 px-4 text-slate-700 dark:text-slate-300 break-words">{t.titulo}</td>
+                                <td className="py-3 px-4 text-right whitespace-nowrap">
                                     <button onClick={() => handleEdit(t)} className="text-blue-500 hover:text-blue-700 p-2">✏️</button>
                                     <button onClick={() => handleDelete(t.id)} className="text-red-500 hover:text-red-700 p-2">🗑️</button>
                                 </td>
@@ -315,17 +345,18 @@ function VisitantesList() {
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row gap-3 mb-6">
                 <input
                     type="text"
                     placeholder="Buscar orador..."
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
-                    className="p-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 w-64"
+                    className="w-full min-w-0 p-2.5 border border-slate-300 dark:border-slate-700 rounded-lg dark:bg-slate-800"
                 />
                 <button
+                    type="button"
                     onClick={() => { resetForm(); setShowModal(true) }}
-                    className="px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-blue-700 transition-colors"
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm w-full sm:w-auto shrink-0"
                 >
                     + Novo Orador
                 </button>
@@ -363,23 +394,53 @@ function VisitantesList() {
                 </div>
             )}
 
-            <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+            <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800 -mx-4">
+                {filteredVisitantes.map(v => {
+                    const incompleto = !v.congregacao?.trim() || v.congregacao === 'A definir'
+                    return (
+                        <div key={v.id} className="p-4 space-y-2">
+                            <div className="flex items-start justify-between gap-2">
+                                <p className={`font-semibold leading-tight break-words ${incompleto ? 'text-orange-500' : 'text-slate-900 dark:text-white'}`}>{v.nome}</p>
+                                <div className="flex items-center shrink-0">
+                                    <button type="button" onClick={() => handleEdit(v)} className="p-2" title="Editar">✏️</button>
+                                    <button type="button" onClick={() => handleDelete(v.id)} className="p-2" title="Excluir">🗑️</button>
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${incompleto ? 'bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'}`}>
+                                    {v.congregacao || 'Sem congregação'}
+                                </span>
+                                {v.cidade ? (
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                        {v.cidade}
+                                    </span>
+                                ) : null}
+                            </div>
+                        </div>
+                    )
+                })}
+                {filteredVisitantes.length === 0 && (
+                    <div className="p-8 text-center text-slate-500">Nenhum orador encontrado.</div>
+                )}
+            </div>
+
+            <div className="hidden md:block overflow-x-clip">
+                <table className="w-full text-left border-collapse table-fixed">
                     <thead>
                         <tr className="text-slate-500 dark:text-slate-400 text-sm border-b border-slate-100 dark:border-slate-800">
                             <th className="py-3 px-4 font-bold">Nome</th>
                             <th className="py-3 px-4 font-bold">Congregação</th>
                             <th className="py-3 px-4 font-bold">Cidade</th>
-                            <th className="py-3 px-4 font-bold text-right">Ações</th>
+                            <th className="py-3 px-4 font-bold text-right w-28">Ações</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                         {filteredVisitantes.map(v => (
                             <tr key={v.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">{v.nome}</td>
-                                <td className="py-3 px-4 text-slate-700 dark:text-slate-300">{v.congregacao}</td>
-                                <td className="py-3 px-4 text-slate-700 dark:text-slate-300">{v.cidade}</td>
-                                <td className="py-3 px-4 text-right">
+                                <td className="py-3 px-4 font-bold text-slate-900 dark:text-white break-words">{v.nome}</td>
+                                <td className="py-3 px-4 text-slate-700 dark:text-slate-300 break-words">{v.congregacao}</td>
+                                <td className="py-3 px-4 text-slate-700 dark:text-slate-300 break-words">{v.cidade}</td>
+                                <td className="py-3 px-4 text-right whitespace-nowrap">
                                     <button onClick={() => handleEdit(v)} className="text-blue-500 hover:text-blue-700 p-2">✏️</button>
                                     <button onClick={() => handleDelete(v.id)} className="text-red-500 hover:text-red-700 p-2">🗑️</button>
                                 </td>
@@ -489,17 +550,18 @@ function ColaboradoresList() {
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row gap-3 mb-6">
                 <input
                     type="text"
                     placeholder="Buscar colaborador..."
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
-                    className="p-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 w-64"
+                    className="w-full min-w-0 p-2.5 border border-slate-300 dark:border-slate-700 rounded-lg dark:bg-slate-800"
                 />
                 <button
+                    type="button"
                     onClick={() => { resetForm(); setShowModal(true) }}
-                    className="px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-blue-700 transition-colors"
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm w-full sm:w-auto shrink-0"
                 >
                     + Novo Colaborador
                 </button>
@@ -533,27 +595,56 @@ function ColaboradoresList() {
                 </div>
             )}
 
-            <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+            <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800 -mx-4">
+                {filteredColaboradores.map(c => (
+                    <div key={c.id} className="p-4 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                            <p className="font-semibold text-slate-900 dark:text-white leading-tight break-words">{c.nome}</p>
+                            <div className="flex items-center shrink-0">
+                                <button type="button" onClick={() => handleEdit(c)} className="p-2" title="Editar">✏️</button>
+                                <button type="button" onClick={() => handleDelete(c.id)} className="p-2" title="Excluir">🗑️</button>
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                            {c.funcao ? (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300">
+                                    {c.funcao}
+                                </span>
+                            ) : null}
+                            {c.contato ? (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                    {c.contato}
+                                </span>
+                            ) : null}
+                        </div>
+                    </div>
+                ))}
+                {filteredColaboradores.length === 0 && (
+                    <div className="p-8 text-center text-slate-500">Nenhum colaborador encontrado.</div>
+                )}
+            </div>
+
+            <div className="hidden md:block overflow-x-clip">
+                <table className="w-full text-left border-collapse table-fixed">
                     <thead>
                         <tr className="text-slate-500 dark:text-slate-400 text-sm border-b border-slate-100 dark:border-slate-800">
                             <th className="py-3 px-4 font-bold">Nome</th>
                             <th className="py-3 px-4 font-bold">Função</th>
                             <th className="py-3 px-4 font-bold">Contato</th>
-                            <th className="py-3 px-4 font-bold text-right">Ações</th>
+                            <th className="py-3 px-4 font-bold text-right w-28">Ações</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                         {filteredColaboradores.map(c => (
                             <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">{c.nome}</td>
+                                <td className="py-3 px-4 font-bold text-slate-900 dark:text-white break-words">{c.nome}</td>
                                 <td className="py-3 px-4 text-slate-700 dark:text-slate-300">
-                                    <span className="inline-block px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs font-bold rounded-md uppercase tracking-wider">
+                                    <span className="inline-block px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs font-bold rounded-md uppercase tracking-wider break-words">
                                         {c.funcao}
                                     </span>
                                 </td>
-                                <td className="py-3 px-4 text-slate-700 dark:text-slate-300">{c.contato}</td>
-                                <td className="py-3 px-4 text-right">
+                                <td className="py-3 px-4 text-slate-700 dark:text-slate-300 break-words">{c.contato}</td>
+                                <td className="py-3 px-4 text-right whitespace-nowrap">
                                     <button onClick={() => handleEdit(c)} className="text-blue-500 hover:text-blue-700 p-2">✏️</button>
                                     <button onClick={() => handleDelete(c.id)} className="text-red-500 hover:text-red-700 p-2">🗑️</button>
                                 </td>

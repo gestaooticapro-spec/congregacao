@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useParams, useRouter } from 'next/navigation'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Database } from '@/types/database.types'
 
 type MembroUpdate = Database['public']['Tables']['membros']['Update']
@@ -191,12 +192,12 @@ export default function EditarMembroPage() {
                 </div>
 
                 {/* Tabs Navigation */}
-                <div className="flex overflow-x-auto border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4">
+                <div className="flex flex-wrap border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 sm:px-4">
                     {tabs.map(tab => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`px-6 py-4 font-medium text-sm whitespace-nowrap border-b-2 transition-colors ${activeTab === tab.id
+                            className={`flex-1 min-w-[45%] sm:flex-none sm:min-w-0 px-3 sm:px-6 py-3 sm:py-4 font-medium text-sm text-center border-b-2 transition-colors ${activeTab === tab.id
                                 ? 'border-primary text-primary'
                                 : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                                 }`}
@@ -404,22 +405,26 @@ export default function EditarMembroPage() {
                 <div className="max-w-5xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
 
                     {/* Navigation Arrows */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                         <button
+                            type="button"
                             onClick={() => prevMemberId && router.push(`/admin/membros/${prevMemberId}`)}
                             disabled={!prevMemberId}
-                            className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                            title="Membro Anterior"
+                            className="inline-flex items-center justify-center p-2 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            title="Membro anterior"
+                            aria-label="Membro anterior"
                         >
-                            ⬅️
+                            <ChevronLeft className="w-5 h-5" />
                         </button>
                         <button
+                            type="button"
                             onClick={() => nextMemberId && router.push(`/admin/membros/${nextMemberId}`)}
                             disabled={!nextMemberId}
-                            className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                            title="Próximo Membro"
+                            className="inline-flex items-center justify-center p-2 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            title="Próximo membro"
+                            aria-label="Próximo membro"
                         >
-                            ➡️
+                            <ChevronRight className="w-5 h-5" />
                         </button>
                     </div>
 

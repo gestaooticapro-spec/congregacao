@@ -3,10 +3,14 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Database, PerfilAcesso } from '@/types/database.types'
+import PageHeader from '@/components/PageHeader'
+import { Plus, X } from 'lucide-react'
+import { getPerfilLabel } from '@/lib/perfis'
 
 // Helper to get enum values
 const PERFIS: PerfilAcesso[] = [
     'ADMIN',
+    'COORDENADOR',
     'SECRETARIO',
     'SUPERINTENDENTE_SERVICO',
     'RESP_QUINTA',
@@ -25,31 +29,59 @@ export default function ManagePermissionsPage() {
     const [members, setMembers] = useState<MembroWithRoles[]>([])
     const [loading, setLoading] = useState(false)
     const [selectedRole, setSelectedRole] = useState<PerfilAcesso>('IRMAO')
+    const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null)
 
-    // Search members
-    const handleSearch = async (query: string) => {
-        setSearchQuery(query)
-        if (query.length < 2) {
-            setMembers([])
-            return
-        }
+    useEffect(() => {
+        void loadMembers()
+    }, [])
 
+    const loadMembers = async (query = '') => {
         setLoading(true)
         try {
-            const { data, error } = await supabase
-                .from('membros')
-                .select('*, membro_perfis(id, perfil)')
-                .ilike('nome_completo', `%${query}%`)
-                .limit(10)
+            const isSearch = query.length >= 2
+            let request = isSearch
+                ? supabase
+                    .from('membros')
+                    .select('*, membro_perfis(id, perfil)')
+                    .ilike('nome_completo', `%${query}%`)
+                    .order('nome_completo')
+                    .limit(50)
+                : supabase
+                    .from('membros')
+                    .select('*, membro_perfis!inner(id, perfil)')
+                    .neq('membro_perfis.perfil', 'IRMAO')
+                    .not('nome_completo', 'ilike', '%admin%')
+                    .order('nome_completo')
+                    .limit(50)
 
+            const { data, error } = await request
             if (error) throw error
-            setMembers(data as any)
+
+            const results = data as MembroWithRoles[] || []
+            const filteredResults = isSearch ? results : results.filter(member => {
+                const nome = member.nome_completo.toLowerCase()
+                const possuiPerfilGerenciavel = member.membro_perfis?.some(mp => mp.perfil !== 'IRMAO')
+
+                return !nome.includes('admin') && possuiPerfilGerenciavel
+            })
+
+            setMembers(filteredResults)
         } catch (error) {
             console.error('Error fetching members:', error)
             setMembers([])
         } finally {
             setLoading(false)
         }
+    }
+
+    // Search members
+    const handleSearch = async (query: string) => {
+        setSearchQuery(query)
+        if (query.length < 2) {
+            void loadMembers()
+            return
+        }
+        void loadMembers(query)
     }
 
     // Add role
@@ -84,14 +116,16 @@ export default function ManagePermissionsPage() {
     }
 
     return (
-        <div className="max-w-4xl mx-auto p-8">
-            <div className="text-center mb-12">
-                <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Gerenciar Permissões (v1.1)</h1>
-                <div className="h-1 w-20 bg-primary mx-auto rounded-full"></div>
-            </div>
+        <div className="w-full min-w-0 pb-24 print:max-w-none print:p-0">
+            <PageHeader
+                className="mb-12"
+                title="Gerenciar Permissões"
+                backHref="/responsabilidades"
+                backLabel="Responsabilidades"
+            />
 
             {/* Search Card */}
-            <div className="bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/50 dark:shadow-none rounded-2xl border border-slate-200 dark:border-slate-800 p-8 mb-8">
+            <div className="bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/50 dark:shadow-none rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-8 mb-8">
                 <div className="max-w-2xl mx-auto">
                     <label className="block text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 text-center">
                         Buscar Membro
@@ -121,12 +155,23 @@ export default function ManagePermissionsPage() {
                 {members.map((member) => (
                     <div
                         key={member.id}
-                        className="group bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-lg shadow-slate-200/50 dark:shadow-none border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 hover:border-primary/30 transition-all"
+                        className="group bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl shadow-lg shadow-slate-200/50 dark:shadow-none border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 hover:border-primary/30 transition-all"
                     >
                         <div className="flex-1">
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3 group-hover:text-primary transition-colors">
-                                {member.nome_completo}
-                            </h3>
+                            <div className="flex items-center justify-between gap-3 mb-3">
+                                <h3 className="min-w-0 text-xl font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors break-words">
+                                    {member.nome_completo}
+                                </h3>
+                                <button
+                                    type="button"
+                                    onClick={() => setExpandedMemberId(current => current === member.id ? null : member.id)}
+                                    className="shrink-0 p-2 text-primary hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                                    title={expandedMemberId === member.id ? 'Fechar adição de perfil' : 'Adicionar perfil'}
+                                    aria-label={expandedMemberId === member.id ? 'Fechar adição de perfil' : `Adicionar perfil para ${member.nome_completo}`}
+                                >
+                                    {expandedMemberId === member.id ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                                </button>
+                            </div>
                             {member.nome_civil && (
                                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
                                     {member.nome_civil}
@@ -138,10 +183,12 @@ export default function ManagePermissionsPage() {
                                         key={mp.id}
                                         className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-600 border border-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800"
                                     >
-                                        {mp.perfil}
+                                        {getPerfilLabel(mp.perfil)}
                                         <button
+                                            type="button"
                                             onClick={() => removeRole(member.id, mp.perfil)}
-                                            className="ml-2 w-4 h-4 flex items-center justify-center rounded-full hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                                            aria-label={`Remover perfil ${mp.perfil}`}
+                                            className="ml-2 w-5 h-5 flex items-center justify-center rounded-full hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
                                         >
                                             &times;
                                         </button>
@@ -153,26 +200,28 @@ export default function ManagePermissionsPage() {
                             </div>
                         </div>
 
-                        {/* Add Role Action */}
-                        <div className="flex items-center gap-3 w-full md:w-auto bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
-                            <select
-                                className="flex-1 md:w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-primary focus:border-transparent outline-none dark:text-white"
-                                value={selectedRole}
-                                onChange={(e) => setSelectedRole(e.target.value as PerfilAcesso)}
-                            >
-                                {PERFIS.map((p) => (
-                                    <option key={p} value={p}>
-                                        {p}
-                                    </option>
-                                ))}
-                            </select>
-                            <button
-                                onClick={() => addRole(member.id, selectedRole)}
-                                className="px-4 py-2 bg-primary text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-all shadow-md shadow-primary/20"
-                            >
-                                Adicionar
-                            </button>
-                        </div>
+                        {expandedMemberId === member.id && (
+                            <div className="w-full mt-2 flex flex-col gap-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
+                                <select
+                                    className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary focus:border-transparent outline-none dark:text-white"
+                                    value={selectedRole}
+                                    onChange={(e) => setSelectedRole(e.target.value as PerfilAcesso)}
+                                >
+                                    {PERFIS.map((p) => (
+                                        <option key={p} value={p}>
+                                            {getPerfilLabel(p)}
+                                        </option>
+                                    ))}
+                                </select>
+                                <button
+                                    type="button"
+                                    onClick={() => addRole(member.id, selectedRole)}
+                                    className="w-full px-4 py-2.5 bg-primary text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-primary/20"
+                                >
+                                    Adicionar
+                                </button>
+                            </div>
+                        )}
                     </div>
                 ))}
 

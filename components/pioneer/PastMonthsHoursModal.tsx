@@ -33,9 +33,10 @@ interface PastMonthsHoursModalProps {
     isOpen: boolean
     onClose: () => void
     membroId: string
+    pin: string
 }
 
-export default function PastMonthsHoursModal({ isOpen, onClose, membroId }: PastMonthsHoursModalProps) {
+export default function PastMonthsHoursModal({ isOpen, onClose, membroId, pin }: PastMonthsHoursModalProps) {
     const [logs, setLogs] = useState<LogEntry[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [loadError, setLoadError] = useState<string | null>(null)
@@ -48,11 +49,10 @@ export default function PastMonthsHoursModal({ isOpen, onClose, membroId }: Past
             setIsLoading(true)
             setLoadError(null)
             try {
-                const { data, error } = await supabase
-                    .from('ministerio_logs')
-                    .select('*')
-                    .eq('membro_id', membroId)
-                    .order('data', { ascending: false })
+                const { data, error } = await supabase.rpc('listar_logs_pioneiro', {
+                    p_membro_id: membroId,
+                    p_pin: pin,
+                })
 
                 if (error) throw error
                 setLogs(data || [])
@@ -66,7 +66,7 @@ export default function PastMonthsHoursModal({ isOpen, onClose, membroId }: Past
         }
 
         void loadPastLogs()
-    }, [isOpen, membroId])
+    }, [isOpen, membroId, pin])
 
     const months = useMemo(() => {
         const thisMonth = currentMonthKey()

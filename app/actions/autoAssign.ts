@@ -3,6 +3,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database.types'
 import { addDays, parseISO, isSameDay } from 'date-fns'
+import { createClient as createServerSupabase } from '@/lib/supabase/server'
 
 // Initialize Supabase Admin Client for server actions
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -30,6 +31,20 @@ export async function generateAutoAssignments(programacaoId: string): Promise<{ 
     }
 
     try {
+        const sessionSupabase = await createServerSupabase()
+        const { data: { user } } = await sessionSupabase.auth.getUser()
+        if (!user) return { success: false, error: 'Sessão inválida.' }
+
+        const { data: member } = await sessionSupabase
+            .from('membros')
+            .select('id, membro_perfis(perfil)')
+            .eq('user_id', user.id)
+            .maybeSingle()
+        const roles = member?.membro_perfis?.map((item: any) => item.perfil) || []
+        if (!roles.some(role => ['ADMIN', 'COORDENADOR', 'RESP_QUINTA'].includes(role))) {
+            return { success: false, error: 'Sem permissão para gerar sugestões de reunião.' }
+        }
+
         // 1. Fetch Schedule
         console.log('Fetching schedule...')
         const { data: programacao, error: progError } = await supabase
@@ -53,7 +68,26 @@ export async function generateAutoAssignments(programacaoId: string): Promise<{ 
 
         if (membError || !membros) throw new Error('Erro ao buscar membros')
 
-        // 3. Fetch History (Last 6 months should be enough for "recent" check, but let's get all to be safe for "longest time")
+        // 3. Fetch assignments that already occupy members on this date.
+        // The automatic engine must respect whoever was assigned first in support,
+        // public talks, including talks given in another congregation.
+        const [{ data: supportAssignments, error: supportError }, { data: localTalks, error: talksError }, { data: awayTalks, error: fieldError }] = await Promise.all([
+            supabase.from('designacoes_suporte').select('membro_id, funcao').eq('data', programacao.data_reuniao),
+            supabase.from('agenda_discursos_locais').select('orador_local_id').eq('data', programacao.data_reuniao),
+            supabase.from('agenda_discursos_fora').select('orador_id').eq('data', programacao.data_reuniao),
+        ])
+
+        if (supportError || talksError || fieldError) throw new Error('Erro ao verificar conflitos de designação')
+
+        const unavailableMembers = new Set<string>()
+        const supportPresident = supportAssignments?.find(assignment => assignment.funcao === 'PRESIDENTE')?.membro_id || null
+        supportAssignments?.forEach(assignment => {
+            if (assignment.funcao !== 'PRESIDENTE' && assignment.membro_id) unavailableMembers.add(assignment.membro_id)
+        })
+        localTalks?.forEach(talk => talk.orador_local_id && unavailableMembers.add(talk.orador_local_id))
+        awayTalks?.forEach(talk => talk.orador_id && unavailableMembers.add(talk.orador_id))
+
+        // 4. Fetch History (Last 6 months should be enough for "recent" check, but let's get all to be safe for "longest time")
         const { data: historico, error: histError } = await supabase
             .from('historico_designacoes')
             .select('*')
@@ -82,7 +116,7 @@ export async function generateAutoAssignments(programacaoId: string): Promise<{ 
         // Helper to pick best candidate
         const pickCandidate = (candidates: Membro[]) => {
             // Filter out already assigned in this meeting
-            const availableCandidates = candidates.filter(m => !assignedMembers.has(m.id))
+            const availableCandidates = candidates.filter(m => !assignedMembers.has(m.id) && !unavailableMembers.has(m.id))
 
             if (availableCandidates.length === 0) return null
 
@@ -102,7 +136,7 @@ export async function generateAutoAssignments(programacaoId: string): Promise<{ 
         // But to make it "Auto-Suggest", maybe we should try to fill everything that isn't locked?
         // Let's try to fill EVERYTHING for now, user can edit later.
 
-        let presidenteId = programacao.presidente_id
+        let presidenteId = programacao.presidente_id || supportPresident
         let oracaoInicialId = programacao.oracao_inicial_id
         let oracaoFinalId = programacao.oracao_final_id
         let partes = (programacao.partes as any[]) || []

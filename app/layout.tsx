@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     siteName: "CongGuaira",
     images: [
       {
-        url: "/opengraph-image.png",
+        url: "https://cong.mentebinaria.com/opengraph-image.png?v=3",
         width: 1200,
         height: 630,
         alt: "Logo da Congregacao Guaira",
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    images: ["/opengraph-image.png"],
+    images: ["https://cong.mentebinaria.com/opengraph-image.png?v=3"],
   },
   icons: {
     icon: "/icon.svg",
@@ -60,9 +60,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" translate="no" suppressHydrationWarning>
+    <html lang="pt-BR" translate="no" className="overflow-x-clip" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased overflow-x-clip max-w-full`}
         suppressHydrationWarning
       >
         <SidebarProvider>

@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabaseClient'
 import MapaInterativo from '@/components/territorios/MapaInterativo'
 import { createTerritory } from '@/app/actions/territorios.actions'
 import { useRouter } from 'next/navigation'
+import PageHeader from '@/components/PageHeader'
+import { RotateCcw, Save } from 'lucide-react'
 
 type Quadra = {
     id: number
@@ -71,8 +73,13 @@ export default function NovoTerritorioPage() {
     }
 
     return (
-        <div className="container mx-auto p-4 max-w-4xl">
-            <h1 className="text-2xl font-bold mb-6">Novo Território</h1>
+        <div className="w-full min-w-0 pb-24 print:max-w-none print:p-0">
+            <PageHeader
+                className="mb-12"
+                title="Novo Território"
+                backHref="/admin/territorios"
+                backLabel="Territórios"
+            />
 
             <div className="space-y-6">
                 {/* Nome */}
@@ -131,10 +138,12 @@ export default function NovoTerritorioPage() {
                                     Clique no mapa para adicionar a quadra {configuracao.length + 1}
                                 </span>
                                 <button
+                                    type="button"
                                     onClick={handleUndo}
                                     disabled={configuracao.length === 0}
-                                    className="px-3 py-1 text-sm text-red-600 border border-red-200 rounded hover:bg-red-50 disabled:opacity-50"
+                                    className="inline-flex items-center gap-2 px-3 py-2 text-sm text-red-600 border border-red-200 rounded-xl hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-semibold"
                                 >
+                                    <RotateCcw className="w-4 h-4" />
                                     Desfazer Último
                                 </button>
                             </div>
@@ -154,18 +163,14 @@ export default function NovoTerritorioPage() {
                 )}
 
                 {/* Actions */}
-                <div className="flex justify-end pt-4 space-x-3">
+                <div className="flex justify-end pt-4">
                     <button
-                        onClick={() => router.push('/admin/territorios')}
-                        className="px-6 py-2 bg-white border border-gray-300 text-gray-900 rounded-md hover:bg-gray-200"
-                    >
-                        Voltar
-                    </button>
-                    <button
+                        type="button"
                         onClick={handleSubmit}
                         disabled={uploading}
-                        className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center"
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl hover:bg-blue-700 transition-all shadow-md font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                     >
+                        <Save className="w-4 h-4" />
                         {uploading ? 'Salvando...' : 'Salvar Território'}
                     </button>
                 </div>

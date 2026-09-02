@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Database } from '@/types/database.types'
 import { format, startOfWeek, endOfWeek, isSameMonth, startOfMonth, endOfMonth, subMonths, addMonths } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import PageHeader from '@/components/PageHeader'
 
 type Programacao = Database['public']['Tables']['programacao_semanal']['Row']
 
@@ -61,61 +62,65 @@ export default function ProgramacaoPage() {
     })
 
     return (
-        <div className="max-w-4xl mx-auto p-8">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Programação Semanal</h1>
-                    <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-lg w-fit">
-                        <button
-                            onClick={() => setFilterMode('proximas')}
-                            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${filterMode === 'proximas'
-                                ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                                }`}
+        <div className="max-w-4xl mx-auto p-4 md:p-8">
+            <PageHeader
+                title="Reunião de Meio de Semana"
+                backHref="/responsabilidades"
+                backLabel="Responsabilidades"
+                actions={
+                    <>
+                        <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                            <button
+                                type="button"
+                                onClick={() => setFilterMode('proximas')}
+                                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${filterMode === 'proximas'
+                                    ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                    }`}
+                            >
+                                Mais Próximas
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setFilterMode('tudo')}
+                                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${filterMode === 'tudo'
+                                    ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                    }`}
+                            >
+                                Mostrar Tudo
+                            </button>
+                        </div>
+                        <Link
+                            href="/programacao/nova"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm"
                         >
-                            Mais Próximas
-                        </button>
-                        <button
-                            onClick={() => setFilterMode('tudo')}
-                            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${filterMode === 'tudo'
-                                ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                                }`}
-                        >
-                            Mostrar Tudo
-                        </button>
-                    </div>
-                </div>
-                <Link
-                    href="/programacao/nova"
-                    className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold shadow-lg shadow-blue-500/20 transition-all hover:-translate-y-0.5"
-                >
-                    Nova Programação
-                </Link>
-            </div>
+                            + Nova Programação
+                        </Link>
+                    </>
+                }
+            />
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {filteredProgramacoes.map((prog) => (
-                    <div key={prog.id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+                    <div key={prog.id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700 flex flex-col">
                         <h2 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white capitalize">
                             {formatWeekRange(prog.data_reuniao)}
                         </h2>
-                        <p className="text-gray-600 dark:text-gray-400 mb-4">{prog.semana_descricao}</p>
-                        <div className="flex justify-between items-center">
-                            <div className="flex gap-3">
-                                <Link
-                                    href={`/programacao/editar/${prog.id}`}
-                                    className="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300 font-medium text-sm"
-                                >
-                                    Editar
-                                </Link>
-                                <Link
-                                    href={`/admin/designacoes/${prog.id}`}
-                                    className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium text-sm"
-                                >
-                                    Ver Designações →
-                                </Link>
-                            </div>
+                        <p className="text-gray-600 dark:text-gray-400 mb-4 flex-1">{prog.semana_descricao}</p>
+                        <div className="flex items-center justify-between gap-3">
+                            <Link
+                                href={`/programacao/editar/${prog.id}`}
+                                className="inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm"
+                            >
+                                Ver Programação
+                            </Link>
+                            <Link
+                                href={`/admin/designacoes/${prog.id}`}
+                                className="inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm"
+                            >
+                                Ver Designação
+                            </Link>
                         </div>
                     </div>
                 ))}

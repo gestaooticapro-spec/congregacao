@@ -11,6 +11,7 @@ interface SessaoMembro {
     id: string
     nome: string
     is_pioneiro: boolean
+    pin: string
 }
 
 type View = 'menu' | 'onboarding'
@@ -37,23 +38,28 @@ export default function PainelPioneiroPage() {
                     return
                 }
 
-                const [{ data: membro, error: membroError }, { data: activities, error: activitiesError }] = await Promise.all([
-                    supabase
-                        .from('membros')
-                        .select('pioneiro_onboarding_concluido')
-                        .eq('id', parsed.id)
-                        .single(),
-                    supabase
-                        .from('ministerio_logs')
-                        .select('id')
-                        .eq('membro_id', parsed.id)
-                        .limit(1)
+                if (!parsed.pin) {
+                    throw new Error('Sessao por PIN invalida.')
+                }
+
+                const [{ data: configuracao, error: membroError }, { data: activities, error: activitiesError }] = await Promise.all([
+                    supabase.rpc('obter_configuracao_pioneiro', {
+                        p_membro_id: parsed.id,
+                        p_pin: parsed.pin
+                    }),
+                    supabase.rpc('listar_logs_pioneiro', {
+                        p_membro_id: parsed.id,
+                        p_pin: parsed.pin,
+                    })
                 ])
                 if (membroError) throw membroError
                 if (activitiesError) throw activitiesError
+                if (!configuracao || typeof configuracao !== 'object' || Array.isArray(configuracao)) {
+                    throw new Error('PIN invalido para este pioneiro.')
+                }
 
                 setSessao(parsed)
-                if (!membro.pioneiro_onboarding_concluido && (activities?.length || 0) === 0) {
+                if (!configuracao.pioneiro_onboarding_concluido && (activities?.length || 0) === 0) {
                     setView('onboarding')
                 }
             } catch (error) {
@@ -84,6 +90,7 @@ export default function PainelPioneiroPage() {
                 <div className="max-w-5xl mx-auto px-4 py-2">
                     <PioneerDashboard
                         membroId={sessao.id}
+                        pin={sessao.pin}
                         onOnboardingCompleted={() => setView('menu')}
                     />
                 </div>

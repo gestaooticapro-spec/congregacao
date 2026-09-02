@@ -8,13 +8,20 @@ import { ptBR } from 'date-fns/locale'
 import { useRouter } from 'next/navigation'
 
 
-type Membro = Pick<Database['public']['Tables']['membros']['Row'], 'id' | 'nome_completo' | 'nome_civil' | 'grupo_id' | 'is_anciao' | 'is_pioneiro' | 'pin'>
+type Membro = Pick<Database['public']['Tables']['membros']['Row'], 'id' | 'nome_completo' | 'nome_civil' | 'grupo_id' | 'is_anciao' | 'is_pioneiro'>
 
 type Designacao = {
     tipo: 'REUNIAO' | 'SUPORTE' | 'LIMPEZA' | 'CAMPO' | 'DISCURSO' | 'AGENDA'
     data: string
     descricao: string
     detalhe?: string
+}
+
+function formatarDescricaoCompromisso(desig: Designacao): string {
+    if (desig.tipo !== 'REUNIAO') return desig.descricao
+    const match = desig.descricao.match(/^(PARTE|AJUDANTE|LEITOR)\s*-\s*(\d+)/i)
+    if (!match) return desig.descricao
+    return `${match[1].toUpperCase()} - ${match[2]}`
 }
 
 type EscalaLimpezaComGrupo = Pick<Database['public']['Tables']['escala_limpeza']['Row'], 'id' | 'data_inicio' | 'grupo_id'> & {
@@ -79,11 +86,7 @@ export default function HomeMemberSearch(): React.ReactNode {
 
     const fetchMembros = async () => {
         try {
-            const { data, error } = await supabase
-                .from('membros')
-                .select('id, nome_completo, nome_civil, grupo_id, is_anciao, is_pioneiro, pin')
-                .eq('ativo', true)
-                .order('nome_completo')
+            const { data, error } = await supabase.rpc('listar_membros_publicos')
 
             if (error) throw error
             if (data) setMembros(data)
@@ -157,7 +160,7 @@ export default function HomeMemberSearch(): React.ReactNode {
                 nome: membro.nome_completo,
                 grupo_id: membro.grupo_id,
                 is_pioneiro: membro.is_pioneiro,
-                pin: pinAutenticado || membro.pin || '',
+                pin: pinAutenticado || '',
                 timestamp: Date.now()
             }))
             window.dispatchEvent(new Event('membro-sessao-atualizada'))
@@ -170,6 +173,25 @@ export default function HomeMemberSearch(): React.ReactNode {
         }
 
         try {
+            const { data: designacoesPublicas, error: designacoesError } = await supabase.rpc('obter_designacoes_publicas_membro', {
+                p_membro_id: membro.id,
+            })
+            if (designacoesError) throw designacoesError
+
+            const itens = Array.isArray(designacoesPublicas) ? designacoesPublicas as Designacao[] : []
+            const diasPublicosMap = new Map<string, Designacao[]>()
+            itens.forEach((designacao) => {
+                const dia = diasPublicosMap.get(designacao.data) || []
+                dia.push(designacao)
+                diasPublicosMap.set(designacao.data, dia)
+            })
+            setDiasDesignacoes(
+                Array.from(diasPublicosMap.entries())
+                    .sort(([primeiraData], [segundaData]) => primeiraData.localeCompare(segundaData))
+                    .map(([data, itensDoDia]) => ({ data, itens: itensDoDia }))
+            )
+            return
+
             const hoje = format(new Date(), 'yyyy-MM-dd')
             const dataInicioSemanaLocal = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd')
             const limiteLimpeza = format(endOfWeek(addDays(new Date(), 21), { weekStartsOn: 1 }), 'yyyy-MM-dd')
@@ -208,7 +230,7 @@ export default function HomeMemberSearch(): React.ReactNode {
                     ? supabase
                         .from('escala_limpeza')
                         .select('id, data_inicio, grupo_id, grupos_servico(nome)')
-                        .eq('grupo_id', membro.grupo_id)
+                        .eq('grupo_id', membro.grupo_id!)
                         .gte('data_inicio', dataInicioSemanaLocal)
                         .lte('data_inicio', limiteLimpeza)
                         .order('data_inicio')
@@ -258,7 +280,7 @@ export default function HomeMemberSearch(): React.ReactNode {
 
             // Process 1: Programação Semanal
             if (programacoes) {
-                programacoes.forEach(prog => {
+                programacoes?.forEach(prog => {
                     const weekRange = formatWeekRange(prog.data_reuniao)
 
                     // Presidente
@@ -327,7 +349,7 @@ export default function HomeMemberSearch(): React.ReactNode {
 
             // Process 2: Suporte
             if (suporte) {
-                suporte.forEach(sup => {
+                suporte?.forEach(sup => {
                     novasDesignacoes.push({
                         tipo: 'SUPORTE',
                         data: sup.data,
@@ -383,7 +405,7 @@ export default function HomeMemberSearch(): React.ReactNode {
 
             // Process 4: Campo
             if (campo) {
-                campo.forEach(esc => {
+                campo?.forEach(esc => {
                     novasDesignacoes.push({
                         tipo: 'CAMPO',
                         data: esc.data,
@@ -395,7 +417,7 @@ export default function HomeMemberSearch(): React.ReactNode {
 
             // Process 5: Lanche
             if (lanche) {
-                lanche.forEach((l: LancheAgenda) => {
+                lanche?.forEach((l: LancheAgenda) => {
                     novasDesignacoes.push({
                         tipo: 'SUPORTE',
                         data: l.data,
@@ -407,7 +429,7 @@ export default function HomeMemberSearch(): React.ReactNode {
 
             // Process 6: Discursos Locais
             if (discursosLocais) {
-                discursosLocais.forEach((d: DiscursoLocalAgenda) => {
+                discursosLocais?.forEach((d: DiscursoLocalAgenda) => {
                     novasDesignacoes.push({
                         tipo: 'DISCURSO',
                         data: d.data,
@@ -419,7 +441,7 @@ export default function HomeMemberSearch(): React.ReactNode {
 
             // Process 7: Discursos Fora
             if (discursosFora) {
-                discursosFora.forEach((d: DiscursoForaAgenda) => {
+                discursosFora?.forEach((d: DiscursoForaAgenda) => {
                     novasDesignacoes.push({
                         tipo: 'DISCURSO',
                         data: d.data,
@@ -431,7 +453,7 @@ export default function HomeMemberSearch(): React.ReactNode {
 
             // Process 8: Agenda Anciãos
             if (agendaAnciaos) {
-                agendaAnciaos.forEach((ev: EventoAgendaAnciaos) => {
+                agendaAnciaos?.forEach((ev: EventoAgendaAnciaos) => {
                     novasDesignacoes.push({
                         tipo: 'AGENDA',
                         data: ev.data_inicio,
@@ -781,7 +803,8 @@ export default function HomeMemberSearch(): React.ReactNode {
                                                 <div className="flex-1">
                                                     <div className="flex items-start justify-between gap-2">
                                                         <h3 className="font-bold text-slate-900 dark:text-white text-left">
-                                                            {desig.descricao}
+                                                            <span className="md:hidden">{formatarDescricaoCompromisso(desig)}</span>
+                                                            <span className="hidden md:inline">{desig.descricao}</span>
                                                         </h3>
                                                         <span className={`
                                                         text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider

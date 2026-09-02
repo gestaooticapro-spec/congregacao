@@ -7,8 +7,14 @@ import { ptBR } from 'date-fns/locale'
 import CalendarGrid from '@/components/events/CalendarGrid'
 import EventList from '@/components/events/EventList'
 import EventModal from '@/components/events/EventModal'
+import PageHeader from '@/components/PageHeader'
+import Link from 'next/link'
+import { Plus } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthProvider'
 
 export default function AgendaAnciaosPage() {
+    const { user, session, loading: authLoading } = useAuth()
+    const canCreate = !authLoading && !!user && !!session
     const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar')
     const [currentDate, setCurrentDate] = useState(new Date())
     const [events, setEvents] = useState<any[]>([])
@@ -56,39 +62,45 @@ export default function AgendaAnciaosPage() {
 
     return (
         <div className="p-4 md:p-8 max-w-4xl mx-auto min-h-screen">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white text-center md:text-left">
-                        Agenda e Lembretes
-                    </h1>
-                    <p className="text-slate-500 dark:text-slate-400 text-center md:text-left mt-1">
-                        Compromissos e lembretes do corpo de anciãos.
-                    </p>
-                </div>
-
-                {/* View Toggle */}
-                <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
-                    <button
-                        onClick={() => setViewMode('calendar')}
-                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${viewMode === 'calendar'
-                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                            }`}
-                    >
-                        📅 Calendário
-                    </button>
-                    <button
-                        onClick={() => setViewMode('list')}
-                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${viewMode === 'list'
-                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                            }`}
-                    >
-                        📜 Lista
-                    </button>
-                </div>
-            </div>
+            <PageHeader
+                title="Agenda e Lembretes"
+                subtitle="Compromissos e lembretes do corpo de anciãos."
+                backHref="/anciaos"
+                backLabel="Anciãos"
+                actions={
+                    <>
+                        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                            <button
+                                onClick={() => setViewMode('calendar')}
+                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${viewMode === 'calendar'
+                                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                                    }`}
+                            >
+                                📅 Calendário
+                            </button>
+                            <button
+                                onClick={() => setViewMode('list')}
+                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${viewMode === 'list'
+                                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                                    }`}
+                            >
+                                📜 Lista
+                            </button>
+                        </div>
+                        {canCreate && (
+                            <Link
+                                href="/admin/eventos?aba=anciaos"
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm"
+                            >
+                                <Plus className="w-4 h-4" />
+                                Novo
+                            </Link>
+                        )}
+                    </>
+                }
+            />
 
             {/* Navigation (Only for Calendar View) */}
             {viewMode === 'calendar' && (

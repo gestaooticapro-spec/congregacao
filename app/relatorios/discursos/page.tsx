@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Database } from '@/types/database.types'
-import { useRouter } from 'next/navigation'
 import { format, startOfMonth, endOfMonth, addMonths, subMonths, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { ChevronLeft, ChevronRight, Printer } from 'lucide-react'
+import PageHeader from '@/components/PageHeader'
 
 type DiscursoLocal = Database['public']['Tables']['agenda_discursos_locais']['Row'] & {
     membros?: { nome_completo: string } | null
@@ -19,7 +20,6 @@ type DiscursoFora = Database['public']['Tables']['agenda_discursos_fora']['Row']
 }
 
 export default function RelatorioDiscursosPage() {
-    const router = useRouter()
     const [currentDate, setCurrentDate] = useState(new Date())
     const [discursosLocais, setDiscursosLocais] = useState<DiscursoLocal[]>([])
     const [discursosFora, setDiscursosFora] = useState<DiscursoFora[]>([])
@@ -80,48 +80,34 @@ export default function RelatorioDiscursosPage() {
     const handlePrint = () => window.print()
 
     return (
-        <div className="p-8 max-w-[210mm] mx-auto min-h-screen print:min-h-0 print:h-auto print:p-0 bg-white text-slate-900">
-            {/* Header / Controls (Hidden on Print) */}
-            <div className="mb-8 print:hidden">
-                <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-2xl font-bold">Relatório de Discursos</h1>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => router.back()}
-                            className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-                        >
-                            Voltar
-                        </button>
-                        <button
-                            onClick={handlePrint}
-                            className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors flex items-center gap-2"
-                        >
-                            <span>🖨️</span> Imprimir
-                        </button>
-                    </div>
-                </div>
-
-                <div className="flex items-center justify-center gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
-                    <button
-                        onClick={handlePrevMonth}
-                        className="p-2 hover:bg-slate-200 rounded-full transition-colors"
-                    >
-                        ◀️
-                    </button>
-                    <h2 className="text-xl font-bold capitalize w-64 text-center">
-                        {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
-                    </h2>
-                    <button
-                        onClick={handleNextMonth}
-                        className="p-2 hover:bg-slate-200 rounded-full transition-colors"
-                    >
-                        ▶️
-                    </button>
-                </div>
+        <div className="w-full min-w-0 max-w-[210mm] mx-auto min-h-screen overflow-x-clip py-4 md:p-8 print:min-h-0 print:h-auto print:p-0 print:overflow-visible">
+            <div className="print:hidden">
+                <PageHeader
+                    title="Discursos Públicos"
+                    subtitle={format(currentDate, 'MMMM yyyy', { locale: ptBR })}
+                    backHref="/quadro-de-anuncios"
+                    backLabel=""
+                    actions={
+                        <>
+                            <button type="button" onClick={handlePrevMonth} className="inline-flex items-center gap-1 p-2 rounded-full text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Mês anterior">
+                                <ChevronLeft className="w-5 h-5" />
+                                <span className="hidden sm:inline">Anterior</span>
+                            </button>
+                            <button type="button" onClick={handleNextMonth} className="inline-flex items-center gap-1 p-2 rounded-full text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Próximo mês">
+                                <span className="hidden sm:inline">Próximo</span>
+                                <ChevronRight className="w-5 h-5" />
+                            </button>
+                            <button type="button" onClick={handlePrint} className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors shadow-sm">
+                                <Printer className="w-4 h-4" />
+                                Imprimir
+                            </button>
+                        </>
+                    }
+                />
             </div>
 
             {/* Report Content */}
-            <div className="print-content">
+            <div className="print-content w-full min-w-0 max-w-full overflow-x-clip bg-white text-slate-900 print:overflow-visible">
                 <div className="text-center mb-8 border-b border-slate-300 pb-4">
                     <h2 className="text-2xl font-bold uppercase mb-1">Arranjos de Discursos Públicos</h2>
                     <p className="text-lg font-medium text-slate-600 capitalize">
@@ -134,38 +120,38 @@ export default function RelatorioDiscursosPage() {
                     <h3 className="text-lg font-bold uppercase mb-4 bg-slate-100 p-2 border-l-4 border-slate-800">
                         Discursos na Congregação
                     </h3>
-                    <table className="w-full text-sm border-collapse border border-slate-300">
+                    <table className="w-full max-w-full table-fixed text-[11px] sm:text-sm print:text-sm border-collapse border border-slate-300 box-border">
                         <thead>
                             <tr className="bg-slate-50">
-                                <th className="border border-slate-300 p-2 text-left w-24">Data</th>
-                                <th className="border border-slate-300 p-2 text-left">Orador / Congregação</th>
-                                <th className="border border-slate-300 p-2 text-left">Tema</th>
-                                <th className="border border-slate-300 p-2 text-center w-16">Cânt.</th>
+                                <th className="border border-slate-300 p-1 sm:p-2 print:p-2 text-left w-[18%]">Data</th>
+                                <th className="border border-slate-300 p-1 sm:p-2 print:p-2 text-left w-[28%]">Orador / Congregação</th>
+                                <th className="border border-slate-300 p-1 sm:p-2 print:p-2 text-left">Tema</th>
+                                <th className="border border-slate-300 p-1 sm:p-2 print:p-2 text-center w-[12%]">Cânt.</th>
                             </tr>
                         </thead>
                         <tbody>
                             {discursosLocais.map((d) => (
                                 <tr key={d.id}>
-                                    <td className="border border-slate-300 p-2 font-medium">
+                                    <td className="border border-slate-300 p-1 sm:p-2 print:p-2 font-medium align-top">
                                         {format(parseISO(d.data), 'dd/MM')}
                                     </td>
-                                    <td className="border border-slate-300 p-2">
-                                        <div className="font-bold">
+                                    <td className="border border-slate-300 p-1 sm:p-2 print:p-2 align-top break-words">
+                                        <div className="font-bold leading-tight">
                                             {d.orador_local_id
                                                 ? d.membros?.nome_completo
                                                 : d.oradores_visitantes?.nome}
                                         </div>
-                                        <div className="text-xs text-slate-500">
+                                        <div className="text-[10px] sm:text-xs print:text-xs text-slate-500">
                                             {d.orador_local_id
                                                 ? 'Local'
                                                 : d.oradores_visitantes?.congregacao}
                                         </div>
                                     </td>
-                                    <td className="border border-slate-300 p-2">
+                                    <td className="border border-slate-300 p-1 sm:p-2 print:p-2 align-top break-words leading-tight">
                                         <span className="font-bold mr-1">#{d.temas?.numero}</span>
                                         {d.temas?.titulo}
                                     </td>
-                                    <td className="border border-slate-300 p-2 text-center">
+                                    <td className="border border-slate-300 p-1 sm:p-2 print:p-2 text-center align-top">
                                         {d.cantico || '-'}
                                     </td>
                                 </tr>
@@ -186,32 +172,32 @@ export default function RelatorioDiscursosPage() {
                     <h3 className="text-lg font-bold uppercase mb-4 bg-slate-100 p-2 border-l-4 border-slate-800">
                         Discursos Fora
                     </h3>
-                    <table className="w-full text-sm border-collapse border border-slate-300">
+                    <table className="w-full max-w-full table-fixed text-[11px] sm:text-sm print:text-sm border-collapse border border-slate-300 box-border">
                         <thead>
                             <tr className="bg-slate-50">
-                                <th className="border border-slate-300 p-2 text-left w-24">Data</th>
-                                <th className="border border-slate-300 p-2 text-left">Orador</th>
-                                <th className="border border-slate-300 p-2 text-left">Destino</th>
-                                <th className="border border-slate-300 p-2 text-left">Tema</th>
+                                <th className="border border-slate-300 p-1 sm:p-2 print:p-2 text-left w-[18%]">Data</th>
+                                <th className="border border-slate-300 p-1 sm:p-2 print:p-2 text-left w-[24%]">Orador</th>
+                                <th className="border border-slate-300 p-1 sm:p-2 print:p-2 text-left w-[24%]">Destino</th>
+                                <th className="border border-slate-300 p-1 sm:p-2 print:p-2 text-left">Tema</th>
                             </tr>
                         </thead>
                         <tbody>
                             {discursosFora.map((d) => (
                                 <tr key={d.id}>
-                                    <td className="border border-slate-300 p-2 font-medium">
+                                    <td className="border border-slate-300 p-1 sm:p-2 print:p-2 font-medium align-top">
                                         {format(parseISO(d.data), 'dd/MM')}
-                                        <div className="text-xs text-slate-500 font-normal">
+                                        <div className="text-[10px] sm:text-xs print:text-xs text-slate-500 font-normal">
                                             {d.horario.substring(0, 5)}
                                         </div>
                                     </td>
-                                    <td className="border border-slate-300 p-2">
+                                    <td className="border border-slate-300 p-1 sm:p-2 print:p-2 align-top break-words leading-tight">
                                         {d.membros?.nome_completo}
                                     </td>
-                                    <td className="border border-slate-300 p-2">
-                                        <div className="font-bold">{d.destino_congregacao}</div>
-                                        <div className="text-xs text-slate-500">{d.destino_cidade}</div>
+                                    <td className="border border-slate-300 p-1 sm:p-2 print:p-2 align-top break-words">
+                                        <div className="font-bold leading-tight">{d.destino_congregacao}</div>
+                                        <div className="text-[10px] sm:text-xs print:text-xs text-slate-500">{d.destino_cidade}</div>
                                     </td>
-                                    <td className="border border-slate-300 p-2">
+                                    <td className="border border-slate-300 p-1 sm:p-2 print:p-2 align-top break-words leading-tight">
                                         <span className="font-bold mr-1">#{d.temas?.numero}</span>
                                         {d.temas?.titulo}
                                     </td>

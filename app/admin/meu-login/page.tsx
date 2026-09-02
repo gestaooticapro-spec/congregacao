@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { createUserForMember, changePassword } from '@/app/actions/auth.actions'
 import { useRouter } from 'next/navigation'
+import PageHeader from '@/components/PageHeader'
 
 export default function MeuLoginPage() {
     const [loading, setLoading] = useState(true)
@@ -117,17 +118,17 @@ export default function MeuLoginPage() {
 
     return (
         <div className="max-w-2xl mx-auto p-8">
-            <div className="text-center mb-12">
-                <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
-                    {isSharedAdmin ? 'Crie Sua Senha' : 'Altere Sua Senha'}
-                </h1>
-                <div className="h-1 w-20 bg-primary mx-auto rounded-full"></div>
-                <p className="mt-4 text-slate-600 dark:text-slate-400">
-                    {isSharedAdmin
+            <PageHeader
+                className="mb-12"
+                title={isSharedAdmin ? 'Crie Sua Senha' : 'Altere Sua Senha'}
+                subtitle={
+                    isSharedAdmin
                         ? 'Crie um login individual para você e deixe de usar a senha compartilhada.'
-                        : 'Mantenha sua conta segura alterando sua senha periodicamente.'}
-                </p>
-            </div>
+                        : 'Mantenha sua conta segura alterando sua senha periodicamente.'
+                }
+                backHref="/administracao"
+                backLabel=""
+            />
 
             <div className="bg-white dark:bg-slate-900 shadow-xl rounded-2xl border border-slate-200 dark:border-slate-800 p-8">
                 {message && (

@@ -13,10 +13,10 @@ export default function MainContent({ children }: { children: React.ReactNode })
     const hideSidebar = pathname.includes('/acompanhar');
 
     return (
-        <main className={`${hideSidebar ? '' : 'pt-16'} md:pt-0 min-h-screen transition-all duration-300 print:pl-0 ${hideSidebar ? '' : (isCollapsed ? 'md:pl-16' : 'md:pl-64')}`}>
+        <main className={`${hideSidebar ? '' : 'pt-16'} md:pt-0 min-h-screen w-full min-w-0 overflow-x-clip transition-all duration-300 print:pl-0 print:overflow-visible ${hideSidebar ? '' : (isCollapsed ? 'md:pl-16' : 'md:pl-64')}`}>
             {!hideSidebar && <WeeklyNotificationBanner />}
             {!hideSidebar && <ReportNotificationBanner />}
-            <div className={`${hideSidebar ? '' : 'container mx-auto p-4 md:p-8'}`}>
+            <div className={`${hideSidebar ? '' : 'mx-auto w-full min-w-0 max-w-7xl p-4 md:p-8 overflow-x-clip print:overflow-visible'}`}>
                 {children}
             </div>
         </main>

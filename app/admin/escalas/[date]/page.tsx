@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect, use, useRef } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Database } from '@/types/database.types'
 import { useRouter } from 'next/navigation'
-import { checkConflicts } from '@/lib/conflictCheck'
+import { checkConflicts, conflictMessage } from '@/lib/conflictCheck'
+import { generateSupportAssignments } from '@/app/actions/autoAssignSupport'
 
 type Membro = Database['public']['Tables']['membros']['Row']
 type DesignacaoSuporte = Database['public']['Tables']['designacoes_suporte']['Row']
@@ -22,17 +23,22 @@ const ROLES = [
 export default function EscalaEditorPage({ params }: { params: Promise<{ date: string }> }) {
     const { date } = use(params)
     const router = useRouter()
-    const dateParam = date === 'nova' ? new Date().toISOString().split('T')[0] : date
+    // A new scale must not inherit today's date, because that date may already
+    // have a saved scale and could be overwritten accidentally.
+    const dateParam = date === 'nova' ? '' : date
 
     const [selectedDate, setSelectedDate] = useState(dateParam)
+    const selectedDateRef = useRef(dateParam)
     const [isNew, setIsNew] = useState(date === 'nova')
 
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
+    const [generating, setGenerating] = useState(false)
     const [membros, setMembros] = useState<Membro[]>([])
     const [assignments, setAssignments] = useState<Record<string, string>>({})
 
     useEffect(() => {
+        selectedDateRef.current = selectedDate
         if (selectedDate) {
             fetchData(selectedDate)
         }
@@ -66,14 +72,29 @@ export default function EscalaEditorPage({ params }: { params: Promise<{ date: s
                     newAssignments[a.funcao] = a.membro_id
                 }
             })
-            setAssignments(newAssignments)
+            if (selectedDateRef.current === date) {
+                setAssignments(newAssignments)
+            }
 
         } catch (error: any) {
             console.error('Erro ao carregar dados:', error)
-            alert('Erro ao carregar dados: ' + (error.message || error))
+            if (selectedDateRef.current === date) {
+                alert('Erro ao carregar dados: ' + (error.message || error))
+            }
         } finally {
-            setLoading(false)
+            if (selectedDateRef.current === date) {
+                setLoading(false)
+            }
         }
+    }
+
+    const handleDateChange = (nextDate: string) => {
+        if (nextDate === selectedDate) return
+        // Suggestions are valid only for the date used to generate them.
+        // Clear them immediately so a previous date can never be saved by accident.
+        setLoading(true)
+        setAssignments({})
+        setSelectedDate(nextDate)
     }
 
     const handleAssignmentChange = async (role: string, membroId: string) => {
@@ -87,12 +108,19 @@ export default function EscalaEditorPage({ params }: { params: Promise<{ date: s
             }
 
             // 2. Database Conflict Check (Other Schedules)
-            const conflicts = await checkConflicts(selectedDate, membroId)
-            if (conflicts.length > 0) {
-                const confirmed = confirm(
-                    `Este irmão já está designado para:\n\n${conflicts.join('\n')}\n\nDeseja continuar mesmo assim?`
-                )
-                if (!confirmed) return
+            try {
+                const conflicts = await checkConflicts(selectedDate, membroId, {
+                    ignoreSupportRole: role,
+                    ignoreProgramacaoTopLevelRole: role === 'PRESIDENTE' ? 'PRESIDENTE' : undefined,
+                })
+                if (conflicts.length > 0) {
+                    const memberName = membros.find(member => member.id === membroId)?.nome_completo || 'Este irmão'
+                    alert(conflictMessage(memberName, conflicts))
+                    return
+                }
+            } catch (error: any) {
+                alert(error.message || 'Não foi possível verificar os conflitos desta data.')
+                return
             }
         }
 
@@ -102,6 +130,26 @@ export default function EscalaEditorPage({ params }: { params: Promise<{ date: s
         }))
     }
 
+    const handleAutoSuggest = async () => {
+        if (!selectedDate) {
+            alert('Selecione uma data antes de gerar as sugestões.')
+            return
+        }
+
+        setGenerating(true)
+        try {
+            const result = await generateSupportAssignments(selectedDate, assignments)
+            if (!result.success || !result.data) throw new Error(result.error)
+            setAssignments(result.data)
+            alert('Sugestões aplicadas. Revise antes de salvar.')
+        } catch (error: any) {
+            console.error('Erro ao gerar sugestões de apoio:', error)
+            alert('Erro ao gerar sugestões: ' + (error.message || 'Tente novamente.'))
+        } finally {
+            setGenerating(false)
+        }
+    }
+
     const handleSave = async () => {
         if (!selectedDate) {
             alert('Selecione uma data.')
@@ -109,6 +157,23 @@ export default function EscalaEditorPage({ params }: { params: Promise<{ date: s
         }
         setSaving(true)
         try {
+            const isWknd = isWeekend(selectedDate)
+            const validRoles = ROLES.filter(role => (role.id !== 'PRESIDENTE' && role.id !== 'LEITOR_SENTINELA') || isWknd)
+
+            for (const role of validRoles) {
+                const membroId = assignments[role.id]
+                if (!membroId) continue
+
+                const conflicts = await checkConflicts(selectedDate, membroId, {
+                    ignoreSupportRole: role.id,
+                    ignoreProgramacaoTopLevelRole: role.id === 'PRESIDENTE' ? 'PRESIDENTE' : undefined,
+                })
+                if (conflicts.length > 0) {
+                    const memberName = membros.find(member => member.id === membroId)?.nome_completo || 'Este irmão'
+                    throw new Error(conflictMessage(memberName, conflicts))
+                }
+            }
+
             // 1. Get programacao_id if exists for this date
             const { data: progData, error: progError } = await supabase
                 .from('programacao_semanal')
@@ -124,9 +189,6 @@ export default function EscalaEditorPage({ params }: { params: Promise<{ date: s
             const upsertData: any[] = []
 
             // Filter roles based on weekend logic
-            const isWknd = isWeekend(selectedDate)
-            const validRoles = ROLES.filter(r => (r.id !== 'PRESIDENTE' && r.id !== 'LEITOR_SENTINELA') || isWknd)
-
             validRoles.forEach(role => {
                 const membroId = assignments[role.id]
                 if (membroId) {
@@ -139,30 +201,16 @@ export default function EscalaEditorPage({ params }: { params: Promise<{ date: s
                 }
             })
 
-            // 3. Upsert to designacoes_suporte
-            // Delete existing for this date first to ensure clean state (handle removals)
-            const { error: deleteError } = await supabase
-                .from('designacoes_suporte')
-                .delete()
-                .eq('data', selectedDate)
+            // Salva tudo em uma unica transacao. Se qualquer linha falhar,
+            // a escala anterior permanece intacta.
+            const { error: saveError } = await supabase.rpc('salvar_designacoes_suporte', {
+                p_data: selectedDate,
+                p_programacao_id: programacaoId,
+                p_designacoes: upsertData,
+                p_presidente_id: isWknd ? assignments['PRESIDENTE'] || null : null,
+            })
 
-            if (deleteError) throw deleteError
-
-            if (upsertData.length > 0) {
-                const { error } = await supabase
-                    .from('designacoes_suporte')
-                    .insert(upsertData)
-
-                if (error) throw error
-            }
-
-            // 4. Sync Presidente to programacao_semanal if exists
-            if (programacaoId && assignments['PRESIDENTE'] && isWknd) {
-                await supabase
-                    .from('programacao_semanal')
-                    .update({ presidente_id: assignments['PRESIDENTE'] })
-                    .eq('id', programacaoId)
-            }
+            if (saveError) throw saveError
 
             alert('Escala salva com sucesso!')
             router.push('/admin/escalas')
@@ -192,10 +240,18 @@ export default function EscalaEditorPage({ params }: { params: Promise<{ date: s
 
     return (
         <div className="max-w-3xl mx-auto p-8 pb-24">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-wrap justify-between items-center gap-3 mb-8">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                     {isNew ? 'Nova Escala' : 'Editar Escala'}
                 </h1>
+                <button
+                    type="button"
+                    onClick={handleAutoSuggest}
+                    disabled={generating || loading || !selectedDate}
+                    className="px-4 py-2 border border-purple-300 text-purple-700 dark:border-purple-600 dark:text-purple-300 rounded-md hover:bg-purple-50 dark:hover:bg-purple-900/30 disabled:opacity-50 font-medium"
+                >
+                    {generating ? 'Gerando...' : '✨ Sugestão Automática'}
+                </button>
             </div>
 
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
@@ -206,9 +262,7 @@ export default function EscalaEditorPage({ params }: { params: Promise<{ date: s
                     <input
                         type="date"
                         value={selectedDate}
-                        onChange={(e) => {
-                            setSelectedDate(e.target.value)
-                        }}
+                        onChange={(e) => handleDateChange(e.target.value)}
                         className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
                     />
                 </div>
@@ -225,6 +279,7 @@ export default function EscalaEditorPage({ params }: { params: Promise<{ date: s
                                 <select
                                     value={assignments[role.id] || ''}
                                     onChange={(e) => handleAssignmentChange(role.id, e.target.value)}
+                                    disabled={loading || generating || saving}
                                     className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
                                 >
                                     <option value="">Selecione...</option>
@@ -249,7 +304,7 @@ export default function EscalaEditorPage({ params }: { params: Promise<{ date: s
                 </button>
                 <button
                     onClick={handleSave}
-                    disabled={saving}
+                    disabled={saving || loading || generating}
                     className="px-8 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium shadow-lg"
                 >
                     {saving ? 'Salvando...' : 'Salvar'}

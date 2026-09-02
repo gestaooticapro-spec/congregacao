@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { getSaidas, canEditSaidas, Saida } from '@/app/actions/saidas.actions';
 import { useRouter } from 'next/navigation';
+import PageHeader from '@/components/PageHeader';
 
 export default function SaidasPage() {
     const [selectedObs, setSelectedObs] = useState<string | null>(null);
@@ -45,20 +46,19 @@ export default function SaidasPage() {
                 </div>
             )}
 
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-slate-800 dark:text-white">
-                    {isVisitWeek ? 'Arranjos de Campo (Visita)' : 'Horário de Campo'}
-                </h1>
-
-                {canEdit && !isVisitWeek && (
-                    <button
-                        onClick={() => router.push('/admin/saidas')}
-                        className="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-blue-200 dark:hover:bg-blue-800/40 transition-colors"
-                    >
-                        <span>✏️</span> Editar Horários
-                    </button>
-                )}
-            </div>
+            <PageHeader
+                title={isVisitWeek ? 'Arranjos de Campo (Visita)' : 'Horário de Campo'}
+                actions={
+                    canEdit && !isVisitWeek ? (
+                        <button
+                            onClick={() => router.push('/admin/saidas')}
+                            className="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-blue-200 dark:hover:bg-blue-800/40 transition-colors"
+                        >
+                            <span>✏️</span> Editar Horários
+                        </button>
+                    ) : undefined
+                }
+            />
 
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
                 <div className="overflow-x-auto">

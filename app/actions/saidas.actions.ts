@@ -38,7 +38,7 @@ export async function canEditSaidas() {
         .eq('membro_id', member.id)
 
     if (!perfis) return false
-    return perfis.some((p: PerfilRegistro) => p.perfil === 'ADMIN' || p.perfil === 'SUPERINTENDENTE_SERVICO')
+    return perfis.some((p: PerfilRegistro) => p.perfil === 'ADMIN' || p.perfil === 'COORDENADOR' || p.perfil === 'SUPERINTENDENTE_SERVICO')
 }
 
 export async function getSaidas() {

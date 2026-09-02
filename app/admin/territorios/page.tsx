@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import PageHeader from '@/components/PageHeader'
+import { FileText, Pencil, Plus } from 'lucide-react'
 
 export default function AdminTerritoriosPage() {
     const [territories, setTerritories] = useState<any[]>([])
@@ -44,24 +46,29 @@ export default function AdminTerritoriosPage() {
     if (loading) return <div className="p-8 text-center">Carregando...</div>
 
     return (
-        <div className="container mx-auto p-4 max-w-6xl">
-            <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-                <h1 className="text-2xl font-bold">Gerenciar Territórios</h1>
-                <div className="flex gap-2">
-                    <Link
-                        href="/admin/territorios/relatorio"
-                        className="bg-gray-100 text-gray-900 px-4 py-2 rounded-md hover:bg-gray-200 transition-colors border"
-                    >
-                        📄 Relatório
-                    </Link>
-                    <Link
-                        href="/admin/territorios/novo"
-                        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-                    >
-                        + Novo Território
-                    </Link>
-                </div>
-            </div>
+        <div className="w-full min-w-0 pb-24 print:max-w-none print:p-0">
+            <PageHeader
+                className="mb-12"
+                title="Gerenciar Territórios"
+                backHref="/responsabilidades"
+                backLabel="Responsabilidades"
+                actions={
+                    <div className="w-full flex flex-col sm:flex-row justify-center items-center gap-2 sm:w-auto sm:gap-4">
+                        <Link
+                            href="/admin/territorios/relatorio"
+                            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-slate-800 text-white px-4 sm:px-5 py-2.5 rounded-xl hover:bg-slate-700 transition-all shadow-lg shadow-slate-200 dark:shadow-none font-bold"
+                        >
+                            <FileText className="w-5 h-5" /> Relatório
+                        </Link>
+                        <Link
+                            href="/admin/territorios/novo"
+                            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary text-white px-4 sm:px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-all shadow-md font-bold"
+                        >
+                            <Plus className="w-5 h-5" /> Novo Território
+                        </Link>
+                    </div>
+                }
+            />
 
             {/* Search Bar */}
             <div className="mb-6">
@@ -103,9 +110,9 @@ export default function AdminTerritoriosPage() {
                             <div className="flex justify-end w-full">
                                 <Link
                                     href={`/admin/territorios/${t.id}/editar`}
-                                    className="text-sm bg-white border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 text-gray-900 font-medium"
+                                    className="inline-flex items-center gap-2 text-sm bg-white border border-slate-300 px-3 py-2 rounded-xl hover:bg-slate-50 text-slate-700 font-semibold transition-colors"
                                 >
-                                    ✏️ Editar
+                                    <Pencil className="w-4 h-4" /> Editar
                                 </Link>
                             </div>
                         </div>

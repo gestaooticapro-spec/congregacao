@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import { Database } from '@/types/database.types'
+import PageHeader from '@/components/PageHeader'
 
 type AssignmentSummary = {
     data: string
@@ -193,15 +194,15 @@ export default function EscalasSuportePage() {
     if (loading) return <div className="p-8">Carregando...</div>
 
     return (
-        <div className="max-w-7xl mx-auto p-8 pb-24 print:max-w-none print:p-0">
-            <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6 print:hidden">
-                <div className="text-center md:text-left">
-                    <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Designações de Apoio</h1>
-                    <div className="h-1 w-20 bg-primary rounded-full mx-auto md:mx-0"></div>
-                </div>
-
-                <div className="flex flex-wrap justify-center items-center gap-4">
-                    <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+        <div className="w-full min-w-0 pb-24 print:max-w-none print:p-0">
+            <PageHeader
+                className="mb-12"
+                title="Designações de Apoio"
+                backHref="/responsabilidades"
+                backLabel="Responsabilidades"
+                actions={
+                <div className="w-full flex flex-wrap justify-center items-center gap-2 sm:w-auto sm:gap-4">
+                    <div className="w-full sm:w-auto flex justify-center bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
                         <select
                             value={selectedMonth}
                             onChange={(e) => setSelectedMonth(Number(e.target.value))}
@@ -227,7 +228,7 @@ export default function EscalasSuportePage() {
 
                     <button
                         onClick={handlePrint}
-                        className="px-6 py-2.5 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition-all shadow-lg shadow-slate-200 dark:shadow-none flex items-center gap-2"
+                        className="flex-1 sm:flex-none justify-center px-4 sm:px-6 py-2.5 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition-all shadow-lg shadow-slate-200 dark:shadow-none flex items-center gap-2"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -237,7 +238,7 @@ export default function EscalasSuportePage() {
 
                     <button
                         onClick={handleNew}
-                        className="px-6 py-2.5 bg-primary text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
+                        className="flex-1 sm:flex-none justify-center px-4 sm:px-6 py-2.5 bg-primary text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
@@ -245,7 +246,8 @@ export default function EscalasSuportePage() {
                         Nova Escala
                     </button>
                 </div>
-            </div>
+                }
+            />
 
             {/* Print Header */}
             <div className="hidden print:block mb-4 text-center">
@@ -278,8 +280,8 @@ export default function EscalasSuportePage() {
                                 </h3>
                             </div>
 
-                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {Object.entries(daysInWeek).sort((a, b) => a[0].localeCompare(b[0])).map(([date, assignments]) => (
+                            <div className="p-3 sm:p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                                {Object.entries(daysInWeek).sort((a, b) => a[0].localeCompare(b[0])).map(([date]) => (
                                     <div key={date}
                                         onClick={() => router.push(`/admin/escalas/${date}`)}
                                         className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 border border-slate-100 dark:border-slate-700 hover:border-primary/50 cursor-pointer transition-all group"
@@ -304,23 +306,6 @@ export default function EscalasSuportePage() {
                                             </button>
                                         </div>
 
-                                        <div className="space-y-2">
-                                            {assignments.filter(a => !(a.funcao === 'LEITOR_SENTINELA' && a.programacao?.evento_tipo === 'visita spte')).slice(0, 3).map((assignment, idx) => (
-                                                <div key={idx} className="flex justify-between items-center text-xs">
-                                                    <span className="text-slate-500 font-medium truncate max-w-[80px]" title={assignment.funcao}>
-                                                        {assignment.funcao.replace('_', ' ')}
-                                                    </span>
-                                                    <span className="text-slate-900 dark:text-slate-300 font-bold truncate max-w-[100px]">
-                                                        {assignment.membro?.nome_completo.split(' ')[0]}
-                                                    </span>
-                                                </div>
-                                            ))}
-                                            {assignments.filter(a => !(a.funcao === 'LEITOR_SENTINELA' && a.programacao?.evento_tipo === 'visita spte')).length > 3 && (
-                                                <div className="text-xs text-center text-primary font-bold pt-1">
-                                                    + {assignments.filter(a => !(a.funcao === 'LEITOR_SENTINELA' && a.programacao?.evento_tipo === 'visita spte')).length - 3} designações
-                                                </div>
-                                            )}
-                                        </div>
                                     </div>
                                 ))}
                             </div>

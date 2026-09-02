@@ -11,15 +11,14 @@ import {
     Calendar,
     ChevronDown,
     Shield,
-    Clock,
-    Star,
-    ArrowLeft
+    Clock
 } from 'lucide-react'
 import { format, startOfMonth, subMonths } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Database } from '@/types/database.types'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
+import PageHeader from '@/components/PageHeader'
 
 type Membro = Database['public']['Tables']['membros']['Row']
 type Relatorio = Database['public']['Tables']['relatorios_servico']['Row']
@@ -45,7 +44,6 @@ const getMonthOptions = () => {
 function RelatoriosGrupoContent() {
     const { user } = useAuth()
     const searchParams = useSearchParams()
-    const router = useRouter()
     const queryMes = searchParams.get('mes')
     const queryGrupoId = searchParams.get('grupo_id')
 
@@ -261,105 +259,154 @@ function RelatoriosGrupoContent() {
     return (
         <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
 
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    {queryGrupoId && (
-                        <button 
-                            onClick={() => router.back()}
-                            className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mb-2 transition-colors"
+            <PageHeader
+                title={nomeGrupo ? `Relatório do Grupo do ${nomeGrupo}` : 'Relatório do Grupo'}
+                subtitle="Acompanhe a entrega dos relatórios do seu grupo de serviço."
+                backHref={queryGrupoId ? '/admin/relatorios-secretaria' : '/anciaos'}
+                backLabel={queryGrupoId ? 'Relatórios' : 'Anciãos'}
+                actions={
+                    <div className="flex bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl px-4 py-2 items-center gap-2 shadow-sm">
+                        <Calendar className="w-5 h-5 text-gray-400" />
+                        <select
+                            value={mes}
+                            onChange={e => setMes(e.target.value)}
+                            className="bg-transparent border-none focus:ring-0 text-sm font-medium text-gray-700 dark:text-gray-300 py-1 cursor-pointer capitalize"
                         >
-                            <ArrowLeft className="w-4 h-4" /> Voltar
-                        </button>
-                    )}
-                    <h1 className="text-2xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
-                        <Users className="w-6 h-6 text-blue-600" />
-                        Relatórios do {nomeGrupo || 'Grupo'}
-                    </h1>
-                    <p className="text-gray-500 dark:text-gray-400">
-                        Acompanhe a entrega dos relatórios do seu grupo de serviço.
-                    </p>
-                </div>
-
-                <div className="flex bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl px-4 py-2 items-center gap-2 shadow-sm">
-                    <Calendar className="w-5 h-5 text-gray-400" />
-                    <select
-                        value={mes}
-                        onChange={e => setMes(e.target.value)}
-                        className="bg-transparent border-none focus:ring-0 text-sm font-medium text-gray-700 dark:text-gray-300 py-1 cursor-pointer capitalize"
-                    >
-                        {meses.map(m => (
-                            <option key={m.value} value={m.value}>{m.label}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
+                            {meses.map(m => (
+                                <option key={m.value} value={m.value}>{m.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                }
+            />
 
             {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total do Grupo</p>
-                            <h3 className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{total}</h3>
+            <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm">
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Total</p>
+                        <div className="flex items-end justify-between mt-1">
+                            <span className="text-2xl font-bold text-gray-900 dark:text-white leading-none">{total}</span>
+                            <Users className="w-4 h-4 text-blue-500 dark:text-blue-400 mb-0.5" />
                         </div>
-                        <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                            <Users className="w-5 h-5" />
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm">
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Pendentes</p>
+                        <div className="flex items-end justify-between mt-1">
+                            <span className="text-2xl font-bold text-gray-900 dark:text-white leading-none">{total - entregues}</span>
+                            <XCircle className="w-4 h-4 text-red-500 dark:text-red-400 mb-0.5" />
+                        </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm">
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Pioneiros</p>
+                        <div className="flex items-end gap-3 mt-1">
+                            <div>
+                                <span className="block text-lg font-bold text-amber-600 dark:text-amber-500 leading-none">{prEntregues}</span>
+                                <span className="text-[9px] uppercase font-bold text-gray-400">Reg</span>
+                            </div>
+                            <div>
+                                <span className="block text-lg font-bold text-blue-600 dark:text-blue-500 leading-none">{paEntregues}</span>
+                                <span className="text-[9px] uppercase font-bold text-gray-400">Aux</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm">
-                    <div className="flex justify-between items-start mb-4">
+                <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm">
+                    <div className="flex justify-between items-start mb-3">
                         <div>
                             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Entregues</p>
-                            <h3 className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{entregues}</h3>
+                            <h3 className="text-3xl font-bold text-gray-900 dark:text-white mt-0.5">{entregues}</h3>
                         </div>
                         <div className="w-10 h-10 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-green-600 dark:text-green-400">
                             <CheckCircle2 className="w-5 h-5" />
                         </div>
                     </div>
-                    <div className="w-full bg-gray-100 dark:bg-slate-800 rounded-full h-1.5 mt-auto">
+                    <div className="w-full bg-gray-100 dark:bg-slate-800 rounded-full h-1.5">
                         <div className="bg-green-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${pgs}%` }}></div>
                     </div>
-                </div>
-
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Pendentes</p>
-                            <h3 className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{total - entregues}</h3>
-                        </div>
-                        <div className="w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-600 dark:text-red-400">
-                            <XCircle className="w-5 h-5" />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Pioneiros Relatados</p>
-                            <div className="flex gap-4 mt-2">
-                                <div className="text-center">
-                                    <span className="block text-xl font-bold text-amber-600 dark:text-amber-500">{prEntregues}</span>
-                                    <span className="text-[10px] uppercase font-bold text-gray-400">Regulares</span>
-                                </div>
-                                <div className="text-center">
-                                    <span className="block text-xl font-bold text-blue-600 dark:text-blue-500">{paEntregues}</span>
-                                    <span className="text-[10px] uppercase font-bold text-gray-400">Auxiliares</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center text-amber-600 dark:text-amber-400">
-                            <Star className="w-5 h-5" />
-                        </div>
-                    </div>
+                    <p className="mt-3 text-xs sm:text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                        Clique no membro que não entregou o relatório pelo programa para você mesmo lançar.
+                    </p>
                 </div>
             </div>
 
             {/* Lista de Membros */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden">
-                <div className="overflow-x-auto">
+                <div className="md:hidden divide-y divide-gray-100 dark:divide-slate-800">
+                    {membrosGrupo.map(({ membro, relatorio }) => {
+                        const qualificacao = getQualificacaoDoRelatorio(membro, relatorio)
+                        return (
+                            <button
+                                key={membro.id}
+                                type="button"
+                                onClick={() => handleOpenModal({ membro, relatorio })}
+                                className="w-full text-left p-4 hover:bg-gray-50/50 dark:hover:bg-slate-800/20 transition-colors"
+                            >
+                                <div className="flex items-start gap-3">
+                                    <div className="w-8 h-8 shrink-0 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-gray-500 text-sm font-medium">
+                                        {membro.nome_completo.charAt(0)}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <p className="font-medium text-gray-900 dark:text-white leading-tight break-words">
+                                                {membro.nome_completo}
+                                            </p>
+                                            <span className="shrink-0 font-mono text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-md border border-blue-100 dark:border-blue-800/50">
+                                                {membro.pin || '----'}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1.5 mt-2">
+                                            {relatorio ? (
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-50 dark:bg-green-900/10 text-green-700 dark:text-green-400">
+                                                    <CheckCircle2 className="w-3 h-3" /> Entregue
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400">
+                                                    <Clock className="w-3 h-3" /> Pendente
+                                                </span>
+                                            )}
+                                            {qualificacao === 'PIONEIRO_REGULAR' && (
+                                                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400">
+                                                    Pioneiro Regular
+                                                </span>
+                                            )}
+                                            {qualificacao === 'PIONEIRO_AUXILIAR' && (
+                                                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400">
+                                                    Pioneiro Auxiliar
+                                                </span>
+                                            )}
+                                            {relatorio && qualificacao !== 'PUBLICADOR' && (
+                                                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                                    {relatorio.horas || 0}h
+                                                </span>
+                                            )}
+                                            {relatorio && qualificacao !== 'PUBLICADOR' && (relatorio.horas_abono || 0) > 0 && (
+                                                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400">
+                                                    Abono {relatorio.horas_abono}
+                                                </span>
+                                            )}
+                                            {relatorio && (relatorio.estudos || 0) > 0 && (
+                                                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                                    {relatorio.estudos} est.
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </button>
+                        )
+                    })}
+                    {membrosGrupo.length === 0 && (
+                        <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                            Nenhum membro encontrado neste grupo.
+                        </div>
+                    )}
+                </div>
+
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/30">

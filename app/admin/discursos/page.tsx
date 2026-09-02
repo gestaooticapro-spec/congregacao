@@ -307,10 +307,15 @@ function DiscursosLocaisList({ discursos, onUpdate }: { discursos: DiscursoLocal
             return
         }
 
-        const conflicts = await checkConflicts(data, membroId, { ignoreTalkId: editingId })
-        if (conflicts.length > 0) {
-            const memberName = membros.find(member => member.id === membroId)?.nome_completo || 'Este irmão'
-            alert(conflictMessage(memberName, conflicts))
+        try {
+            const conflicts = await checkConflicts(data, membroId, { ignoreLocalTalkId: editingId })
+            if (conflicts.length > 0) {
+                const memberName = membros.find(member => member.id === membroId)?.nome_completo || 'Este irmão'
+                alert(conflictMessage(memberName, conflicts))
+                return
+            }
+        } catch (error: any) {
+            alert(error.message || 'Não foi possível verificar os conflitos desta data.')
             return
         }
 
@@ -333,10 +338,15 @@ function DiscursosLocaisList({ discursos, onUpdate }: { discursos: DiscursoLocal
         }
 
         if (tipoOrador === 'LOCAL' && oradorLocalId) {
-            const conflicts = await checkConflicts(data, oradorLocalId, { ignoreTalkId: editingId })
-            if (conflicts.length > 0) {
-                const memberName = membros.find(member => member.id === oradorLocalId)?.nome_completo || 'Este irmão'
-                alert(conflictMessage(memberName, conflicts))
+            try {
+                const conflicts = await checkConflicts(data, oradorLocalId, { ignoreLocalTalkId: editingId })
+                if (conflicts.length > 0) {
+                    const memberName = membros.find(member => member.id === oradorLocalId)?.nome_completo || 'Este irmão'
+                    alert(conflictMessage(memberName, conflicts))
+                    return
+                }
+            } catch (error: any) {
+                alert(error.message || 'Não foi possível verificar os conflitos desta data.')
                 return
             }
         }
@@ -1110,6 +1120,18 @@ function DiscursosForaList({ discursos, onUpdate }: { discursos: DiscursoFora[],
     const handleSave = async () => {
         if (!data || !horario || !oradorId || !temaId || !cidade || !congregacao) {
             alert('Preencha os campos obrigatórios')
+            return
+        }
+
+        try {
+            const conflicts = await checkConflicts(data, oradorId, { ignoreAwayTalkId: editingId })
+            if (conflicts.length > 0) {
+                const memberName = oradores.find(orador => orador.id === oradorId)?.nome_completo || 'Este irmão'
+                alert(conflictMessage(memberName, conflicts))
+                return
+            }
+        } catch (error: any) {
+            alert(error.message || 'Não foi possível verificar os conflitos desta data.')
             return
         }
 

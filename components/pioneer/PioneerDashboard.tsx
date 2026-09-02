@@ -14,12 +14,19 @@ import { toast } from 'react-hot-toast'
 
 interface PioneerDashboardProps {
     membroId: string;
+    pin: string;
     onOnboardingCompleted?: () => void;
 }
 
 type LogEntry = Database['public']['Tables']['ministerio_logs']['Row']
 
-export default function PioneerDashboard({ membroId, onOnboardingCompleted }: PioneerDashboardProps) {
+type PioneerConfig = {
+    saldo_inicial_pioneiro?: Record<string, number>
+    pioneiro_onboarding_concluido?: boolean
+    inicio_pioneiro_ano_servico?: Record<string, string>
+}
+
+export default function PioneerDashboard({ membroId, pin, onOnboardingCompleted }: PioneerDashboardProps) {
     const [stats, setStats] = useState({
         mesRealMin: 0,
         mesAbonoMin: 0,
@@ -78,30 +85,32 @@ export default function PioneerDashboard({ membroId, onOnboardingCompleted }: Pi
     const fetchAllData = useCallback(async () => {
         try {
             // 1. Fetch Logs
-            const { data: logsData, error: logsError } = await supabase
-                .from('ministerio_logs')
-                .select('*')
-                .eq('membro_id', membroId)
-                .gte('data', yearStart)
-                .lte('data', yearEnd)
-                .order('data', { ascending: false })
+            const { data: logsData, error: logsError } = await supabase.rpc('listar_logs_pioneiro', {
+                p_membro_id: membroId,
+                p_pin: pin,
+                p_data_inicio: yearStart,
+                p_data_fim: yearEnd,
+            })
             
             if (logsError) throw logsError
             setLogs(logsData || [])
 
-            const { data: anyPioneerLog, error: pioneerLogError } = await supabase
-                .from('ministerio_logs')
-                .select('id')
-                .eq('membro_id', membroId)
-                .limit(1)
+            const { data: anyPioneerLog, error: pioneerLogError } = await supabase.rpc('listar_logs_pioneiro', {
+                p_membro_id: membroId,
+                p_pin: pin,
+            })
             if (pioneerLogError) throw pioneerLogError
 
             // 2. Fetch Saldo Inicial from membro
-            const { data: membroData } = await supabase
-                .from('membros')
-                .select('saldo_inicial_pioneiro, pioneiro_onboarding_concluido, inicio_pioneiro_ano_servico')
-                .eq('id', membroId)
-                .single()
+            const { data: membroDataRaw, error: membroError } = await supabase.rpc('obter_configuracao_pioneiro', {
+                p_membro_id: membroId,
+                p_pin: pin
+            })
+            if (membroError) throw membroError
+            if (!membroDataRaw || typeof membroDataRaw !== 'object' || Array.isArray(membroDataRaw)) {
+                throw new Error('PIN invalido para este pioneiro.')
+            }
+            const membroData = membroDataRaw as PioneerConfig
             
             const saldoJson = membroData?.saldo_inicial_pioneiro as Record<string, number> || {}
             const currentYearSaldo = saldoJson[yearLabel] || 0
@@ -146,7 +155,7 @@ export default function PioneerDashboard({ membroId, onOnboardingCompleted }: Pi
         } catch (err) {
             console.error("Error fetching pioneer data:", err)
         }
-    }, [membroId, yearStart, yearEnd, yearLabel])
+    }, [membroId, pin, yearStart, yearEnd, yearLabel])
 
     useEffect(() => {
         void fetchAllData()
@@ -155,8 +164,13 @@ export default function PioneerDashboard({ membroId, onOnboardingCompleted }: Pi
     const handleDeleteLog = async (id: string) => {
         if (!confirm('Deseja realmente excluir este registro?')) return
         try {
-            const { error } = await supabase.from('ministerio_logs').delete().eq('id', id)
+            const { data: deleted, error } = await supabase.rpc('excluir_log_pioneiro', {
+                p_membro_id: membroId,
+                p_pin: pin,
+                p_log_id: id,
+            })
             if (error) throw error
+            if (!deleted) throw new Error('Registro não encontrado.')
             toast.success('Registro excluído')
             await fetchAllData()
         } catch {
@@ -166,15 +180,14 @@ export default function PioneerDashboard({ membroId, onOnboardingCompleted }: Pi
 
     const handleSaveSaldo = async (horas: number) => {
         try {
-            const { data: currentMembro } = await supabase.from('membros').select('saldo_inicial_pioneiro').eq('id', membroId).single()
-            const currentSaldo = currentMembro?.saldo_inicial_pioneiro as Record<string, number> || {}
-            const updatedSaldo = { ...currentSaldo, [yearLabel]: horas }
-            
-            const { error } = await supabase
-                .from('membros')
-                .update({ saldo_inicial_pioneiro: updatedSaldo, pioneiro_onboarding_concluido: true })
-                .eq('id', membroId)
+            const { data: saved, error } = await supabase.rpc('salvar_configuracao_pioneiro', {
+                p_membro_id: membroId,
+                p_pin: pin,
+                p_ano_servico: yearLabel,
+                p_saldo_inicial: horas
+            })
             if (error) throw error
+            if (!saved) throw new Error('PIN invalido para este pioneiro.')
             toast.success('Saldo inicial atualizado')
             setIsConfigOpen(false)
             await fetchAllData()
@@ -193,25 +206,14 @@ export default function PioneerDashboard({ membroId, onOnboardingCompleted }: Pi
                 return
             }
 
-            const updates: Database['public']['Tables']['membros']['Update'] = {
-                pioneiro_onboarding_concluido: true
-            }
-
-            const { data: currentMembro, error: fetchConfigError } = await supabase
-                .from('membros')
-                .select('inicio_pioneiro_ano_servico')
-                .eq('id', membroId)
-                .single()
-            if (fetchConfigError) throw fetchConfigError
-
-            const currentStartDates = currentMembro?.inicio_pioneiro_ano_servico as Record<string, string> || {}
-            updates.inicio_pioneiro_ano_servico = {
-                ...currentStartDates,
-                [yearLabel]: format(new Date(), 'yyyy-MM-dd')
-            }
-
-            const { error: saveConfigError } = await supabase.from('membros').update(updates).eq('id', membroId)
+            const { data: saved, error: saveConfigError } = await supabase.rpc('salvar_configuracao_pioneiro', {
+                p_membro_id: membroId,
+                p_pin: pin,
+                p_ano_servico: yearLabel,
+                p_data_inicio: format(new Date(), 'yyyy-MM-dd')
+            })
             if (saveConfigError) throw saveConfigError
+            if (!saved) throw new Error('PIN invalido para este pioneiro.')
 
             setIsWelcomeOpen(false)
             toast.success('Sua meta foi ajustada para este ano de serviço.')
@@ -224,17 +226,17 @@ export default function PioneerDashboard({ membroId, onOnboardingCompleted }: Pi
     }
 
     const handleSaveManualEntry = async (data: string, minutos: number, categoria: CategoriaMinisterio, comment: string, startTime?: string | null, endTime?: string | null, logId?: string) => {
-        const entry = {
-            data,
-            minutos,
-            categoria,
-            comentarios: comment,
-            start_time: startTime || null,
-            end_time: endTime || null
-        }
-        const { error } = logId
-            ? await supabase.from('ministerio_logs').update(entry).eq('id', logId).eq('membro_id', membroId)
-            : await supabase.from('ministerio_logs').insert({ membro_id: membroId, ...entry })
+        const { error } = await supabase.rpc('salvar_log_pioneiro', {
+            p_membro_id: membroId,
+            p_pin: pin,
+            p_data: data,
+            p_minutos: minutos,
+            p_categoria: categoria,
+            p_comentarios: comment || null,
+            p_start_time: startTime || null,
+            p_end_time: endTime || null,
+            p_log_id: logId || null,
+        })
         if (error) throw error
         toast.success(logId ? 'Atividade atualizada com sucesso!' : 'Tempo registrado com sucesso!')
         await fetchAllData()
@@ -483,6 +485,7 @@ export default function PioneerDashboard({ membroId, onOnboardingCompleted }: Pi
                 isOpen={isPastMonthsOpen}
                 onClose={() => setIsPastMonthsOpen(false)}
                 membroId={membroId}
+                pin={pin}
             />
 
             <ManualEntryModal 

@@ -116,10 +116,10 @@ export default function GruposPage() {
 
     const handleUpdateMemberGroup = async (membroId: string, newGrupoId: string | null) => {
         try {
-            const { error } = await supabase
-                .from('membros')
-                .update({ grupo_id: newGrupoId })
-                .eq('id', membroId)
+            const { error } = await supabase.rpc('atualizar_membro_grupo', {
+                p_membro_id: membroId,
+                p_grupo_id: newGrupoId,
+            })
 
             if (error) throw error
 

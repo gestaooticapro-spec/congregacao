@@ -4,7 +4,8 @@ type ConflictCheckOptions = {
     ignoreSupportRole?: string
     ignoreProgramacaoId?: string
     ignoreProgramacaoTopLevelRole?: 'PRESIDENTE' | 'ORACAO_INICIAL' | 'ORACAO_FINAL'
-    ignoreTalkId?: string | null
+    ignoreLocalTalkId?: string | null
+    ignoreAwayTalkId?: string | null
 }
 
 const supportRoleLabels: Record<string, string> = {
@@ -27,7 +28,6 @@ export async function checkConflicts(date: string, membroId: string, options: Co
             .select('funcao')
             .eq('data', date)
             .eq('membro_id', membroId)
-
         if (supportError) throw supportError
 
         supportData?.forEach(assignment => {
@@ -41,19 +41,12 @@ export async function checkConflicts(date: string, membroId: string, options: Co
             .select('id, presidente_id, oracao_inicial_id, oracao_final_id, partes')
             .eq('data_reuniao', date)
             .maybeSingle()
-
         if (programacaoError) throw programacaoError
 
         if (programacao && programacao.id !== options.ignoreProgramacaoId) {
-            if (programacao.presidente_id === membroId && options.ignoreProgramacaoTopLevelRole !== 'PRESIDENTE') {
-                conflicts.push('Presidente')
-            }
-            if (programacao.oracao_inicial_id === membroId && options.ignoreProgramacaoTopLevelRole !== 'ORACAO_INICIAL') {
-                conflicts.push('Oração Inicial')
-            }
-            if (programacao.oracao_final_id === membroId && options.ignoreProgramacaoTopLevelRole !== 'ORACAO_FINAL') {
-                conflicts.push('Oração Final')
-            }
+            if (programacao.presidente_id === membroId && options.ignoreProgramacaoTopLevelRole !== 'PRESIDENTE') conflicts.push('Presidente')
+            if (programacao.oracao_inicial_id === membroId && options.ignoreProgramacaoTopLevelRole !== 'ORACAO_INICIAL') conflicts.push('Oração Inicial')
+            if (programacao.oracao_final_id === membroId && options.ignoreProgramacaoTopLevelRole !== 'ORACAO_FINAL') conflicts.push('Oração Final')
 
             const partes = (programacao.partes as any[]) || []
             partes.forEach((parte: any) => {
@@ -62,32 +55,36 @@ export async function checkConflicts(date: string, membroId: string, options: Co
             })
         }
 
-        let talksQuery = supabase
+        let localTalksQuery = supabase
             .from('agenda_discursos_locais')
             .select('id, tema:temas(numero, titulo)')
             .eq('data', date)
             .eq('orador_local_id', membroId)
+        if (options.ignoreLocalTalkId) localTalksQuery = localTalksQuery.neq('id', options.ignoreLocalTalkId)
 
-        if (options.ignoreTalkId) talksQuery = talksQuery.neq('id', options.ignoreTalkId)
-
-        const { data: talksData, error: talksError } = await talksQuery
-        if (talksError) throw talksError
-
-        talksData?.forEach((talk: any) => {
+        const { data: localTalks, error: localTalksError } = await localTalksQuery
+        if (localTalksError) throw localTalksError
+        localTalks?.forEach((talk: any) => {
             const tema = talk.tema?.numero ? ` #${talk.tema.numero}` : ''
             conflicts.push(`Orador de Discurso Público${tema}`)
         })
 
-        const { data: campoData, error: campoError } = await supabase
-            .from('escalas_campo')
-            .select('id')
+        let awayTalksQuery = supabase
+            .from('agenda_discursos_fora')
+            .select('id, destino_congregacao')
             .eq('data', date)
-            .eq('dirigente_id', membroId)
+            .eq('orador_id', membroId)
+        if (options.ignoreAwayTalkId) awayTalksQuery = awayTalksQuery.neq('id', options.ignoreAwayTalkId)
 
-        if (campoError) throw campoError
-        if (campoData?.length) conflicts.push('Dirigente de Campo')
+        const { data: awayTalks, error: awayTalksError } = await awayTalksQuery
+        if (awayTalksError) throw awayTalksError
+        awayTalks?.forEach(talk => {
+            const destination = talk.destino_congregacao ? ` em ${talk.destino_congregacao}` : ''
+            conflicts.push(`Orador em outra congregação${destination}`)
+        })
     } catch (error) {
         console.error('Erro ao verificar conflitos de designação:', error)
+        throw new Error('Não foi possível verificar os conflitos desta data. Tente novamente antes de salvar.')
     }
 
     return Array.from(new Set(conflicts))

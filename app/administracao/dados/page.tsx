@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Loader2, Save } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
 import { supabase } from '@/lib/supabaseClient'
@@ -29,6 +29,7 @@ export default function DadosCongregacaoPage() {
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [searchingCep, setSearchingCep] = useState(false)
+    const cepRequestRef = useRef<AbortController | null>(null)
 
     useEffect(() => {
         const loadData = async () => {
@@ -58,6 +59,7 @@ export default function DadosCongregacaoPage() {
         }
 
         void loadData()
+        return () => cepRequestRef.current?.abort()
     }, [])
 
     const updateField = (field: keyof typeof EMPTY_DATA, value: string | boolean) => {
@@ -69,9 +71,12 @@ export default function DadosCongregacaoPage() {
             return
         }
 
+        cepRequestRef.current?.abort()
+        const controller = new AbortController()
+        cepRequestRef.current = controller
         setSearchingCep(true)
         try {
-            const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
+            const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`, { signal: controller.signal })
             if (!response.ok) throw new Error('Falha na consulta do CEP.')
 
             const address = await response.json()
@@ -80,17 +85,21 @@ export default function DadosCongregacaoPage() {
                 return
             }
 
-            setForm(current => ({
-                ...current,
-                endereco: [address.logradouro, address.bairro].filter(Boolean).join(' - ') || current.endereco,
-                cidade: address.localidade || current.cidade,
-                estado: address.uf || current.estado,
-            }))
+            setForm(current => {
+                if (current.cep.replace(/\D/g, '') !== cep) return current
+                return {
+                    ...current,
+                    endereco: [address.logradouro, address.bairro].filter(Boolean).join(' - ') || current.endereco,
+                    cidade: address.localidade || current.cidade,
+                    estado: address.uf || current.estado,
+                }
+            })
         } catch (error) {
+            if ((error as Error).name === 'AbortError') return
             console.error('Erro ao consultar CEP:', error)
             alert('Não foi possível buscar esse CEP. Preencha o endereço manualmente.')
         } finally {
-            setSearchingCep(false)
+            if (cepRequestRef.current === controller) setSearchingCep(false)
         }
     }
 
@@ -105,6 +114,7 @@ export default function DadosCongregacaoPage() {
     }
 
     const saveData = async () => {
+        if (searchingCep) return
         if (!form.nome.trim() || !form.numero.trim() || !form.circuito.trim()) {
             alert('Preencha nome, número e circuito da congregação.')
             return
@@ -118,7 +128,6 @@ export default function DadosCongregacaoPage() {
                     ...form,
                     cep: form.cep.replace(/\D/g, ''),
                     estado: form.estado.toUpperCase().slice(0, 2),
-                    updated_at: new Date().toISOString(),
                 }, { onConflict: 'id' })
 
             if (error) throw error
@@ -186,7 +195,7 @@ export default function DadosCongregacaoPage() {
                 </div>
 
                 <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800 flex justify-end">
-                    <button type="button" onClick={saveData} disabled={saving} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white font-bold hover:bg-blue-700 transition-all shadow-md shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button type="button" onClick={saveData} disabled={saving || searchingCep} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white font-bold hover:bg-blue-700 transition-all shadow-md shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed">
                         {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
                         {saving ? 'Salvando...' : 'Salvar dados'}
                     </button>

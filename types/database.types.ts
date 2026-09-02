@@ -1004,6 +1004,106 @@ export interface Database {
       [_ in never]: never
     }
     Functions: {
+      atualizar_membro_grupo: {
+        Args: {
+          p_membro_id: string
+          p_grupo_id: string | null
+        }
+        Returns: undefined
+      }
+      obter_confirmacao_designacao: {
+        Args: {
+          p_id: string
+          p_membro_id: string
+          p_role?: string | null
+          p_tipo?: string
+        }
+        Returns: Json
+      }
+      obter_designacoes_publicas_membro: {
+        Args: {
+          p_membro_id: string
+        }
+        Returns: Json
+      }
+      obter_configuracao_pioneiro: {
+        Args: {
+          p_membro_id: string
+          p_pin: string
+        }
+        Returns: Json
+      }
+      listar_membros_publicos: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          nome_completo: string
+          nome_civil: string | null
+          grupo_id: string | null
+          is_anciao: boolean
+          is_pioneiro: boolean
+        }[]
+      }
+      listar_logs_pioneiro: {
+        Args: {
+          p_membro_id: string
+          p_pin: string
+          p_data_inicio?: string | null
+          p_data_fim?: string | null
+        }
+        Returns: Database['public']['Tables']['ministerio_logs']['Row'][]
+      }
+      responder_confirmacao_designacao: {
+        Args: {
+          p_id: string
+          p_membro_id: string
+          p_status: string
+          p_role?: string | null
+          p_tipo?: string
+        }
+        Returns: boolean
+      }
+      excluir_log_pioneiro: {
+        Args: {
+          p_membro_id: string
+          p_pin: string
+          p_log_id: string
+        }
+        Returns: boolean
+      }
+      salvar_designacoes_suporte: {
+        Args: {
+          p_data: string
+          p_programacao_id: string | null
+          p_designacoes: Json
+          p_presidente_id?: string | null
+        }
+        Returns: undefined
+      }
+      salvar_configuracao_pioneiro: {
+        Args: {
+          p_membro_id: string
+          p_pin: string
+          p_ano_servico: string
+          p_saldo_inicial?: number | null
+          p_data_inicio?: string | null
+        }
+        Returns: boolean
+      }
+      salvar_log_pioneiro: {
+        Args: {
+          p_membro_id: string
+          p_pin: string
+          p_data: string
+          p_minutos: number
+          p_categoria: string
+          p_comentarios?: string | null
+          p_start_time?: string | null
+          p_end_time?: string | null
+          p_log_id?: string | null
+        }
+        Returns: string
+      }
       verificar_pin: {
         Args: {
           p_pin: string

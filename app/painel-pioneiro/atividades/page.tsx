@@ -9,6 +9,7 @@ interface SessaoMembro {
     id: string
     nome: string
     is_pioneiro: boolean
+    pin: string
 }
 
 export default function AtividadesPioneiroPage() {
@@ -21,7 +22,7 @@ export default function AtividadesPioneiroPage() {
 
         try {
             const parsed: SessaoMembro = JSON.parse(stored)
-            if (!parsed.is_pioneiro) return router.replace('/')
+            if (!parsed.is_pioneiro || !parsed.pin) return router.replace('/')
 
             const timeout = window.setTimeout(() => setSessao(parsed), 0)
             return () => window.clearTimeout(timeout)
@@ -41,7 +42,11 @@ export default function AtividadesPioneiroPage() {
                 >
                     <ArrowLeft className="h-4 w-4" /> Painel do Pioneiro
                 </button>
-                <PioneerDashboard membroId={sessao.id} onOnboardingCompleted={() => router.replace('/painel-pioneiro')} />
+                <PioneerDashboard
+                    membroId={sessao.id}
+                    pin={sessao.pin}
+                    onOnboardingCompleted={() => router.replace('/painel-pioneiro')}
+                />
             </div>
         </div>
     )

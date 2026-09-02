@@ -108,13 +108,18 @@ export default function EscalaEditorPage({ params }: { params: Promise<{ date: s
             }
 
             // 2. Database Conflict Check (Other Schedules)
-            const conflicts = await checkConflicts(selectedDate, membroId, {
-                ignoreSupportRole: role,
-                ignoreProgramacaoTopLevelRole: role === 'PRESIDENTE' ? 'PRESIDENTE' : undefined,
-            })
-            if (conflicts.length > 0) {
-                const memberName = membros.find(member => member.id === membroId)?.nome_completo || 'Este irmão'
-                alert(conflictMessage(memberName, conflicts))
+            try {
+                const conflicts = await checkConflicts(selectedDate, membroId, {
+                    ignoreSupportRole: role,
+                    ignoreProgramacaoTopLevelRole: role === 'PRESIDENTE' ? 'PRESIDENTE' : undefined,
+                })
+                if (conflicts.length > 0) {
+                    const memberName = membros.find(member => member.id === membroId)?.nome_completo || 'Este irmão'
+                    alert(conflictMessage(memberName, conflicts))
+                    return
+                }
+            } catch (error: any) {
+                alert(error.message || 'Não foi possível verificar os conflitos desta data.')
                 return
             }
         }
@@ -196,30 +201,16 @@ export default function EscalaEditorPage({ params }: { params: Promise<{ date: s
                 }
             })
 
-            // 3. Upsert to designacoes_suporte
-            // Delete existing for this date first to ensure clean state (handle removals)
-            const { error: deleteError } = await supabase
-                .from('designacoes_suporte')
-                .delete()
-                .eq('data', selectedDate)
+            // Salva tudo em uma unica transacao. Se qualquer linha falhar,
+            // a escala anterior permanece intacta.
+            const { error: saveError } = await supabase.rpc('salvar_designacoes_suporte', {
+                p_data: selectedDate,
+                p_programacao_id: programacaoId,
+                p_designacoes: upsertData,
+                p_presidente_id: isWknd ? assignments['PRESIDENTE'] || null : null,
+            })
 
-            if (deleteError) throw deleteError
-
-            if (upsertData.length > 0) {
-                const { error } = await supabase
-                    .from('designacoes_suporte')
-                    .insert(upsertData)
-
-                if (error) throw error
-            }
-
-            // 4. Sync Presidente to programacao_semanal if exists
-            if (programacaoId && assignments['PRESIDENTE'] && isWknd) {
-                await supabase
-                    .from('programacao_semanal')
-                    .update({ presidente_id: assignments['PRESIDENTE'] })
-                    .eq('id', programacaoId)
-            }
+            if (saveError) throw saveError
 
             alert('Escala salva com sucesso!')
             router.push('/admin/escalas')

@@ -207,10 +207,15 @@ export default function EditarDesignacoesPage() {
 
             // 2. Database Conflict Check
             if (programacao) {
-                const dbConflicts = await checkConflicts(programacao.data_reuniao, value, {
-                    ignoreProgramacaoId: programacao.id,
-                })
-                allConflicts.push(...dbConflicts)
+                try {
+                    const dbConflicts = await checkConflicts(programacao.data_reuniao, value, {
+                        ignoreProgramacaoId: programacao.id,
+                    })
+                    allConflicts.push(...dbConflicts)
+                } catch (error: any) {
+                    alert(error.message || 'Não foi possível verificar os conflitos desta data.')
+                    return
+                }
             }
 
             // 3. Deduplicate and Show Alert
@@ -245,11 +250,16 @@ export default function EditarDesignacoesPage() {
 
             // 2. Database Conflict Check
             if (programacao) {
-                const dbConflicts = await checkConflicts(programacao.data_reuniao, value, {
-                    ignoreProgramacaoId: programacao.id,
-                    ignoreSupportRole: role === 'presidente_id' ? 'PRESIDENTE' : undefined,
-                })
-                allConflicts.push(...dbConflicts)
+                try {
+                    const dbConflicts = await checkConflicts(programacao.data_reuniao, value, {
+                        ignoreProgramacaoId: programacao.id,
+                        ignoreSupportRole: role === 'presidente_id' ? 'PRESIDENTE' : undefined,
+                    })
+                    allConflicts.push(...dbConflicts)
+                } catch (error: any) {
+                    alert(error.message || 'Não foi possível verificar os conflitos desta data.')
+                    return
+                }
             }
 
             // 3. Deduplicate and Show Alert

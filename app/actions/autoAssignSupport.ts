@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database.types'
+import { createClient as createServerSupabase } from '@/lib/supabase/server'
 
 const supabase = createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,12 +27,26 @@ const isWeekend = (date: string) => {
 
 export async function generateSupportAssignments(date: string, currentAssignments: Record<string, string>) {
     try {
-        const [{ data: membros, error: membrosError }, { data: programacao, error: programacaoError }, { data: support, error: supportError }, { data: talks, error: talksError }, { data: campo, error: campoError }, { data: history, error: historyError }] = await Promise.all([
+        const sessionSupabase = await createServerSupabase()
+        const { data: { user } } = await sessionSupabase.auth.getUser()
+        if (!user) return { success: false, error: 'Sessão inválida.' }
+
+        const { data: member } = await sessionSupabase
+            .from('membros')
+            .select('id, membro_perfis(perfil)')
+            .eq('user_id', user.id)
+            .maybeSingle()
+        const userRoles = member?.membro_perfis?.map((item: any) => item.perfil) || []
+        if (!userRoles.some(role => ['ADMIN', 'COORDENADOR', 'RQA'].includes(role))) {
+            return { success: false, error: 'Sem permissão para gerar sugestões de apoio.' }
+        }
+
+        const [{ data: membros, error: membrosError }, { data: programacao, error: programacaoError }, { data: support, error: supportError }, { data: talks, error: talksError }, { data: awayTalks, error: campoError }, { data: history, error: historyError }] = await Promise.all([
             supabase.from('membros').select('*').eq('ativo', true),
             supabase.from('programacao_semanal').select('presidente_id, oracao_inicial_id, oracao_final_id, partes').eq('data_reuniao', date).maybeSingle(),
             supabase.from('designacoes_suporte').select('membro_id, data').lt('data', date),
             supabase.from('agenda_discursos_locais').select('orador_local_id').eq('data', date),
-            supabase.from('escalas_campo').select('dirigente_id').eq('data', date),
+            supabase.from('agenda_discursos_fora').select('orador_id').eq('data', date),
             supabase.from('historico_designacoes').select('membro_id, data_reuniao').lt('data_reuniao', date),
         ])
 
@@ -41,14 +56,14 @@ export async function generateSupportAssignments(date: string, currentAssignment
 
         const blocked = new Set<string>()
         if (programacao) {
-            ;[programacao.presidente_id, programacao.oracao_inicial_id, programacao.oracao_final_id].forEach(id => id && blocked.add(id))
+            ;[programacao.oracao_inicial_id, programacao.oracao_final_id].forEach(id => id && blocked.add(id))
             ;((programacao.partes as any[]) || []).forEach(part => {
                 if (part.membro_id) blocked.add(part.membro_id)
                 if (part.ajudante_id) blocked.add(part.ajudante_id)
             })
         }
         talks?.forEach(talk => talk.orador_local_id && blocked.add(talk.orador_local_id))
-        campo?.forEach(item => item.dirigente_id && blocked.add(item.dirigente_id))
+        awayTalks?.forEach(talk => talk.orador_id && blocked.add(talk.orador_id))
         Object.values(currentAssignments).forEach(id => id && blocked.add(id))
 
         const lastAssignment: Record<string, string> = {}
@@ -61,6 +76,10 @@ export async function generateSupportAssignments(date: string, currentAssignment
             })
 
         const suggestions = { ...currentAssignments }
+        if (isWeekend(date) && programacao?.presidente_id) {
+            suggestions.PRESIDENTE = programacao.presidente_id
+            blocked.add(programacao.presidente_id)
+        }
         const validRoles = roles.filter(role => isWeekend(date) || (role.id !== 'PRESIDENTE' && role.id !== 'LEITOR_SENTINELA'))
 
         validRoles.forEach(role => {

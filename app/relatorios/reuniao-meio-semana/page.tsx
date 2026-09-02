@@ -17,7 +17,9 @@ import {
 } from '@/lib/midweekReminder'
 
 type Programacao = Database['public']['Tables']['programacao_semanal']['Row']
-type Membro = Database['public']['Tables']['membros']['Row']
+// O Quadro e publico: buscar somente os campos de exibicao evita solicitar
+// dados privados (especialmente o PIN) da tabela de membros.
+type Membro = Pick<Database['public']['Tables']['membros']['Row'], 'id' | 'nome_completo' | 'nome_civil'>
 
 interface Parte {
     tipo: 'TESOUROS' | 'MINISTERIO' | 'VIDA_CRISTA' | 'PRESIDENTE' | 'ORACAO'
@@ -111,12 +113,10 @@ function RelatorioContent() {
             // 3. Fetch Members Details
             if (memberIds.size > 0) {
                 const { data: membData, error: membError } = await supabase
-                    .from('membros')
-                    .select('*')
-                    .in('id', Array.from(memberIds))
+                    .rpc('listar_membros_publicos')
 
                 if (membError) throw membError
-                setMembros(membData || [])
+                setMembros((membData || []).filter(membro => memberIds.has(membro.id)))
             } else {
                 setMembros([])
             }

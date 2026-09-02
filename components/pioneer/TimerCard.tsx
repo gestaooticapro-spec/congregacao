@@ -7,17 +7,24 @@ interface TimerCardProps {
     membroId: string;
     onManualEntry: () => void;
     onTimerStop: (minutos: number, startTime: string, endTime: string) => void;
+    savedTimerNonce: number;
 }
 
-export default function TimerCard({ membroId, onManualEntry, onTimerStop }: TimerCardProps) {
+type TimerState = {
+    startIso: string;
+    endIso?: string;
+}
+
+export default function TimerCard({ membroId, onManualEntry, onTimerStop, savedTimerNonce }: TimerCardProps) {
     const [isActive, setIsActive] = useState(false)
     const [startTime, setStartTime] = useState<Date | null>(null)
+    const [endTime, setEndTime] = useState<Date | null>(null)
     const [elapsedSeconds, setElapsedSeconds] = useState(0)
     const [isLoading, setIsLoading] = useState(true)
     const intervalRef = useRef<NodeJS.Timeout | null>(null)
     const storageKey = `pioneer_timer_state:${membroId}`
 
-    const saveLocalTimerState = useCallback((state: { startIso: string }) => {
+    const saveLocalTimerState = useCallback((state: TimerState) => {
         if (typeof window === 'undefined') return
         localStorage.setItem(storageKey, JSON.stringify(state))
     }, [storageKey])
@@ -35,26 +42,40 @@ export default function TimerCard({ membroId, onManualEntry, onTimerStop }: Time
                 const raw = localStorage.getItem(storageKey)
                 if (raw) {
                     try {
-                        const parsed = JSON.parse(raw) as { startIso?: string }
+                        const parsed = JSON.parse(raw) as TimerState
                         if (parsed.startIso) {
-                            localStart = new Date(parsed.startIso)
+                            const parsedStart = new Date(parsed.startIso)
+                            const localEnd = parsed.endIso ? new Date(parsed.endIso) : null
+                            if (Number.isNaN(parsedStart.getTime()) || (localEnd && Number.isNaN(localEnd.getTime()))) {
+                                localStorage.removeItem(storageKey)
+                                return
+                            }
+
+                            localStart = parsedStart
+                            setStartTime(parsedStart)
+                            setEndTime(localEnd)
+                            setIsActive(!localEnd)
+                            setElapsedSeconds(Math.floor(((localEnd || new Date()).getTime() - parsedStart.getTime()) / 1000))
+
+                            if (localEnd) {
+                                window.setTimeout(() => {
+                                    onTimerStop(
+                                        Math.max(Math.floor((localEnd.getTime() - parsedStart.getTime()) / 60000), 1),
+                                        parsedStart.toISOString(),
+                                        localEnd.toISOString()
+                                    )
+                                }, 0)
+                            }
                         }
                     } catch {
                         localStorage.removeItem(storageKey)
                     }
                 }
             }
-
-            if (localStart) {
-                setStartTime(localStart)
-                setIsActive(true)
-                setElapsedSeconds(Math.floor((Date.now() - localStart.getTime()) / 1000))
-                saveLocalTimerState({ startIso: localStart.toISOString() })
-            }
         } finally {
             setIsLoading(false)
         }
-    }, [saveLocalTimerState, storageKey])
+    }, [onTimerStop, saveLocalTimerState, storageKey])
 
     useEffect(() => {
         void restoreTimer()
@@ -82,6 +103,14 @@ export default function TimerCard({ membroId, onManualEntry, onTimerStop }: Time
         }
     }, [isActive, startTime])
 
+    useEffect(() => {
+        if (savedTimerNonce === 0) return
+        clearLocalTimerState()
+        setStartTime(null)
+        setEndTime(null)
+        setElapsedSeconds(0)
+    }, [clearLocalTimerState, savedTimerNonce])
+
     const formatTime = (totalSeconds: number) => {
         const h = Math.floor(totalSeconds / 3600)
         const m = Math.floor((totalSeconds % 3600) / 60)
@@ -96,6 +125,7 @@ export default function TimerCard({ membroId, onManualEntry, onTimerStop }: Time
     const handleStart = async () => {
         const now = new Date()
         setStartTime(now)
+        setEndTime(null)
         setIsActive(true)
         setElapsedSeconds(0)
         saveLocalTimerState({ startIso: now.toISOString() })
@@ -107,11 +137,19 @@ export default function TimerCard({ membroId, onManualEntry, onTimerStop }: Time
         const totalMinutes = Math.max(Math.floor((end.getTime() - start.getTime()) / 60000), 1)
         
         setIsActive(false)
-        setStartTime(null)
-        setElapsedSeconds(0)
-        clearLocalTimerState()
+        setEndTime(end)
+        saveLocalTimerState({ startIso: start.toISOString(), endIso: end.toISOString() })
         
         onTimerStop(totalMinutes, start.toISOString(), end.toISOString())
+    }
+
+    const reopenPendingTimer = () => {
+        if (!startTime || !endTime) return
+        onTimerStop(
+            Math.max(Math.floor((endTime.getTime() - startTime.getTime()) / 60000), 1),
+            startTime.toISOString(),
+            endTime.toISOString()
+        )
     }
 
     if (isLoading) {
@@ -136,16 +174,22 @@ export default function TimerCard({ membroId, onManualEntry, onTimerStop }: Time
                 
                 <div className="flex items-center gap-4 w-full">
                     <button
-                        onClick={isActive ? handleStop : handleStart}
+                        onClick={isActive ? handleStop : endTime ? reopenPendingTimer : handleStart}
                         className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-white transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] ${
                             isActive 
                             ? 'bg-red-500 hover:bg-red-600 shadow-red-500/30 shadow-lg' 
+                            : endTime
+                            ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30 shadow-lg'
                             : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/30 shadow-lg'
                         }`}
                     >
                         {isActive ? (
                             <>
                                 <Square className="w-5 h-5 fill-current" /> Parar
+                            </>
+                        ) : endTime ? (
+                            <>
+                                <Clock className="w-5 h-5" /> Confirmar tempo
                             </>
                         ) : (
                             <>
@@ -154,7 +198,7 @@ export default function TimerCard({ membroId, onManualEntry, onTimerStop }: Time
                         )}
                     </button>
                     
-                    {!isActive && (
+                    {!isActive && !endTime && (
                         <button
                             onClick={onManualEntry}
                             className="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 p-4 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
@@ -169,6 +213,11 @@ export default function TimerCard({ membroId, onManualEntry, onTimerStop }: Time
                     <div className="mt-4 text-xs font-semibold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-900/50 px-3 py-1.5 rounded-full flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
                         Seu tempo fica guardado neste dispositivo até você salvar.
+                    </div>
+                )}
+                {endTime && (
+                    <div className="mt-4 text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-1.5 rounded-full">
+                        Tempo pendente. Toque em “Confirmar tempo” para salvar.
                     </div>
                 )}
             </div>

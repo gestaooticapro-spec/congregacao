@@ -45,6 +45,7 @@ export default function PioneerDashboard({ membroId, pin, onOnboardingCompleted 
     const [initialEndTime, setInitialEndTime] = useState<string | null>(null)
     const [editingLog, setEditingLog] = useState<LogEntry | null>(null)
     const [isPastMonthsOpen, setIsPastMonthsOpen] = useState(false)
+    const [savedTimerNonce, setSavedTimerNonce] = useState(0)
 
     // Service Year Bounds
     const getServiceYearRange = () => {
@@ -238,6 +239,7 @@ export default function PioneerDashboard({ membroId, pin, onOnboardingCompleted 
             p_log_id: logId || null,
         })
         if (error) throw error
+        if (startTime && endTime && !logId) setSavedTimerNonce((value) => value + 1)
         toast.success(logId ? 'Atividade atualizada com sucesso!' : 'Tempo registrado com sucesso!')
         await fetchAllData()
     }
@@ -324,6 +326,7 @@ export default function PioneerDashboard({ membroId, pin, onOnboardingCompleted 
                 <div className="lg:col-span-4">
                     <TimerCard 
                         membroId={membroId} 
+                        savedTimerNonce={savedTimerNonce}
                         onManualEntry={() => { setEditingLog(null); setInitialTimerMinutes(0); setInitialStartTime(null); setInitialEndTime(null); setIsModalOpen(true); }}
                         onTimerStop={(min, start, end) => { setEditingLog(null); setInitialTimerMinutes(min); setInitialStartTime(start); setInitialEndTime(end); setIsModalOpen(true); }}
                     />

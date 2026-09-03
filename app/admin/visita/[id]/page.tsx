@@ -9,6 +9,7 @@ import TabVidaMinisterio from '@/components/visita/TabVidaMinisterio'
 import TabReuniaoPublica from '@/components/visita/TabReuniaoPublica'
 import TabMinisterio from '@/components/visita/TabMinisterio'
 import TabArranjos from '@/components/visita/TabArranjos'
+import { getCongregationDate } from '@/lib/dateUtils'
 
 type Membro = Database['public']['Tables']['membros']['Row']
 
@@ -128,8 +129,8 @@ export default function PainelVisitaPage() {
             const diff = 7 - (day === 0 ? 7 : day)
             
             // Calculate Saturday and Sunday of this week
-            const saturdayStr = new Date(baseDate.getTime() + (diff - 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-            const sundayStr = new Date(baseDate.getTime() + diff * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+            const saturdayStr = getCongregationDate(new Date(baseDate.getTime() + (diff - 1) * 24 * 60 * 60 * 1000))
+            const sundayStr = getCongregationDate(new Date(baseDate.getTime() + diff * 24 * 60 * 60 * 1000))
 
             // Fetch any PRESIDENTE assignments for this weekend (Saturday or Sunday)
             const { data: presList } = await (supabase as any)

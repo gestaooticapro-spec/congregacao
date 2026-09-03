@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import { Database } from '@/types/database.types'
 import PageHeader from '@/components/PageHeader'
+import { getCongregationDate } from '@/lib/dateUtils'
 
 type EscalaCampo = Database['public']['Tables']['escalas_campo']['Row'] & {
     dirigente: {
@@ -91,7 +92,7 @@ export default function CampoPage() {
         const diff = date.getDate() - day + (day === 0 ? -6 : 1)
         const monday = new Date(date)
         monday.setDate(diff)
-        const mondayStr = monday.toISOString().split('T')[0]
+        const mondayStr = getCongregationDate(monday)
 
         if (!acc[mondayStr]) acc[mondayStr] = []
         acc[mondayStr].push(escala)

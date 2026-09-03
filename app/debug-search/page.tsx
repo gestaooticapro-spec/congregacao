@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { Database } from '@/types/database.types'
 import { format, parseISO, startOfWeek, endOfWeek, isSameMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { getCongregationDate } from '@/lib/dateUtils'
 
 type Membro = Pick<Database['public']['Tables']['membros']['Row'], 'id' | 'nome_completo' | 'nome_civil' | 'grupo_id'>
 
@@ -35,7 +36,7 @@ export default function DebugSearchPage() {
         setDebugInfo(null)
 
         try {
-            const hoje = new Date().toISOString().split('T')[0]
+            const hoje = getCongregationDate()
 
             // 1. Query Locais EXACTLY as in HomeMemberSearch
             const { data: discursosLocais, error: errorLocais } = await supabase

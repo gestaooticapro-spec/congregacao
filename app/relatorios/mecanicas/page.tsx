@@ -9,6 +9,7 @@ import { ptBR } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Loader2, MessageCircle, Printer } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
 import { buildSupportReminderText, isLogadoPresidenteMeioSemana, shareMidweekReminderToWhatsApp } from '@/lib/midweekReminder'
+import { getCongregationDate } from '@/lib/dateUtils'
 
 type SupportAssignment = Database['public']['Tables']['designacoes_suporte']['Row'] & {
     membro: { nome_completo: string; nome_civil: string | null } | null
@@ -80,7 +81,7 @@ function RelatorioContent() {
                 setCurrentIndex(targetIndex)
             } else {
                 // Find next meeting (first date >= today)
-                const today = new Date().toISOString().split('T')[0]
+                const today = getCongregationDate()
                 const nextIndex = uniqueDates.findIndex(d => d >= today)
 
                 if (nextIndex !== -1) {

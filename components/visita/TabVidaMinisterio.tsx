@@ -2,6 +2,7 @@
 
 import { Database } from '@/types/database.types'
 import { calculatePartTimes } from '@/lib/scheduleUtils'
+import { getCongregationDate } from '@/lib/dateUtils'
 
 type Membro = Database['public']['Tables']['membros']['Row']
 
@@ -24,7 +25,7 @@ interface Props {
 
 export default function TabVidaMinisterio({ config, membros, colaboradores, programacao, updateConfig, updateNestedObj }: Props) {
     const partes: Parte[] = programacao?.partes || []
-    const dataReuniao = programacao?.data_reuniao || new Date().toISOString().split('T')[0]
+    const dataReuniao = programacao?.data_reuniao || getCongregationDate()
 
     const calculatedPartes = calculatePartTimes(partes, dataReuniao)
 

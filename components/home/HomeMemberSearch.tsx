@@ -6,6 +6,7 @@ import { Database, Json } from '@/types/database.types'
 import { addDays, format, parseISO, startOfWeek, endOfWeek, isSameMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useRouter } from 'next/navigation'
+import { getCongregationDate } from '@/lib/dateUtils'
 
 
 type Membro = Pick<Database['public']['Tables']['membros']['Row'], 'id' | 'nome_completo' | 'nome_civil' | 'grupo_id' | 'is_anciao' | 'is_pioneiro'>
@@ -152,8 +153,8 @@ export default function HomeMemberSearch(): React.ReactNode {
         setDiasDesignacoes([])
         setError(null)
 
-        // Automatic Login: Save session to localStorage. For pioneers this is
-        // called only after the PIN has been validated against this member.
+        // A sessão é gravada ao selecionar o membro. Para pioneiros, isto só
+        // acontece após o PIN ser validado.
         try {
             localStorage.setItem('membro_sessao', JSON.stringify({
                 id: membro.id,
@@ -758,7 +759,7 @@ export default function HomeMemberSearch(): React.ReactNode {
                                     <span className="font-bold text-slate-700 dark:text-slate-200 capitalize">
                                         {format(parseISO(dia.data), "EEEE, d 'de' MMMM", { locale: ptBR })}
                                     </span>
-                                    {dia.data === new Date().toISOString().split('T')[0] && (
+                                    {dia.data === getCongregationDate() && (
                                         <span className="text-xs font-bold px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full">
                                             HOJE
                                         </span>

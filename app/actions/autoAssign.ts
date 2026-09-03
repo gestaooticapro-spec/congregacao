@@ -71,10 +71,11 @@ export async function generateAutoAssignments(programacaoId: string): Promise<{ 
         // 3. Fetch assignments that already occupy members on this date.
         // The automatic engine must respect whoever was assigned first in support,
         // public talks, including talks given in another congregation.
-        const [{ data: supportAssignments, error: supportError }, { data: localTalks, error: talksError }, { data: awayTalks, error: fieldError }] = await Promise.all([
+        const [{ data: supportAssignments, error: supportError }, { data: localTalks, error: talksError }, { data: awayTalks, error: fieldError }, { data: ausencias }] = await Promise.all([
             supabase.from('designacoes_suporte').select('membro_id, funcao').eq('data', programacao.data_reuniao),
             supabase.from('agenda_discursos_locais').select('orador_local_id').eq('data', programacao.data_reuniao),
             supabase.from('agenda_discursos_fora').select('orador_id').eq('data', programacao.data_reuniao),
+            supabase.from('membro_ausencias').select('membro_id').lte('data_inicio', programacao.data_reuniao).gte('data_fim', programacao.data_reuniao),
         ])
 
         if (supportError || talksError || fieldError) throw new Error('Erro ao verificar conflitos de designação')
@@ -86,6 +87,7 @@ export async function generateAutoAssignments(programacaoId: string): Promise<{ 
         })
         localTalks?.forEach(talk => talk.orador_local_id && unavailableMembers.add(talk.orador_local_id))
         awayTalks?.forEach(talk => talk.orador_id && unavailableMembers.add(talk.orador_id))
+        ausencias?.forEach(ausencia => unavailableMembers.add(ausencia.membro_id))
 
         // 4. Fetch History (Last 6 months should be enough for "recent" check, but let's get all to be safe for "longest time")
         const { data: historico, error: histError } = await supabase

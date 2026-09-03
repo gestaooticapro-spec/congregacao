@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { Database } from '@/types/database.types'
+import { getCongregationDate } from '@/lib/dateUtils'
 
 export interface Saida {
     id: string
@@ -55,8 +56,8 @@ export async function getSaidas() {
         .from('programacao_semanal')
         .select('id')
         .eq('evento_tipo', 'visita spte')
-        .gte('data_reuniao', past.toISOString().split('T')[0])
-        .lte('data_reuniao', future.toISOString().split('T')[0])
+        .gte('data_reuniao', getCongregationDate(past))
+        .lte('data_reuniao', getCongregationDate(future))
         .limit(1)
         .maybeSingle()
 

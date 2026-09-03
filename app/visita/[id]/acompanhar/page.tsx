@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { format, parseISO, addDays, startOfWeek, nextDay, Day } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { calculatePartTimes } from '@/lib/scheduleUtils'
+import { getCongregationDate } from '@/lib/dateUtils'
 import {
     Utensils,
     HeartHandshake,
@@ -236,7 +237,7 @@ export default function VisitaAcompanharPage() {
         const rawPartes = (programacao?.partes as any as Parte[]) || []
         let sectionParts = rawPartes.filter(p => p.tipo === tipo)
 
-        const calculatedPartes = calculatePartTimes(rawPartes, programacao?.data_reuniao || new Date().toISOString().split('T')[0])
+        const calculatedPartes = calculatePartTimes(rawPartes, programacao?.data_reuniao || getCongregationDate())
 
         sectionParts = sectionParts.map(p => {
             const calculated = calculatedPartes.find(c => c.nome === p.nome && c.tipo === p.tipo)

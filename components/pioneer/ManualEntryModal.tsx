@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { X, Save, Clock, CalendarDays } from 'lucide-react'
 import { CategoriaMinisterio, Database } from '@/types/database.types'
+import { getCongregationDate } from '@/lib/dateUtils'
 
 type CategoriaOption = {
     value: CategoriaMinisterio;
@@ -30,7 +31,7 @@ interface ManualEntryModalProps {
 }
 
 export default function ManualEntryModal({ isOpen, onClose, onSave, initialMinutes = 0, initialStartTime = null, initialEndTime = null, entryToEdit = null }: ManualEntryModalProps) {
-    const [data, setData] = useState(new Date().toISOString().split('T')[0])
+    const [data, setData] = useState(getCongregationDate())
     const [horas, setHoras] = useState(Math.floor(initialMinutes / 60).toString())
     const [minutos, setMinutos] = useState((initialMinutes % 60).toString())
     const [categoria, setCategoria] = useState<CategoriaMinisterio>('CAMPO')
@@ -48,7 +49,7 @@ export default function ManualEntryModal({ isOpen, onClose, onSave, initialMinut
             setCategoria(entryToEdit.categoria)
             setComentarios(entryToEdit.comentarios || '')
         } else {
-            setData(new Date().toISOString().split('T')[0])
+            setData(getCongregationDate())
             setHoras(Math.floor(initialMinutes / 60).toString())
             setMinutos((initialMinutes % 60).toString())
             setCategoria('CAMPO')
@@ -84,7 +85,7 @@ export default function ManualEntryModal({ isOpen, onClose, onSave, initialMinut
             setMinutos('')
             setComentarios('')
             setCategoria('CAMPO')
-            setData(new Date().toISOString().split('T')[0])
+            setData(getCongregationDate())
         // The caught error may be a Supabase error object rather than an Error instance.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {

@@ -41,13 +41,14 @@ export async function generateSupportAssignments(date: string, currentAssignment
             return { success: false, error: 'Sem permissão para gerar sugestões de apoio.' }
         }
 
-        const [{ data: membros, error: membrosError }, { data: programacao, error: programacaoError }, { data: support, error: supportError }, { data: talks, error: talksError }, { data: awayTalks, error: campoError }, { data: history, error: historyError }] = await Promise.all([
+        const [{ data: membros, error: membrosError }, { data: programacao, error: programacaoError }, { data: support, error: supportError }, { data: talks, error: talksError }, { data: awayTalks, error: campoError }, { data: history, error: historyError }, { data: ausencias }] = await Promise.all([
             supabase.from('membros').select('*').eq('ativo', true),
             supabase.from('programacao_semanal').select('presidente_id, oracao_inicial_id, oracao_final_id, partes').eq('data_reuniao', date).maybeSingle(),
             supabase.from('designacoes_suporte').select('membro_id, data').lt('data', date),
             supabase.from('agenda_discursos_locais').select('orador_local_id').eq('data', date),
             supabase.from('agenda_discursos_fora').select('orador_id').eq('data', date),
             supabase.from('historico_designacoes').select('membro_id, data_reuniao').lt('data_reuniao', date),
+            supabase.from('membro_ausencias').select('membro_id').lte('data_inicio', date).gte('data_fim', date),
         ])
 
         if (membrosError || programacaoError || supportError || talksError || campoError || historyError || !membros) {
@@ -65,6 +66,7 @@ export async function generateSupportAssignments(date: string, currentAssignment
         talks?.forEach(talk => talk.orador_local_id && blocked.add(talk.orador_local_id))
         awayTalks?.forEach(talk => talk.orador_id && blocked.add(talk.orador_id))
         Object.values(currentAssignments).forEach(id => id && blocked.add(id))
+        ausencias?.forEach(ausencia => blocked.add(ausencia.membro_id))
 
         const lastAssignment: Record<string, string> = {}
         ;[...(support || []).map(item => ({ membro_id: item.membro_id, data: item.data })), ...(history || []).map(item => ({ membro_id: item.membro_id, data: item.data_reuniao }))]

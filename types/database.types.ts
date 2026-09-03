@@ -455,6 +455,37 @@ export interface Database {
           }
         ]
       }
+      membro_ausencias: {
+        Row: {
+          id: string
+          membro_id: string
+          data_inicio: string
+          data_fim: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          membro_id: string
+          data_inicio: string
+          data_fim: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          membro_id?: string
+          data_inicio?: string
+          data_fim?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "membro_ausencias_membro_id_fkey"
+            columns: ["membro_id"]
+            referencedRelation: "membros"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       programacao_semanal: {
         Row: {
           id: string
@@ -1033,6 +1064,10 @@ export interface Database {
         }
         Returns: Json
       }
+      obter_conflitos_ausencia: {
+        Args: { p_membro_id: string; p_data_inicio: string; p_data_fim: string }
+        Returns: { data: string; designacao: string }[]
+      }
       listar_membros_publicos: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1043,6 +1078,12 @@ export interface Database {
           is_anciao: boolean
           is_pioneiro: boolean
         }[]
+      }
+      listar_minhas_ausencias: {
+        Args: {
+          p_membro_id: string
+        }
+        Returns: Database['public']['Tables']['membro_ausencias']['Row'][]
       }
       listar_logs_pioneiro: {
         Args: {
@@ -1071,6 +1112,13 @@ export interface Database {
         }
         Returns: boolean
       }
+      excluir_minhas_ausencias: {
+        Args: {
+          p_membro_id: string
+          p_ausencia_id: string
+        }
+        Returns: boolean
+      }
       salvar_designacoes_suporte: {
         Args: {
           p_data: string
@@ -1079,6 +1127,18 @@ export interface Database {
           p_presidente_id?: string | null
         }
         Returns: undefined
+      }
+      atualizar_minhas_ausencias: {
+        Args: { p_membro_id: string; p_ausencia_id: string; p_data_inicio: string; p_data_fim: string }
+        Returns: Database['public']['Tables']['membro_ausencias']['Row']
+      }
+      salvar_minhas_ausencias: {
+        Args: {
+          p_membro_id: string
+          p_data_inicio: string
+          p_data_fim: string
+        }
+        Returns: Database['public']['Tables']['membro_ausencias']['Row']
       }
       salvar_configuracao_pioneiro: {
         Args: {

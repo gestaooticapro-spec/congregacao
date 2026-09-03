@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Database } from '@/types/database.types'
 import PageHeader from '@/components/PageHeader'
+import { getCongregationDate } from '@/lib/dateUtils'
 
 type Grupo = Database['public']['Tables']['grupos_servico']['Row']
 type EscalaLimpeza = Database['public']['Tables']['escala_limpeza']['Row']
@@ -119,7 +120,7 @@ export default function EscalaLimpezaPage() {
     }
 
     const handleGroupChange = async (date: Date, grupoId: string) => {
-        const dateStr = date.toISOString().split('T')[0]
+        const dateStr = getCongregationDate(date)
 
         // Optimistic update
         setEscalas(prev => ({ ...prev, [dateStr]: grupoId }))
@@ -248,7 +249,7 @@ export default function EscalaLimpezaPage() {
                     </thead>
                     <tbody className="divide-y divide-slate-200 dark:divide-slate-800 print:divide-slate-300">
                         {weeks.map((week) => {
-                            const dateStr = week.toISOString().split('T')[0]
+                            const dateStr = getCongregationDate(week)
                             const grupoId = escalas[dateStr]
                             const grupo = grupos.find(g => g.id === grupoId)
 

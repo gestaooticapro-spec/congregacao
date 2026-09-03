@@ -4,13 +4,14 @@ import { useState, useEffect, use } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import { Database } from '@/types/database.types'
+import { getCongregationDate } from '@/lib/dateUtils'
 
 type Membro = Database['public']['Tables']['membros']['Row']
 
 export default function CampoEditorPage({ params }: { params: Promise<{ date: string }> }) {
     const { date } = use(params)
     const router = useRouter()
-    const dateParam = date === 'nova' ? new Date().toISOString().split('T')[0] : date
+    const dateParam = date === 'nova' ? getCongregationDate() : date
 
     const [selectedDate, setSelectedDate] = useState(dateParam)
     const [loading, setLoading] = useState(true)

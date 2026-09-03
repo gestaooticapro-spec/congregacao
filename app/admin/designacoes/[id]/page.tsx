@@ -11,6 +11,7 @@ import { generateAutoAssignments } from '@/app/actions/autoAssign'
 import HistoryModal from '@/components/HistoryModal'
 import { calculatePartTimes } from '@/lib/scheduleUtils'
 import { ArrowLeft } from 'lucide-react'
+import { getCongregationDate } from '@/lib/dateUtils'
 
 type Programacao = Database['public']['Tables']['programacao_semanal']['Row']
 type Membro = Database['public']['Tables']['membros']['Row']
@@ -306,7 +307,7 @@ export default function EditarDesignacoesPage() {
 
             // 2. Insert new history
             const historyEntries: any[] = []
-            const dataReuniao = programacao?.data_reuniao || new Date().toISOString().split('T')[0]
+            const dataReuniao = programacao?.data_reuniao || getCongregationDate()
 
             if (presidenteId) historyEntries.push({ membro_id: presidenteId, programacao_id: id, data_reuniao: dataReuniao, parte_descricao: 'Presidente' })
             if (oracaoInicialId) historyEntries.push({ membro_id: oracaoInicialId, programacao_id: id, data_reuniao: dataReuniao, parte_descricao: 'Oração Inicial' })
@@ -399,7 +400,7 @@ export default function EditarDesignacoesPage() {
     }
 
     const renderPartSection = (title: string, tipo: string, colorClass: string) => {
-        const calculatedPartes = calculatePartTimes(partes, programacao?.data_reuniao || new Date().toISOString().split('T')[0])
+        const calculatedPartes = calculatePartTimes(partes, programacao?.data_reuniao || getCongregationDate())
         const sectionParts = partes.map((p, i) => {
             const calculated = calculatedPartes.find(c => c.nome === p.nome && c.tipo === p.tipo)
             return { ...p, originalIndex: i, startTime: calculated?.startTime || '' }
@@ -579,7 +580,7 @@ export default function EditarDesignacoesPage() {
 
                     {/* Sections */}
                     {['TESOUROS', 'MINISTERIO', 'VIDA_CRISTA'].map((tipo) => {
-                        const calculatedPartes = calculatePartTimes(partes, programacao?.data_reuniao || new Date().toISOString().split('T')[0])
+                        const calculatedPartes = calculatePartTimes(partes, programacao?.data_reuniao || getCongregationDate())
                         const sectionParts = partes.map((p, i) => {
                             const calculated = calculatedPartes.find(c => c.nome === p.nome && c.tipo === p.tipo)
                             return { ...p, originalIndex: i, startTime: calculated?.startTime || '' }

@@ -10,6 +10,7 @@ import { calculatePartTimes } from '@/lib/scheduleUtils'
 import MeetingAttendanceButton from '@/components/MeetingAttendanceButton'
 import { ChevronLeft, ChevronRight, Loader2, MessageCircle, Printer } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
+import { getCongregationDate } from '@/lib/dateUtils'
 import {
     buildMidweekReminderText,
     isLogadoPresidenteMeioSemana,
@@ -70,7 +71,7 @@ function RelatorioContent() {
                 setCurrentIndex(targetIndex)
             } else {
                 // Find next meeting (first date >= today)
-                const today = new Date().toISOString().split('T')[0]
+                const today = getCongregationDate()
                 const nextIndex = uniqueDates.findIndex(d => d >= today)
 
                 if (nextIndex !== -1) {
@@ -258,7 +259,7 @@ function RelatorioContent() {
         let sectionParts = rawPartes.filter(p => p.tipo === tipo)
 
         // Calculate times for all parts to get the correct start time for each
-        const calculatedPartes = calculatePartTimes(rawPartes, programacao?.data_reuniao || new Date().toISOString().split('T')[0])
+        const calculatedPartes = calculatePartTimes(rawPartes, programacao?.data_reuniao || getCongregationDate())
 
         // Map the calculated start time back onto filtered section parts
         sectionParts = sectionParts.map(p => {

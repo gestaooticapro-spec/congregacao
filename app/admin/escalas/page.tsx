@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import { Database } from '@/types/database.types'
 import PageHeader from '@/components/PageHeader'
+import { getCongregationDate } from '@/lib/dateUtils'
 
 type AssignmentSummary = {
     data: string
@@ -72,12 +73,12 @@ export default function EscalasSuportePage() {
         // Find Monday of the first week
         const startDayOfWeek = firstDayOfMonth.getDay()
         const startDiff = firstDayOfMonth.getDate() - startDayOfWeek + (startDayOfWeek === 0 ? -6 : 1)
-        const startDate = new Date(firstDayOfMonth.setDate(startDiff)).toISOString().split('T')[0]
+        const startDate = getCongregationDate(new Date(firstDayOfMonth.setDate(startDiff)))
 
         // Find Sunday of the last week
         const endDayOfWeek = lastDayOfMonth.getDay()
         const endDiff = lastDayOfMonth.getDate() + (endDayOfWeek === 0 ? 0 : 7 - endDayOfWeek)
-        const endDate = new Date(lastDayOfMonth.setDate(endDiff)).toISOString().split('T')[0]
+        const endDate = getCongregationDate(new Date(lastDayOfMonth.setDate(endDiff)))
 
         try {
             const { data, error } = await supabase
@@ -129,7 +130,7 @@ export default function EscalasSuportePage() {
         const day = date.getDay()
         const diff = date.getDate() - day + (day === 0 ? -6 : 1)
         const monday = new Date(date.setDate(diff))
-        const mondayStr = monday.toISOString().split('T')[0]
+        const mondayStr = getCongregationDate(monday)
 
         if (!acc[mondayStr]) {
             acc[mondayStr] = []

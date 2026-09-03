@@ -19,6 +19,7 @@ import {
     ShieldCheck,
     UserCircle,
     Clock,
+    CalendarOff,
 } from 'lucide-react'
 import { MENU_GROUPS, isMenuLinkVisible, type MenuGroup } from '@/lib/menuConfig'
 
@@ -26,6 +27,7 @@ type MenuItem =
     | { type: 'link'; href: string; label: string; icon: LucideIcon; restricted?: boolean; allowedRoles?: PerfilAcesso[] }
     | { type: 'pin-button'; label: string; icon: LucideIcon; restricted?: boolean; allowedRoles?: PerfilAcesso[] }
     | { type: 'pioneer-button'; label: string; icon: LucideIcon; restricted?: boolean; allowedRoles?: PerfilAcesso[] }
+    | { type: 'absence-button'; label: string; icon: LucideIcon; restricted?: boolean; allowedRoles?: PerfilAcesso[] }
 
 // Static definition outside component to avoid recreation.
 // As antigas secoes "Area Comum" e "Administracao" foram substituidas pelos
@@ -36,6 +38,7 @@ const MENU_ITEMS: MenuItem[] = [
     { type: 'link', href: '/territorios', label: 'Territórios', icon: Map },
     { type: 'link', href: '/saidas', label: 'Horário de Campo', icon: Calendar },
     { type: 'pin-button', label: 'Meu Relatório', icon: UserCircle },
+    { type: 'absence-button', label: 'Informar ausência', icon: CalendarOff },
     { type: 'pioneer-button', label: 'Painel do Pioneiro', icon: Clock },
 ]
 
@@ -46,19 +49,24 @@ function Sidebar() {
     const { isCollapsed, toggleCollapsed } = useSidebar()
     const { user, roles, hasRole, loading, signOut, canAccessPastoreio } = useAuth()
     const [isPioneiroSession, setIsPioneiroSession] = useState(false)
+    const [isPinSession, setIsPinSession] = useState(false)
 
     useEffect(() => {
         const syncMemberSession = () => {
             const session = localStorage.getItem('membro_sessao')
             if (!session) {
                 setIsPioneiroSession(false)
+                setIsPinSession(false)
                 return
             }
 
             try {
-                setIsPioneiroSession(!!JSON.parse(session).is_pioneiro)
+                const parsed = JSON.parse(session)
+                setIsPioneiroSession(!!parsed.is_pioneiro)
+                setIsPinSession(!!parsed.id)
             } catch {
                 setIsPioneiroSession(false)
+                setIsPinSession(false)
             }
         }
 
@@ -205,6 +213,31 @@ function Sidebar() {
                                     <span className={cn("truncate transition-opacity", isCollapsed && "md:hidden")}>
                                         {item.label}
                                     </span>
+                                </button>
+                            )
+                        }
+
+                        if (item.type === 'absence-button') {
+                            if (!isPinSession) return null
+                            const Icon = item.icon
+                            const active = isActive('/minha-ausencia')
+                            return (
+                                <button
+                                    key="absence-button-item"
+                                    onClick={() => {
+                                        router.push('/minha-ausencia')
+                                        setIsMobileOpen(false)
+                                    }}
+                                    className={cn(
+                                        "w-full flex items-center gap-3 py-2.5 px-3 rounded-lg transition-all duration-200 font-medium group",
+                                        active
+                                            ? "bg-blue-600 text-white shadow-sm"
+                                            : "text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800/50 hover:text-blue-600 dark:hover:text-blue-400"
+                                    )}
+                                    title={isCollapsed ? item.label : undefined}
+                                >
+                                    <Icon className={cn("w-5 h-5 shrink-0", active ? "text-white" : "text-gray-400 dark:text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400")} />
+                                    <span className={cn("truncate transition-opacity", isCollapsed && "md:hidden")}>{item.label}</span>
                                 </button>
                             )
                         }

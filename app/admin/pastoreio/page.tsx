@@ -9,6 +9,7 @@ import { ptBR } from 'date-fns/locale'
 import toast from 'react-hot-toast'
 import { Info, AlertTriangle, Loader2 } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
+import { getCongregationDate } from '@/lib/dateUtils'
 
 type Membro = Database['public']['Tables']['membros']['Row']
 
@@ -132,7 +133,7 @@ export default function PastoreioPage() {
         setSavingId(membro.id)
         try {
             // Atualiza: proxima_visita = null, ultima_visita = hoje, ultima_visita_obs = texto
-            const hoje = new Date().toISOString().split('T')[0]
+            const hoje = getCongregationDate()
             const { error } = await supabase
                 .from('membros')
                 .update({

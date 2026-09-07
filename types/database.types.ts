@@ -668,20 +668,26 @@ export interface Database {
       temas: {
         Row: {
           id: string
-          numero: number
+          numero: number | null
           titulo: string
+          tipo: string
+          ano: number | null
           created_at: string
         }
         Insert: {
           id?: string
-          numero: number
+          numero?: number | null
           titulo: string
+          tipo?: string
+          ano?: number | null
           created_at?: string
         }
         Update: {
           id?: string
-          numero?: number
+          numero?: number | null
           titulo?: string
+          tipo?: string
+          ano?: number | null
           created_at?: string
         }
         Relationships: []

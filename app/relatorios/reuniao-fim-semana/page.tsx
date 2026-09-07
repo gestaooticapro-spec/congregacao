@@ -7,6 +7,7 @@ import { ptBR } from 'date-fns/locale'
 import { BookOpen, ChevronLeft, ChevronRight, Mic, UserRound } from 'lucide-react'
 import MeetingAttendanceButton from '@/components/MeetingAttendanceButton'
 import PageHeader from '@/components/PageHeader'
+import { temaLinha } from '@/lib/temaLabel'
 
 // Helper to get the next meeting date (Saturday or Sunday)
 const getNextWeekendMeetingDate = (baseDate: Date) => {
@@ -219,8 +220,7 @@ export default function ReuniaoFimSemanaPage() {
                                     <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">
                                         {data?.visitTheme ? data.visitTheme : (
                                             <>
-                                                {data?.talk?.tema?.numero ? `#${data.talk.tema.numero} - ` : ''}
-                                                {data?.talk?.tema?.titulo || 'Tema não definido'}
+                                                {data?.talk?.tema ? temaLinha(data.talk.tema) : 'Tema não definido'}
                                             </>
                                         )}
                                     </h3>

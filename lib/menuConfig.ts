@@ -143,7 +143,7 @@ export const ANCIAOS_GROUP: MenuGroup = {
         { label: 'Membros', href: '/admin/membros', icon: UsersRound, restricted: true, section: 1 },
         { label: 'Meu Grupo', href: '/admin/relatorios-grupo', icon: Users, restricted: true, allowedRoles: [...PERFIS_ANCIAOS], section: 2 },
         { label: 'Pastoreio', href: '/admin/pastoreio', icon: HeartHandshake, restricted: true, requiresPastoreio: true, section: 2 },
-        { label: 'Meus Temas', href: '/admin/meus-temas', icon: Mic, restricted: true, section: 2 },
+        { label: 'Meus Discursos', href: '/admin/meus-discursos', icon: Mic, restricted: true, section: 2 },
     ],
 }
 

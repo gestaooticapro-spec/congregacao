@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient'
+import { temaCodigo } from './temaLabel'
 
 type ConflictCheckOptions = {
     ignoreSupportRole?: string
@@ -57,16 +58,17 @@ export async function checkConflicts(date: string, membroId: string, options: Co
 
         let localTalksQuery = supabase
             .from('agenda_discursos_locais')
-            .select('id, tema:temas(numero, titulo)')
+            .select('id, tema:temas(numero, titulo, tipo, ano)')
             .eq('data', date)
             .eq('orador_local_id', membroId)
         if (options.ignoreLocalTalkId) localTalksQuery = localTalksQuery.neq('id', options.ignoreLocalTalkId)
 
         const { data: localTalks, error: localTalksError } = await localTalksQuery
         if (localTalksError) throw localTalksError
-        localTalks?.forEach((talk: any) => {
-            const tema = talk.tema?.numero ? ` #${talk.tema.numero}` : ''
-            conflicts.push(`Orador de Discurso Público${tema}`)
+        localTalks?.forEach((talk: { tema?: { numero?: number | null; titulo?: string; tipo?: string; ano?: number | null } | { numero?: number | null; titulo?: string; tipo?: string; ano?: number | null }[] | null }) => {
+            const tema = Array.isArray(talk.tema) ? talk.tema[0] : talk.tema
+            const codigo = temaCodigo(tema)
+            conflicts.push(`Orador de Discurso Público${codigo ? ` ${codigo}` : ''}`)
         })
 
         let awayTalksQuery = supabase

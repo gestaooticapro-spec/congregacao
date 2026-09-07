@@ -4,20 +4,23 @@ import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { compareTemas, matchesTemaSearch, temaBadgeTexto, temaCodigo, temaCodigoClass, temaLinha } from '@/lib/temaLabel'
 
-type MembroResumo = {
-    id: string
-    nome_completo: string
-    total_temas: number
+type Tema = { id: string; numero: number | null; titulo: string; tipo?: string; ano?: number | null; membro_tema_id?: string; is_paused?: boolean }
+type TemaJoin = { id: string; numero: number | null; titulo: string; tipo?: string; ano?: number | null }
+
+function unwrapTema(tema: TemaJoin | TemaJoin[] | null | undefined): TemaJoin | null {
+    if (!tema) return null
+    return Array.isArray(tema) ? tema[0] ?? null : tema
 }
 
-type Tema = { id: string; numero: number | null; titulo: string; tipo?: string; ano?: number | null; membro_tema_id?: string; is_paused?: boolean }
+function errorMessage(error: unknown, fallback: string) {
+    if (typeof error === 'object' && error && 'message' in error) {
+        const message = (error as { message: unknown }).message
+        if (typeof message === 'string' && message) return message
+    }
+    return fallback
+}
 
-export default function TemasPreparadosTab() {
-    const [selectedMembro, setSelectedMembro] = useState<{ id: string, nome: string } | null>(null)
-    const [membros, setMembros] = useState<MembroResumo[]>([])
-    const [loading, setLoading] = useState(true)
-
-    // Detalhes do membro (Twin da aba Temas em Meus Discursos)
+export default function TemasTab({ membroId, membroNome }: { membroId: string; membroNome: string }) {
     const [temasPreparados, setTemasPreparados] = useState<Tema[]>([])
     const [temasDisponiveis, setTemasDisponiveis] = useState<Tema[]>([])
     const [temaSelecionadoId, setTemaSelecionadoId] = useState('')
@@ -25,9 +28,7 @@ export default function TemasPreparadosTab() {
     const [showResults, setShowResults] = useState(false)
     const [addingTema, setAddingTema] = useState(false)
     const [formOpen, setFormOpen] = useState(false)
-    const [loadingTemas, setLoadingTemas] = useState(false)
 
-    // Share
     const [isShareModalOpen, setIsShareModalOpen] = useState(false)
     const [selectedSpeechesIds, setSelectedSpeechesIds] = useState<string[]>([])
     const [contatos, setContatos] = useState<{ id: string; nome: string; telefone: string; tipo: string }[]>([])
@@ -37,77 +38,43 @@ export default function TemasPreparadosTab() {
 
     const filteredTemas = temasDisponiveis.filter(t => matchesTemaSearch(t, searchTerm))
 
-    useEffect(() => {
-        fetchMembros()
-    }, [])
+    const fetchTemasPreparados = useCallback(async () => {
+        const { data, error } = await supabase
+            .from('membros_temas')
+            .select('id, is_paused, tema:temas(id, numero, titulo, tipo, ano)')
+            .eq('membro_id', membroId)
 
-    useEffect(() => {
-        if (selectedMembro) {
-            fetchTemasPreparados(selectedMembro.id)
-            fetchTemasDisponiveis()
-        }
-    }, [selectedMembro])
-
-    const fetchMembros = async () => {
-        setLoading(true)
-        try {
-            const { data, error } = await supabase
-                .from('membros')
-                .select(`
-                    id, 
-                    nome_completo,
-                    membros_temas (count)
-                `)
-                .or('is_anciao.eq.true,is_servo_ministerial.eq.true')
-                .order('nome_completo')
-
-            if (error) throw error
-
-            const formatados: MembroResumo[] = data.map((m: any) => ({
-                id: m.id,
-                nome_completo: m.nome_completo,
-                total_temas: m.membros_temas?.[0]?.count || 0
-            }))
-
-            setMembros(formatados)
-        } catch (error) {
-            console.error('Erro ao buscar membros:', error)
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    const fetchTemasPreparados = async (membroId: string) => {
-        setLoadingTemas(true)
-        try {
-            const { data, error } = await supabase
-                .from('membros_temas')
-                .select('id, is_paused, tema:temas(id, numero, titulo, tipo, ano)')
-                .eq('membro_id', membroId)
-
-            if (error) throw error
-
-            const temas = data.map((item: any) => ({
-                id: item.tema.id,
-                numero: item.tema.numero,
-                titulo: item.tema.titulo,
-                tipo: item.tema.tipo,
-                ano: item.tema.ano,
-                membro_tema_id: item.id,
-                is_paused: item.is_paused
-            })).sort(compareTemas)
-            setTemasPreparados(temas)
-        } catch (error) {
+        if (error) {
             console.error('Erro ao buscar temas:', error)
-        } finally {
-            setLoadingTemas(false)
+        } else {
+            const temas: Tema[] = []
+            for (const item of data) {
+                const tema = unwrapTema(item.tema)
+                if (!tema) continue
+                temas.push({
+                    id: tema.id,
+                    numero: tema.numero,
+                    titulo: tema.titulo,
+                    tipo: tema.tipo,
+                    ano: tema.ano,
+                    membro_tema_id: item.id,
+                    is_paused: item.is_paused ?? false,
+                })
+            }
+            temas.sort(compareTemas)
+            setTemasPreparados(temas)
         }
-    }
+    }, [membroId])
 
     const fetchTemasDisponiveis = async () => {
         const { data } = await supabase.from('temas').select('id, numero, titulo, tipo, ano')
         setTemasDisponiveis((data || []).slice().sort(compareTemas))
     }
+
+    useEffect(() => {
+        fetchTemasPreparados()
+        fetchTemasDisponiveis()
+    }, [fetchTemasPreparados])
 
     const fetchContacts = async () => {
         setLoadingContacts(true)
@@ -141,16 +108,16 @@ export default function TemasPreparadosTab() {
     }
 
     const handleAddTema = async () => {
-        if (!temaSelecionadoId || !selectedMembro) return
+        if (!temaSelecionadoId) return
         setAddingTema(true)
         try {
             const { error: linkError } = await supabase
                 .from('membros_temas')
-                .insert({ membro_id: selectedMembro.id, tema_id: temaSelecionadoId })
+                .insert({ membro_id: membroId, tema_id: temaSelecionadoId })
 
             if (linkError) {
                 if (linkError.code === '23505') {
-                    alert('Este tema já está na lista.')
+                    alert('Este tema já está na sua lista.')
                 } else {
                     throw linkError
                 }
@@ -158,38 +125,33 @@ export default function TemasPreparadosTab() {
                 setTemaSelecionadoId('')
                 setSearchTerm('')
                 setShowResults(false)
-                fetchTemasPreparados(selectedMembro.id)
-                fetchMembros()
+                fetchTemasPreparados()
             }
-        } catch (error: any) {
+        } catch (error) {
             console.error('Erro ao adicionar tema:', error)
-            alert('Erro ao adicionar tema: ' + error.message)
+            alert('Erro ao adicionar tema: ' + errorMessage(error, 'tente novamente'))
         } finally {
             setAddingTema(false)
         }
     }
 
     const handleRemoveTema = async (temaId: string) => {
-        if (!confirm('Remover este tema da lista do irmão?')) return
-        if (!selectedMembro) return
+        if (!confirm('Remover este tema da sua lista?')) return
 
         try {
             const { error } = await supabase
                 .from('membros_temas')
                 .delete()
-                .eq('membro_id', selectedMembro.id)
+                .eq('membro_id', membroId)
                 .eq('tema_id', temaId)
 
             if (error) throw error
-            fetchTemasPreparados(selectedMembro.id)
-            fetchMembros()
+            fetchTemasPreparados()
         } catch (error) {
             console.error('Erro ao remover tema:', error)
             alert('Erro ao remover tema')
         }
     }
-
-
 
     const handleTogglePause = async (membroTemaId: string, currentStatus: boolean) => {
         try {
@@ -199,7 +161,7 @@ export default function TemasPreparadosTab() {
                 .eq('id', membroTemaId)
 
             if (error) throw error
-            if (selectedMembro) fetchTemasPreparados(selectedMembro.id)
+            fetchTemasPreparados()
         } catch (error) {
             console.error('Erro ao pausar/despausar tema:', error)
             alert('Erro ao atualizar status do tema')
@@ -224,7 +186,7 @@ export default function TemasPreparadosTab() {
             return
         }
 
-        let message = `Olá! Segue a lista de temas preparados de *${selectedMembro?.nome}*:\n\n`
+        let message = `Olá! Segue a lista de temas preparados de *${membroNome}*:\n\n`
         selectedSpeeches.forEach(t => {
             message += `*${temaLinha(t)}*\n`
         })
@@ -240,76 +202,9 @@ export default function TemasPreparadosTab() {
         setIsShareModalOpen(false)
     }
 
-    // --- VISÃO DE LISTA DE ORADORES ---
-    if (!selectedMembro) {
-        return (
-            <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-slate-800 dark:text-white">Oradores Locais</h2>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Gerencie os temas de cada irmão</p>
-                </div>
-
-                {loading ? (
-                    <div className="text-center py-12 text-slate-500">Carregando...</div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {membros.map(membro => (
-                            <button
-                                key={membro.id}
-                                onClick={() => setSelectedMembro({ id: membro.id, nome: membro.nome_completo })}
-                                className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 transition-all text-left"
-                            >
-                                <div>
-                                    <h3 className="font-bold text-slate-900 dark:text-white">{membro.nome_completo}</h3>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                                        {membro.total_temas === 0 ? (
-                                            <span className="text-orange-500 flex items-center gap-1">⚠️ Nenhum tema</span>
-                                        ) : (
-                                            <span>{membro.total_temas} {membro.total_temas === 1 ? 'tema' : 'temas'}</span>
-                                        )}
-                                    </p>
-                                </div>
-                                <div className="text-slate-400">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                    </svg>
-                                </div>
-                            </button>
-                        ))}
-                    </div>
-                )}
-            </div>
-        )
-    }
-
-    // --- VISÃO DE DETALHES DO ORADOR ---
     return (
-        <div className="space-y-6">
-            <div className="flex items-center gap-3">
-                <button
-                    type="button"
-                    onClick={() => {
-                        setSelectedMembro(null)
-                        setFormOpen(false)
-                        setSearchTerm('')
-                        setTemaSelecionadoId('')
-                        setShowResults(false)
-                    }}
-                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors shrink-0"
-                    title="Voltar"
-                    aria-label="Voltar para oradores"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                </button>
-                <div className="min-w-0">
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white leading-tight">Temas de {selectedMembro.nome}</h2>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Temas preparados deste orador.</p>
-                </div>
-            </div>
-
-            <div className="flex justify-center">
+        <>
+            <div className="flex justify-end mb-6">
                 <button
                     type="button"
                     onClick={() => {
@@ -320,19 +215,19 @@ export default function TemasPreparadosTab() {
                             setShowResults(false)
                         }
                     }}
-                    className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm w-full sm:w-auto"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm"
                 >
                     + Novo Tema
                 </button>
             </div>
 
-            <div className={`relative z-30 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-visible ${formOpen ? '' : 'hidden'}`}>
+            <div className={`relative z-30 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm mb-8 overflow-visible ${formOpen ? '' : 'hidden'}`}>
                 <div className="p-4 border-b border-slate-100 dark:border-slate-700">
                     <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Novo Tema</h2>
                 </div>
-                <div className="p-4 sm:p-6">
+                <div className="p-6">
                     <div className="flex flex-col sm:flex-row gap-4 relative z-20">
-                        <div className="flex-1 relative min-w-0">
+                        <div className="flex-1 relative">
                             <input
                                 type="text"
                                 value={searchTerm}
@@ -392,76 +287,68 @@ export default function TemasPreparadosTab() {
                 </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 shadow-sm rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-                <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between gap-3">
-                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 min-w-0">
+            <div className="bg-white dark:bg-slate-900 shadow-xl rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                         <span>🎤</span> {temasPreparados.length} {temasPreparados.length === 1 ? 'tema preparado' : 'temas preparados'}
                     </h3>
                     {temasPreparados.length > 0 && (
                         <button
-                            type="button"
                             onClick={() => {
                                 setSelectedSpeechesIds(temasPreparados.map(t => t.id))
                                 fetchContacts()
                                 setIsShareModalOpen(true)
                             }}
-                            className="shrink-0 flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-green-600/20 text-sm"
+                            className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-green-600/20"
                         >
-                            <span>📱</span> <span className="hidden sm:inline">Compartilhar via WA</span><span className="sm:hidden">WA</span>
+                            <span>📱</span> Compartilhar via WA
                         </button>
                     )}
                 </div>
 
-                <div className="p-4 sm:p-6">
-                    {loadingTemas ? (
-                        <div className="text-center py-8 text-slate-500">Carregando temas...</div>
-                    ) : (
-                        <div className="grid grid-cols-1 gap-2">
-                            {temasPreparados.length === 0 ? (
-                                <div className="text-center py-12">
-                                    <span className="text-5xl block mb-4">📝</span>
-                                    <p className="text-slate-500 dark:text-slate-400 italic">Nenhum tema cadastrado ainda.</p>
-                                    <p className="text-sm text-slate-400 dark:text-slate-500 mt-1">Use o botão + Novo Tema para adicionar os temas preparados.</p>
-                                </div>
-                            ) : (
-                                temasPreparados.map((tema) => (
-                                    <div key={tema.id} className={`flex items-center justify-between gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 transition-colors ${tema.is_paused ? 'opacity-60' : ''}`}>
-                                        <div className="flex items-center gap-3 min-w-0">
-                                            <span className={`min-w-10 h-10 px-2 shrink-0 flex items-center justify-center font-bold rounded-lg text-xs ${temaCodigoClass(tema)} ${tema.is_paused ? 'grayscale' : ''}`}>
-                                                {temaBadgeTexto(tema)}
-                                            </span>
-                                            <span className={`font-medium text-slate-700 dark:text-slate-300 break-words ${tema.is_paused ? 'line-through' : ''}`}>{tema.titulo}</span>
-                                            {tema.is_paused && (
-                                                <span className="shrink-0 text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-bold">Pausado</span>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center gap-1 shrink-0">
-                                            <button
-                                                type="button"
-                                                onClick={() => handleTogglePause(tema.membro_tema_id!, tema.is_paused!)}
-                                                className="text-slate-500 hover:text-orange-600 p-2 hover:bg-orange-50 dark:hover:bg-orange-900/10 rounded-lg transition-colors"
-                                                title={tema.is_paused ? 'Retomar tema' : 'Pausar tema'}
-                                            >
-                                                {tema.is_paused ? '▶️' : '⏸️'}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => handleRemoveTema(tema.id)}
-                                                className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
-                                                title="Remover tema"
-                                            >
-                                                🗑️
-                                            </button>
-                                        </div>
+                <div className="p-6">
+                    <div className="grid grid-cols-1 gap-2">
+                        {temasPreparados.length === 0 ? (
+                            <div className="text-center py-12">
+                                <span className="text-5xl block mb-4">📝</span>
+                                <p className="text-slate-500 dark:text-slate-400 italic">Nenhum tema cadastrado ainda.</p>
+                                <p className="text-sm text-slate-400 dark:text-slate-500 mt-1">Use o botão + Novo Tema para adicionar seus temas preparados.</p>
+                            </div>
+                        ) : (
+                            temasPreparados.map((tema) => (
+                                <div key={tema.id} className={`flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 transition-colors ${tema.is_paused ? 'opacity-60' : ''}`}>
+                                    <div className="flex items-center gap-3">
+                                        <span className={`min-w-10 h-10 px-2 flex items-center justify-center font-bold rounded-lg text-xs ${temaCodigoClass(tema)} ${tema.is_paused ? 'grayscale' : ''}`}>
+                                            {temaBadgeTexto(tema)}
+                                        </span>
+                                        <span className={`font-medium text-slate-700 dark:text-slate-300 ${tema.is_paused ? 'line-through' : ''}`}>{tema.titulo}</span>
+                                        {tema.is_paused && (
+                                            <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-bold">Pausado</span>
+                                        )}
                                     </div>
-                                ))
-                            )}
-                        </div>
-                    )}
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            onClick={() => handleTogglePause(tema.membro_tema_id!, tema.is_paused!)}
+                                            className="text-slate-500 hover:text-orange-600 p-2 hover:bg-orange-50 dark:hover:bg-orange-900/10 rounded-lg transition-colors"
+                                            title={tema.is_paused ? "Retomar tema" : "Pausar tema"}
+                                        >
+                                            {tema.is_paused ? '▶️' : '⏸️'}
+                                        </button>
+                                        <button
+                                            onClick={() => handleRemoveTema(tema.id)}
+                                            className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
+                                            title="Remover tema"
+                                        >
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
             </div>
 
-            {/* Share Modal */}
             {isShareModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh]">
@@ -478,7 +365,6 @@ export default function TemasPreparadosTab() {
                         </div>
 
                         <div className="p-6 space-y-6 overflow-y-auto">
-                            {/* Speech Selection */}
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Selecione os temas para enviar</label>
                                 <div className="space-y-2 max-h-48 overflow-y-auto p-1">
@@ -505,7 +391,6 @@ export default function TemasPreparadosTab() {
                                 </div>
                             </div>
 
-                            {/* Contact Selection */}
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Enviar para quem?</label>
                                 <div className="space-y-4">
@@ -560,6 +445,6 @@ export default function TemasPreparadosTab() {
                     </div>
                 </div>
             )}
-        </div>
+        </>
     )
 }

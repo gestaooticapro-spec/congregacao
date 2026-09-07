@@ -7,16 +7,17 @@ import { format, startOfMonth, endOfMonth, addMonths, subMonths, parseISO } from
 import { ptBR } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Printer } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
+import { temaCodigo } from '@/lib/temaLabel'
 
 type DiscursoLocal = Database['public']['Tables']['agenda_discursos_locais']['Row'] & {
     membros?: { nome_completo: string } | null
     oradores_visitantes?: { nome: string, congregacao: string } | null
-    temas?: { numero: number, titulo: string } | null
+    temas?: { numero: number | null, titulo: string, tipo?: string, ano?: number | null } | null
 }
 
 type DiscursoFora = Database['public']['Tables']['agenda_discursos_fora']['Row'] & {
     membros?: { nome_completo: string } | null
-    temas?: { numero: number, titulo: string } | null
+    temas?: { numero: number | null, titulo: string, tipo?: string, ano?: number | null } | null
 }
 
 export default function RelatorioDiscursosPage() {
@@ -42,7 +43,7 @@ export default function RelatorioDiscursosPage() {
                     *,
                     membros:orador_local_id (nome_completo),
                     oradores_visitantes:orador_visitante_id (nome, congregacao),
-                    temas:tema_id (numero, titulo)
+                    temas:tema_id (numero, titulo, tipo, ano)
                 `)
                 .gte('data', start)
                 .lte('data', end)
@@ -56,7 +57,7 @@ export default function RelatorioDiscursosPage() {
                 .select(`
                     *,
                     membros:orador_id (nome_completo),
-                    temas:tema_id (numero, titulo)
+                    temas:tema_id (numero, titulo, tipo, ano)
                 `)
                 .gte('data', start)
                 .lte('data', end)
@@ -148,7 +149,7 @@ export default function RelatorioDiscursosPage() {
                                         </div>
                                     </td>
                                     <td className="border border-slate-300 p-1 sm:p-2 print:p-2 align-top break-words leading-tight">
-                                        <span className="font-bold mr-1">#{d.temas?.numero}</span>
+                                        {d.temas ? <span className="font-bold mr-1">{temaCodigo(d.temas)}</span> : null}
                                         {d.temas?.titulo}
                                     </td>
                                     <td className="border border-slate-300 p-1 sm:p-2 print:p-2 text-center align-top">
@@ -198,7 +199,7 @@ export default function RelatorioDiscursosPage() {
                                         <div className="text-[10px] sm:text-xs print:text-xs text-slate-500">{d.destino_cidade}</div>
                                     </td>
                                     <td className="border border-slate-300 p-1 sm:p-2 print:p-2 align-top break-words leading-tight">
-                                        <span className="font-bold mr-1">#{d.temas?.numero}</span>
+                                        {d.temas ? <span className="font-bold mr-1">{temaCodigo(d.temas)}</span> : null}
                                         {d.temas?.titulo}
                                     </td>
                                 </tr>

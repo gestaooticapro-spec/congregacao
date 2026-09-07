@@ -8,9 +8,12 @@ import { ptBR } from 'date-fns/locale'
 import PageHeader from '@/components/PageHeader'
 import Link from 'next/link'
 import { checkConflicts, conflictMessage } from '@/lib/conflictCheck'
+import { compareTemas, matchesTemaSearch, temaCodigo, temaLinha } from '@/lib/temaLabel'
+
+type TemaResumo = { id: string; numero: number | null; titulo: string; tipo?: string; ano?: number | null }
 
 type DiscursoLocal = Database['public']['Tables']['agenda_discursos_locais']['Row'] & {
-    tema: { numero: number, titulo: string },
+    tema: TemaResumo,
     orador_local?: { nome_completo: string },
     orador_visitante?: { nome: string, congregacao: string, cidade: string, telefone: string },
     hospitalidade?: { nome_completo: string },
@@ -18,7 +21,7 @@ type DiscursoLocal = Database['public']['Tables']['agenda_discursos_locais']['Ro
 }
 
 type DiscursoFora = Database['public']['Tables']['agenda_discursos_fora']['Row'] & {
-    tema: { numero: number, titulo: string },
+    tema: TemaResumo,
     orador: { nome_completo: string }
 }
 
@@ -63,7 +66,7 @@ export default function DiscursosPage() {
                     .from('agenda_discursos_locais')
                     .select(`
                         *,
-                        tema:temas(numero, titulo),
+                        tema:temas(numero, titulo, tipo, ano),
                         orador_local:membros!agenda_discursos_locais_orador_local_id_fkey(nome_completo),
                         orador_visitante:oradores_visitantes(nome, congregacao, cidade, telefone),
                         hospitalidade:membros!agenda_discursos_locais_hospitalidade_id_fkey(nome_completo)
@@ -77,7 +80,7 @@ export default function DiscursosPage() {
                     .from('agenda_discursos_fora')
                     .select(`
                         *,
-                        tema:temas(numero, titulo),
+                        tema:temas(numero, titulo, tipo, ano),
                         orador:membros(nome_completo)
                     `)
                     .order('data', { ascending: true })
@@ -153,7 +156,7 @@ export default function DiscursosPage() {
                 </Link>
             )}
 
-            <div className="bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/50 dark:shadow-none rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 overflow-hidden min-w-0">
+            <div className="bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/50 dark:shadow-none rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 overflow-visible min-w-0">
                 {loading ? (
                     <div className="text-center py-12 text-slate-500">Carregando...</div>
                 ) : (
@@ -212,8 +215,8 @@ function DiscursosLocaisList({ discursos, onUpdate }: { discursos: DiscursoLocal
     const [membros, setMembros] = useState<{ id: string, nome_completo: string }[]>([])
     const [todosMembros, setTodosMembros] = useState<{ id: string, nome_completo: string }[]>([])
     const [visitantes, setVisitantes] = useState<{ id: string, nome: string, congregacao: string, cidade: string }[]>([])
-    const [temasPreparados, setTemasPreparados] = useState<{ id: string, numero: number, titulo: string }[]>([])
-    const [allTemas, setAllTemas] = useState<{ id: string, numero: number, titulo: string }[]>([])
+    const [temasPreparados, setTemasPreparados] = useState<TemaResumo[]>([])
+    const [allTemas, setAllTemas] = useState<TemaResumo[]>([])
 
     useEffect(() => {
         if (showModal) {
@@ -245,18 +248,18 @@ function DiscursosLocaisList({ discursos, onUpdate }: { discursos: DiscursoLocal
 
         const { data: v } = await supabase.from('oradores_visitantes').select('id, nome, congregacao, cidade').order('nome')
         setVisitantes(v || [])
-        const { data: t } = await supabase.from('temas').select('id, numero, titulo').order('numero')
-        setAllTemas(t || [])
+        const { data: t } = await supabase.from('temas').select('id, numero, titulo, tipo, ano')
+        setAllTemas((t || []).slice().sort(compareTemas))
     }
 
     const fetchTemasPreparados = async (membroId: string) => {
         const { data } = await supabase
             .from('membros_temas')
-            .select('tema:temas(id, numero, titulo)')
+            .select('tema:temas(id, numero, titulo, tipo, ano)')
             .eq('membro_id', membroId)
 
         if (data) {
-            const temas = data.map((item: any) => item.tema).sort((a: any, b: any) => a.numero - b.numero)
+            const temas = data.map((item: any) => item.tema).filter(Boolean).sort(compareTemas)
             setTemasPreparados(temas)
         }
     }
@@ -436,7 +439,7 @@ function DiscursosLocaisList({ discursos, onUpdate }: { discursos: DiscursoLocal
             setTipoOrador('VISITANTE')
             setOradorVisitanteId(discurso.orador_visitante_id || '')
             setTemaId(discurso.tema_id)
-            setTemaSearch(`#${discurso.tema.numero} - ${discurso.tema.titulo}`)
+            setTemaSearch(temaLinha(discurso.tema))
             if (discurso.hospitalidade_id) {
                 setHospitalidadeId(discurso.hospitalidade_id)
                 setHospitalidadeSearch(discurso.hospitalidade?.nome_completo || '')
@@ -492,7 +495,7 @@ function DiscursosLocaisList({ discursos, onUpdate }: { discursos: DiscursoLocal
             const message = `*Discurso Público - ${format(new Date(discurso.data + 'T00:00:00'), "dd/MM/yyyy", { locale: ptBR })}*
             
 Orador: ${oradorNome}
-Tema: #${discurso.tema.numero} - ${discurso.tema.titulo}
+Tema: ${temaLinha(discurso.tema)}
 Cântico: ${discurso.cantico || 'A definir'}
 
 ${midiaTexto}`
@@ -647,7 +650,7 @@ ${midiaTexto}`
                                             >
                                                 <option value="">Selecione...</option>
                                                 {temasPreparados.map(t => (
-                                                    <option key={t.id} value={t.id}>#{t.numero} - {t.titulo}</option>
+                                                    <option key={t.id} value={t.id}>{temaLinha(t)}</option>
                                                 ))}
                                             </select>
                                             <button
@@ -677,20 +680,20 @@ ${midiaTexto}`
                                             {temaSearch && !temaId && (
                                                 <div className="absolute top-full left-0 right-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl max-h-48 overflow-y-auto z-10 mt-1">
                                                     {allTemas
-                                                        .filter(t => t.numero.toString().includes(temaSearch) || t.titulo.toLowerCase().includes(temaSearch.toLowerCase()))
+                                                        .filter(t => matchesTemaSearch(t, temaSearch))
                                                         .map(t => (
                                                             <button
                                                                 key={t.id}
                                                                 onClick={() => {
                                                                     setTemaId(t.id)
-                                                                    setTemaSearch(`#${t.numero} - ${t.titulo}`)
+                                                                    setTemaSearch(temaLinha(t))
                                                                 }}
                                                                 className="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm"
                                                             >
-                                                                <span className="font-bold text-primary">#{t.numero}</span> - {t.titulo}
+                                                                <span className="font-bold text-primary">{temaCodigo(t)}</span> — {t.titulo}
                                                             </button>
                                                         ))}
-                                                    {allTemas.filter(t => t.numero.toString().includes(temaSearch) || t.titulo.toLowerCase().includes(temaSearch.toLowerCase())).length === 0 && (
+                                                    {allTemas.filter(t => matchesTemaSearch(t, temaSearch)).length === 0 && (
                                                         <div className="p-3 text-sm text-slate-500 text-center">Nenhum tema encontrado.</div>
                                                     )}
                                                 </div>
@@ -841,20 +844,20 @@ ${midiaTexto}`
                             {quickThemeSearch && !quickThemeId && (
                                 <div className="absolute top-full left-0 right-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl max-h-48 overflow-y-auto z-10 mt-1">
                                     {allTemas
-                                        .filter(t => t.numero.toString().includes(quickThemeSearch) || t.titulo.toLowerCase().includes(quickThemeSearch.toLowerCase()))
+                                        .filter(t => matchesTemaSearch(t, quickThemeSearch))
                                         .map(t => (
                                             <button
                                                 key={t.id}
                                                 onClick={() => {
                                                     setQuickThemeId(t.id)
-                                                    setQuickThemeSearch(`#${t.numero} - ${t.titulo}`)
+                                                    setQuickThemeSearch(temaLinha(t))
                                                 }}
                                                 className="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm"
                                             >
-                                                <span className="font-bold text-primary">#{t.numero}</span> - {t.titulo}
+                                                <span className="font-bold text-primary">{temaCodigo(t)}</span> — {t.titulo}
                                             </button>
                                         ))}
-                                    {allTemas.filter(t => t.numero.toString().includes(quickThemeSearch) || t.titulo.toLowerCase().includes(quickThemeSearch.toLowerCase())).length === 0 && (
+                                    {allTemas.filter(t => matchesTemaSearch(t, quickThemeSearch)).length === 0 && (
                                         <div className="p-3 text-sm text-slate-500 text-center">Nenhum tema encontrado.</div>
                                     )}
                                 </div>
@@ -935,7 +938,7 @@ ${midiaTexto}`
                                 </div>
                             )}
                             <p className="text-sm text-slate-700 dark:text-slate-300 leading-snug">
-                                <span className="font-bold text-primary">#{d.tema.numero}</span>{' '}
+                                <span className="font-bold text-primary">{temaCodigo(d.tema)}</span>{' '}
                                 {d.tema.titulo}
                             </p>
                             <div className="flex flex-wrap gap-1.5">
@@ -1027,7 +1030,7 @@ ${midiaTexto}`
                                 </td>
                                 <td className="py-3 px-4">
                                     <div className="flex flex-col min-w-0">
-                                        <span className="font-bold text-primary">#{d.tema.numero}</span>
+                                        <span className="font-bold text-primary">{temaCodigo(d.tema)}</span>
                                         <span className="text-sm text-slate-600 dark:text-slate-400 break-words">{d.tema.titulo}</span>
                                     </div>
                                 </td>
@@ -1080,7 +1083,7 @@ function DiscursosForaList({ discursos, onUpdate }: { discursos: DiscursoFora[],
 
     // Lists
     const [oradores, setOradores] = useState<{ id: string, nome_completo: string }[]>([])
-    const [temasOrador, setTemasOrador] = useState<{ id: string, numero: number, titulo: string }[]>([])
+    const [temasOrador, setTemasOrador] = useState<TemaResumo[]>([])
 
     useEffect(() => {
         if (showModal) {
@@ -1108,11 +1111,11 @@ function DiscursosForaList({ discursos, onUpdate }: { discursos: DiscursoFora[],
     const fetchTemasOrador = async (membroId: string) => {
         const { data } = await supabase
             .from('membros_temas')
-            .select('tema:temas(id, numero, titulo)')
+            .select('tema:temas(id, numero, titulo, tipo, ano)')
             .eq('membro_id', membroId)
 
         if (data) {
-            const temas = data.map((item: any) => item.tema).sort((a: any, b: any) => a.numero - b.numero)
+            const temas = data.map((item: any) => item.tema).filter(Boolean).sort(compareTemas)
             setTemasOrador(temas)
         }
     }
@@ -1271,7 +1274,7 @@ function DiscursosForaList({ discursos, onUpdate }: { discursos: DiscursoFora[],
                                 <label className="block text-sm font-bold mb-1">Tema</label>
                                 <select value={temaId} onChange={e => setTemaId(e.target.value)} className="w-full p-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700" disabled={!oradorId}>
                                     <option value="">Selecione...</option>
-                                    {temasOrador.map(t => <option key={t.id} value={t.id}>#{t.numero} - {t.titulo}</option>)}
+                                    {temasOrador.map(t => <option key={t.id} value={t.id}>{temaLinha(t)}</option>)}
                                 </select>
                                 {!oradorId && <p className="text-xs text-slate-500 mt-1">Selecione um orador primeiro.</p>}
                             </div>
@@ -1319,7 +1322,7 @@ function DiscursosForaList({ discursos, onUpdate }: { discursos: DiscursoFora[],
                             {d.destino_cidade ? ` · ${d.destino_cidade}` : ''}
                         </p>
                         <p className="text-sm text-slate-700 dark:text-slate-300 leading-snug">
-                            <span className="font-bold text-primary">#{d.tema.numero}</span>{' '}
+                            <span className="font-bold text-primary">{temaCodigo(d.tema)}</span>{' '}
                             {d.tema.titulo}
                         </p>
                     </div>
@@ -1356,7 +1359,7 @@ function DiscursosForaList({ discursos, onUpdate }: { discursos: DiscursoFora[],
                                 </td>
                                 <td className="py-3 px-4">
                                     <div className="flex flex-col min-w-0">
-                                        <span className="font-bold text-primary">#{d.tema.numero}</span>
+                                        <span className="font-bold text-primary">{temaCodigo(d.tema)}</span>
                                         <span className="text-sm text-slate-600 dark:text-slate-400 break-words">{d.tema.titulo}</span>
                                     </div>
                                 </td>

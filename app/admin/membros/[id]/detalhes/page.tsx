@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useParams, useRouter } from 'next/navigation'
 import { Database } from '@/types/database.types'
+import { compareTemas, matchesTemaSearch, temaBadgeTexto, temaCodigo, temaCodigoClass, temaLinha } from '@/lib/temaLabel'
 
 type MembroUpdate = Database['public']['Tables']['membros']['Update']
 
@@ -16,8 +17,8 @@ export default function DetalhesMembroPage() {
     const [saving, setSaving] = useState(false)
     const [formData, setFormData] = useState<MembroUpdate>({})
 
-    const [temasPreparados, setTemasPreparados] = useState<{ id: string, numero: number, titulo: string }[]>([])
-    const [temasDisponiveis, setTemasDisponiveis] = useState<{ id: string, numero: number, titulo: string }[]>([])
+    const [temasPreparados, setTemasPreparados] = useState<{ id: string, numero: number | null, titulo: string, tipo?: string, ano?: number | null }[]>([])
+    const [temasDisponiveis, setTemasDisponiveis] = useState<{ id: string, numero: number | null, titulo: string, tipo?: string, ano?: number | null }[]>([])
     const [temaSelecionadoId, setTemaSelecionadoId] = useState('')
     const [addingTema, setAddingTema] = useState(false)
 
@@ -25,10 +26,7 @@ export default function DetalhesMembroPage() {
     const [searchTerm, setSearchTerm] = useState('')
     const [showResults, setShowResults] = useState(false)
 
-    const filteredTemas = temasDisponiveis.filter(t =>
-        t.numero.toString().includes(searchTerm) ||
-        t.titulo.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    const filteredTemas = temasDisponiveis.filter(t => matchesTemaSearch(t, searchTerm))
 
     useEffect(() => {
         if (id) {
@@ -41,20 +39,20 @@ export default function DetalhesMembroPage() {
     const fetchTemasPreparados = async () => {
         const { data, error } = await supabase
             .from('membros_temas')
-            .select('tema:temas(id, numero, titulo)')
+            .select('tema:temas(id, numero, titulo, tipo, ano)')
             .eq('membro_id', id)
 
         if (error) {
             console.error('Erro ao buscar temas:', error)
         } else {
-            const temas = data.map((item: any) => item.tema).sort((a: any, b: any) => a.numero - b.numero)
+            const temas = data.map((item: any) => item.tema).filter(Boolean).sort(compareTemas)
             setTemasPreparados(temas)
         }
     }
 
     const fetchTemasDisponiveis = async () => {
-        const { data } = await supabase.from('temas').select('id, numero, titulo').order('numero')
-        setTemasDisponiveis(data || [])
+        const { data } = await supabase.from('temas').select('id, numero, titulo, tipo, ano')
+        setTemasDisponiveis((data || []).slice().sort(compareTemas))
     }
 
     const handleAddTema = async () => {
@@ -252,12 +250,12 @@ export default function DetalhesMembroPage() {
                                                         key={t.id}
                                                         onClick={() => {
                                                             setTemaSelecionadoId(t.id)
-                                                            setSearchTerm(`#${t.numero} - ${t.titulo}`)
+                                                            setSearchTerm(temaLinha(t))
                                                             setShowResults(false)
                                                         }}
                                                         className="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-b border-slate-100 dark:border-slate-800 last:border-0"
                                                     >
-                                                        <span className="font-bold text-primary">#{t.numero}</span>
+                                                        <span className="font-bold text-primary">{temaCodigo(t)}</span>
                                                         <span className="ml-2 text-slate-700 dark:text-slate-300">{t.titulo}</span>
                                                     </button>
                                                 ))
@@ -290,8 +288,8 @@ export default function DetalhesMembroPage() {
                                     temasPreparados.map((tema) => (
                                         <div key={tema.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
                                             <div className="flex items-center gap-3">
-                                                <span className="w-10 h-10 flex items-center justify-center bg-blue-100 text-blue-700 font-bold rounded-lg text-sm">
-                                                    {tema.numero}
+                                                <span className={`min-w-10 h-10 px-2 flex items-center justify-center font-bold rounded-lg text-xs ${temaCodigoClass(tema)}`}>
+                                                    {temaBadgeTexto(tema)}
                                                 </span>
                                                 <span className="font-medium text-slate-700 dark:text-slate-300">{tema.titulo}</span>
                                             </div>

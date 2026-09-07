@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Database } from '@/types/database.types'
 import PageHeader from '@/components/PageHeader'
+import { compareTemas, isTemaEspecial, matchesTemaSearch, temaBadgeTexto, temaCodigoClass, temaTipo, type TemaTipo } from '@/lib/temaLabel'
+import { getCongregationDate } from '@/lib/dateUtils'
 
 type Tema = Database['public']['Tables']['temas']['Row']
 type Visitante = Database['public']['Tables']['oradores_visitantes']['Row']
@@ -78,7 +80,9 @@ function TemasList() {
 
     // Form
     const [id, setId] = useState('')
+    const [tipo, setTipo] = useState<TemaTipo>('NUMERADO')
     const [numero, setNumero] = useState('')
+    const [ano, setAno] = useState('')
     const [titulo, setTitulo] = useState('')
 
     useEffect(() => {
@@ -88,9 +92,9 @@ function TemasList() {
     const fetchTemas = async () => {
         setLoading(true)
         try {
-            const { data, error } = await supabase.from('temas').select('*').order('numero', { ascending: true })
+            const { data, error } = await supabase.from('temas').select('*')
             if (error) throw error
-            setTemas(data || [])
+            setTemas((data || []).slice().sort(compareTemas))
         } catch (error) {
             console.error('Error fetching temas:', error)
             setTemas([])
@@ -101,7 +105,9 @@ function TemasList() {
 
     const handleEdit = (tema: Tema) => {
         setId(tema.id)
-        setNumero(tema.numero.toString())
+        setTipo(temaTipo(tema))
+        setNumero(tema.numero != null ? String(tema.numero) : '')
+        setAno(tema.ano != null ? String(tema.ano) : '')
         setTitulo(tema.titulo)
         setShowModal(true)
     }
@@ -119,14 +125,27 @@ function TemasList() {
     }
 
     const handleSave = async () => {
-        if (!numero || !titulo) {
-            alert('Preencha todos os campos')
+        if (!titulo.trim()) {
+            alert('Preencha o título')
+            return
+        }
+        if (tipo === 'NUMERADO' && !numero) {
+            alert('Informe o número do esboço')
+            return
+        }
+        if (isTemaEspecial({ tipo }) && !ano) {
+            alert('Informe o ano do discurso especial')
             return
         }
 
         setSaving(true)
         try {
-            const payload = { numero: parseInt(numero), titulo }
+            const payload = {
+                tipo,
+                titulo: titulo.trim(),
+                numero: tipo === 'NUMERADO' ? parseInt(numero, 10) : null,
+                ano: isTemaEspecial({ tipo }) ? parseInt(ano, 10) : null,
+            }
 
             if (id) {
                 const { error } = await supabase.from('temas').update(payload).eq('id', id)
@@ -139,9 +158,21 @@ function TemasList() {
             setShowModal(false)
             resetForm()
             fetchTemas()
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error)
-            alert('Erro ao salvar: ' + error.message)
+            const code = typeof error === 'object' && error && 'code' in error
+                ? String((error as { code: unknown }).code)
+                : ''
+            if (code === '23505' && isTemaEspecial({ tipo })) {
+                alert('Já existe um discurso desse tipo neste ano.')
+            } else if (code === '23505') {
+                alert('Já existe um tema com esse número.')
+            } else {
+                const message = typeof error === 'object' && error && 'message' in error
+                    ? String((error as { message: unknown }).message)
+                    : 'tente novamente'
+                alert('Erro ao salvar: ' + message)
+            }
         } finally {
             setSaving(false)
         }
@@ -149,14 +180,13 @@ function TemasList() {
 
     const resetForm = () => {
         setId('')
+        setTipo('NUMERADO')
         setNumero('')
+        setAno(getCongregationDate().slice(0, 4))
         setTitulo('')
     }
 
-    const filteredTemas = temas.filter(t =>
-        t.numero.toString().includes(searchTerm) ||
-        t.titulo.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    const filteredTemas = temas.filter(t => matchesTemaSearch(t, searchTerm))
 
     return (
         <div>
@@ -183,12 +213,46 @@ function TemasList() {
                         <h3 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">{id ? 'Editar Tema' : 'Novo Tema'}</h3>
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-bold mb-1">Número</label>
-                                <input type="number" value={numero} onChange={e => setNumero(e.target.value)} className="w-full p-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700" />
+                                <label className="block text-sm font-bold mb-1">Tipo</label>
+                                <select
+                                    value={tipo}
+                                    onChange={e => {
+                                        const next = e.target.value as TemaTipo
+                                        setTipo(next)
+                                        if (next !== 'NUMERADO') {
+                                            setNumero('')
+                                            if (!ano) setAno(getCongregationDate().slice(0, 4))
+                                        } else {
+                                            setAno('')
+                                        }
+                                    }}
+                                    className="w-full p-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700"
+                                >
+                                    <option value="NUMERADO">Discurso público (com número)</option>
+                                    <option value="ESPECIAL">Especial (início do ano)</option>
+                                    <option value="CAMPANHA">Especial da campanha</option>
+                                </select>
                             </div>
+                            {tipo === 'NUMERADO' ? (
+                                <div>
+                                    <label className="block text-sm font-bold mb-1">Número</label>
+                                    <input type="number" value={numero} onChange={e => setNumero(e.target.value)} className="w-full p-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700" />
+                                </div>
+                            ) : (
+                                <div>
+                                    <label className="block text-sm font-bold mb-1">Ano</label>
+                                    <input type="number" min="2000" max="2100" value={ano} onChange={e => setAno(e.target.value)} className="w-full p-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700" />
+                                </div>
+                            )}
                             <div>
                                 <label className="block text-sm font-bold mb-1">Título</label>
-                                <input type="text" value={titulo} onChange={e => setTitulo(e.target.value)} className="w-full p-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700" />
+                                <input
+                                    type="text"
+                                    value={titulo}
+                                    onChange={e => setTitulo(e.target.value)}
+                                    placeholder={tipo === 'CAMPANHA' ? 'Tema da campanha deste ano' : tipo === 'ESPECIAL' ? 'Tema do discurso especial deste ano' : ''}
+                                    className="w-full p-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700"
+                                />
                             </div>
                         </div>
                         <div className="flex justify-end gap-3 mt-6">
@@ -205,8 +269,8 @@ function TemasList() {
                 {filteredTemas.map(t => (
                     <div key={t.id} className="flex items-start justify-between gap-3 p-4">
                         <div className="min-w-0 flex items-start gap-3">
-                            <span className="w-10 h-10 shrink-0 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-bold rounded-lg text-sm">
-                                {t.numero}
+                            <span className={`min-w-10 h-10 px-2 shrink-0 flex items-center justify-center font-bold rounded-lg text-xs ${temaCodigoClass(t)}`}>
+                                {temaBadgeTexto(t)}
                             </span>
                             <p className="font-medium text-slate-800 dark:text-slate-200 leading-snug break-words">{t.titulo}</p>
                         </div>
@@ -225,7 +289,7 @@ function TemasList() {
                 <table className="w-full text-left border-collapse table-fixed">
                     <thead className="sticky top-0 bg-white dark:bg-slate-900">
                         <tr className="text-slate-500 dark:text-slate-400 text-sm border-b border-slate-100 dark:border-slate-800">
-                            <th className="py-3 px-4 font-bold w-20">Nº</th>
+                            <th className="py-3 px-4 font-bold w-24">Nº / Tipo</th>
                             <th className="py-3 px-4 font-bold">Título</th>
                             <th className="py-3 px-4 font-bold text-right w-28">Ações</th>
                         </tr>
@@ -233,7 +297,7 @@ function TemasList() {
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                         {filteredTemas.map(t => (
                             <tr key={t.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                <td className="py-3 px-4 font-bold text-primary">{t.numero}</td>
+                                <td className="py-3 px-4 font-bold text-primary">{temaBadgeTexto(t)}</td>
                                 <td className="py-3 px-4 text-slate-700 dark:text-slate-300 break-words">{t.titulo}</td>
                                 <td className="py-3 px-4 text-right whitespace-nowrap">
                                     <button onClick={() => handleEdit(t)} className="text-blue-500 hover:text-blue-700 p-2">✏️</button>

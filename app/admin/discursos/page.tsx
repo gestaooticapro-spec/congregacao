@@ -9,6 +9,7 @@ import PageHeader from '@/components/PageHeader'
 import Link from 'next/link'
 import { checkConflicts, conflictMessage } from '@/lib/conflictCheck'
 import { compareTemas, matchesTemaSearch, temaCodigo, temaLinha } from '@/lib/temaLabel'
+import TemaSearchResults from '@/components/TemaSearchResults'
 
 type TemaResumo = { id: string; numero: number | null; titulo: string; tipo?: string; ano?: number | null }
 
@@ -674,28 +675,18 @@ ${midiaTexto}`
                                                 type="text"
                                                 value={temaSearch}
                                                 onChange={e => setTemaSearch(e.target.value)}
-                                                placeholder="Buscar tema (nº ou título)..."
+                                                placeholder="Número, especial, campanha ou título..."
                                                 className="w-full p-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700"
                                             />
                                             {temaSearch && !temaId && (
                                                 <div className="absolute top-full left-0 right-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl max-h-48 overflow-y-auto z-10 mt-1">
-                                                    {allTemas
-                                                        .filter(t => matchesTemaSearch(t, temaSearch))
-                                                        .map(t => (
-                                                            <button
-                                                                key={t.id}
-                                                                onClick={() => {
-                                                                    setTemaId(t.id)
-                                                                    setTemaSearch(temaLinha(t))
-                                                                }}
-                                                                className="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm"
-                                                            >
-                                                                <span className="font-bold text-primary">{temaCodigo(t)}</span> — {t.titulo}
-                                                            </button>
-                                                        ))}
-                                                    {allTemas.filter(t => matchesTemaSearch(t, temaSearch)).length === 0 && (
-                                                        <div className="p-3 text-sm text-slate-500 text-center">Nenhum tema encontrado.</div>
-                                                    )}
+                                                    <TemaSearchResults
+                                                        temas={allTemas.filter(t => matchesTemaSearch(t, temaSearch))}
+                                                        onSelect={t => {
+                                                            setTemaId(t.id)
+                                                            setTemaSearch(temaLinha(t))
+                                                        }}
+                                                    />
                                                 </div>
                                             )}
                                             {temaId && (
@@ -837,29 +828,19 @@ ${midiaTexto}`
                                 type="text"
                                 value={quickThemeSearch}
                                 onChange={e => setQuickThemeSearch(e.target.value)}
-                                placeholder="Buscar tema (nº ou título)..."
+                                placeholder="Número, especial, campanha ou título..."
                                 className="w-full p-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700"
                                 autoFocus
                             />
                             {quickThemeSearch && !quickThemeId && (
                                 <div className="absolute top-full left-0 right-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl max-h-48 overflow-y-auto z-10 mt-1">
-                                    {allTemas
-                                        .filter(t => matchesTemaSearch(t, quickThemeSearch))
-                                        .map(t => (
-                                            <button
-                                                key={t.id}
-                                                onClick={() => {
-                                                    setQuickThemeId(t.id)
-                                                    setQuickThemeSearch(temaLinha(t))
-                                                }}
-                                                className="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm"
-                                            >
-                                                <span className="font-bold text-primary">{temaCodigo(t)}</span> — {t.titulo}
-                                            </button>
-                                        ))}
-                                    {allTemas.filter(t => matchesTemaSearch(t, quickThemeSearch)).length === 0 && (
-                                        <div className="p-3 text-sm text-slate-500 text-center">Nenhum tema encontrado.</div>
-                                    )}
+                                    <TemaSearchResults
+                                        temas={allTemas.filter(t => matchesTemaSearch(t, quickThemeSearch))}
+                                        onSelect={t => {
+                                            setQuickThemeId(t.id)
+                                            setQuickThemeSearch(temaLinha(t))
+                                        }}
+                                    />
                                 </div>
                             )}
                             {quickThemeId && (

@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useParams, useRouter } from 'next/navigation'
 import { Database } from '@/types/database.types'
 import { compareTemas, matchesTemaSearch, temaBadgeTexto, temaCodigo, temaCodigoClass, temaLinha } from '@/lib/temaLabel'
+import TemaSearchResults from '@/components/TemaSearchResults'
 
 type MembroUpdate = Database['public']['Tables']['membros']['Update']
 
@@ -233,33 +234,21 @@ export default function DetalhesMembroPage() {
                                             setTemaSelecionadoId('') // Clear selection when typing
                                         }}
                                         onFocus={() => setShowResults(true)}
-                                        placeholder="Digite o número ou nome do tema..."
+                                        placeholder="Número, especial, campanha ou título..."
                                         className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary outline-none"
                                     />
 
                                     {/* Dropdown Results */}
                                     {showResults && (
                                         <div className="absolute z-30 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                                            {filteredTemas.length === 0 ? (
-                                                <div className="p-3 text-slate-500 dark:text-slate-400 text-center">
-                                                    Nenhum tema encontrado
-                                                </div>
-                                            ) : (
-                                                filteredTemas.map(t => (
-                                                    <button
-                                                        key={t.id}
-                                                        onClick={() => {
-                                                            setTemaSelecionadoId(t.id)
-                                                            setSearchTerm(temaLinha(t))
-                                                            setShowResults(false)
-                                                        }}
-                                                        className="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-b border-slate-100 dark:border-slate-800 last:border-0"
-                                                    >
-                                                        <span className="font-bold text-primary">{temaCodigo(t)}</span>
-                                                        <span className="ml-2 text-slate-700 dark:text-slate-300">{t.titulo}</span>
-                                                    </button>
-                                                ))
-                                            )}
+                                            <TemaSearchResults
+                                                temas={filteredTemas}
+                                                onSelect={t => {
+                                                    setTemaSelecionadoId(t.id)
+                                                    setSearchTerm(temaLinha(t))
+                                                    setShowResults(false)
+                                                }}
+                                            />
                                         </div>
                                     )}
                                 </div>

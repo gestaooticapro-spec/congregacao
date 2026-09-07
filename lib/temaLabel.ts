@@ -9,9 +9,25 @@ export type TemaIdentidade = {
 }
 
 const TIPO_ORDEM: Record<TemaTipo, number> = {
-    NUMERADO: 0,
-    ESPECIAL: 1,
-    CAMPANHA: 2,
+    ESPECIAL: 0,
+    CAMPANHA: 1,
+    NUMERADO: 2,
+}
+
+const TIPO_LABEL: Record<TemaTipo, string> = {
+    ESPECIAL: 'Especial (início do ano)',
+    CAMPANHA: 'Especial da campanha',
+    NUMERADO: 'Discursos públicos',
+}
+
+const TIPO_BUSCA: Record<TemaTipo, string> = {
+    ESPECIAL: 'especial discurso especial inicio do ano',
+    CAMPANHA: 'campanha especial da campanha pregacao pregação',
+    NUMERADO: 'publico discurso publico esboco esboço',
+}
+
+function fold(value: string) {
+    return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
 
 export function temaTipo(tema?: TemaIdentidade | null): TemaTipo {
@@ -56,15 +72,32 @@ export function temaCodigoClass(tema?: TemaIdentidade | null): string {
     return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
 }
 
+export function temaGrupoLabel(tipo: TemaTipo): string {
+    return TIPO_LABEL[tipo]
+}
+
+export function groupTemas<T extends TemaIdentidade>(temas: T[]): { tipo: TemaTipo; label: string; items: T[] }[] {
+    const buckets: Record<TemaTipo, T[]> = { ESPECIAL: [], CAMPANHA: [], NUMERADO: [] }
+    for (const tema of temas) {
+        buckets[temaTipo(tema)].push(tema)
+    }
+    return (['ESPECIAL', 'CAMPANHA', 'NUMERADO'] as TemaTipo[])
+        .filter(tipo => buckets[tipo].length > 0)
+        .map(tipo => ({ tipo, label: TIPO_LABEL[tipo], items: buckets[tipo] }))
+}
+
 export function matchesTemaSearch(tema: TemaIdentidade, term: string): boolean {
-    const q = term.toLowerCase().trim()
+    const q = fold(term.trim())
     if (!q) return true
-    if (tema.numero != null && String(tema.numero).includes(q)) return true
-    if (tema.ano != null && String(tema.ano).includes(q)) return true
-    if (tema.titulo?.toLowerCase().includes(q)) return true
-    if (temaCodigo(tema).toLowerCase().includes(q)) return true
-    if (temaBadgeTexto(tema).toLowerCase().includes(q)) return true
-    return false
+    if (tema.numero != null && String(tema.numero).includes(term.trim())) return true
+    const haystack = fold([
+        temaCodigo(tema),
+        temaBadgeTexto(tema),
+        tema.titulo || '',
+        String(tema.ano ?? ''),
+        TIPO_BUSCA[temaTipo(tema)],
+    ].join(' '))
+    return haystack.includes(q)
 }
 
 export function compareTemas(a: TemaIdentidade, b: TemaIdentidade): number {

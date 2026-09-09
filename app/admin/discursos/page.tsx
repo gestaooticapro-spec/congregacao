@@ -316,11 +316,9 @@ function DiscursosLocaisList({ discursos, onUpdate }: { discursos: DiscursoLocal
             if (conflicts.length > 0) {
                 const memberName = membros.find(member => member.id === membroId)?.nome_completo || 'Este irmão'
                 alert(conflictMessage(memberName, conflicts))
-                return
             }
         } catch (error: any) {
             alert(error.message || 'Não foi possível verificar os conflitos desta data.')
-            return
         }
 
         setOradorLocalId(membroId)
@@ -347,11 +345,9 @@ function DiscursosLocaisList({ discursos, onUpdate }: { discursos: DiscursoLocal
                 if (conflicts.length > 0) {
                     const memberName = membros.find(member => member.id === oradorLocalId)?.nome_completo || 'Este irmão'
                     alert(conflictMessage(memberName, conflicts))
-                    return
                 }
             } catch (error: any) {
                 alert(error.message || 'Não foi possível verificar os conflitos desta data.')
-                return
             }
         }
 
@@ -1112,11 +1108,9 @@ function DiscursosForaList({ discursos, onUpdate }: { discursos: DiscursoFora[],
             if (conflicts.length > 0) {
                 const memberName = oradores.find(orador => orador.id === oradorId)?.nome_completo || 'Este irmão'
                 alert(conflictMessage(memberName, conflicts))
-                return
             }
         } catch (error: any) {
             alert(error.message || 'Não foi possível verificar os conflitos desta data.')
-            return
         }
 
         setSaving(true)

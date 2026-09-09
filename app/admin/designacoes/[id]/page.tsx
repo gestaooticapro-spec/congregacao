@@ -199,12 +199,15 @@ export default function EditarDesignacoesPage() {
             if (oracaoInicialId === value) allConflicts.push('Oração Inicial')
             if (oracaoFinalId === value) allConflicts.push('Oração Final')
 
-            // Check other parts
-            const existingPart = partes.find((p, i) => i !== index && (p.membro_id === value || p.ajudante_id === value))
-            if (existingPart) {
-                if (existingPart.membro_id === value) allConflicts.push(`Parte: ${existingPart.nome}`)
-                if (existingPart.ajudante_id === value) allConflicts.push(`Ajudante: ${existingPart.nome}`)
-            }
+            // Check every other assignment, including the other role in this part.
+            partes.forEach((existingPart, existingIndex) => {
+                if ((existingIndex !== index || field !== 'membro_id') && existingPart.membro_id === value) {
+                    allConflicts.push(`Parte: ${existingPart.nome}`)
+                }
+                if ((existingIndex !== index || field !== 'ajudante_id') && existingPart.ajudante_id === value) {
+                    allConflicts.push(`Ajudante: ${existingPart.nome}`)
+                }
+            })
 
             // 2. Database Conflict Check
             if (programacao) {
@@ -215,7 +218,6 @@ export default function EditarDesignacoesPage() {
                     allConflicts.push(...dbConflicts)
                 } catch (error: any) {
                     alert(error.message || 'Não foi possível verificar os conflitos desta data.')
-                    return
                 }
             }
 
@@ -225,7 +227,6 @@ export default function EditarDesignacoesPage() {
             if (uniqueConflicts.length > 0) {
                 const memberName = membros.find(member => member.id === value)?.nome_completo || 'Este irmão'
                 alert(conflictMessage(memberName, uniqueConflicts))
-                return
             }
         }
 
@@ -243,11 +244,10 @@ export default function EditarDesignacoesPage() {
             if (role !== 'oracao_inicial_id' && oracaoInicialId === value) allConflicts.push('Oração Inicial')
             if (role !== 'oracao_final_id' && oracaoFinalId === value) allConflicts.push('Oração Final')
 
-            const existingPart = partes.find(p => p.membro_id === value || p.ajudante_id === value)
-            if (existingPart) {
+            partes.forEach(existingPart => {
                 if (existingPart.membro_id === value) allConflicts.push(`Parte: ${existingPart.nome}`)
                 if (existingPart.ajudante_id === value) allConflicts.push(`Ajudante: ${existingPart.nome}`)
-            }
+            })
 
             // 2. Database Conflict Check
             if (programacao) {
@@ -259,7 +259,6 @@ export default function EditarDesignacoesPage() {
                     allConflicts.push(...dbConflicts)
                 } catch (error: any) {
                     alert(error.message || 'Não foi possível verificar os conflitos desta data.')
-                    return
                 }
             }
 
@@ -269,7 +268,6 @@ export default function EditarDesignacoesPage() {
             if (uniqueConflicts.length > 0) {
                 const memberName = membros.find(member => member.id === value)?.nome_completo || 'Este irmão'
                 alert(conflictMessage(memberName, uniqueConflicts))
-                return
             }
         }
 

@@ -86,12 +86,12 @@ export async function checkConflicts(date: string, membroId: string, options: Co
         })
     } catch (error) {
         console.error('Erro ao verificar conflitos de designação:', error)
-        throw new Error('Não foi possível verificar os conflitos desta data. Tente novamente antes de salvar.')
+        throw new Error('Não foi possível verificar os conflitos desta data. A seleção será mantida; revise manualmente.')
     }
 
     return Array.from(new Set(conflicts))
 }
 
 export function conflictMessage(memberName: string, conflicts: string[]): string {
-    return `${memberName} já está escalado como ${conflicts.join(', ')} para este dia. Se precisar, peça uma substituição para o responsável.`
+    return `Aviso: ${memberName} já está escalado como ${conflicts.join(', ')} para este dia. A nova designação será mantida; revise se essa combinação é adequada.`
 }

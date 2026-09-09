@@ -99,28 +99,31 @@ export default function EscalaEditorPage({ params }: { params: Promise<{ date: s
 
     const handleAssignmentChange = async (role: string, membroId: string) => {
         if (membroId) {
+            const allConflicts: string[] = []
+
             // 1. Local Conflict Check (Same Page)
-            const existingRole = Object.entries(assignments).find(([r, mId]) => mId === membroId && r !== role)
-            if (existingRole) {
-                const roleLabel = ROLES.find(r => r.id === existingRole[0])?.label || existingRole[0]
-                alert(`Este irmão já está designado para: ${roleLabel} nesta mesma data.`)
-                return
-            }
+            Object.entries(assignments)
+                .filter(([existingRole, existingMemberId]) => existingMemberId === membroId && existingRole !== role)
+                .forEach(([existingRole]) => {
+                    const roleLabel = ROLES.find(item => item.id === existingRole)?.label || existingRole
+                    allConflicts.push(roleLabel)
+                })
 
             // 2. Database Conflict Check (Other Schedules)
             try {
-                const conflicts = await checkConflicts(selectedDate, membroId, {
+                const dbConflicts = await checkConflicts(selectedDate, membroId, {
                     ignoreSupportRole: role,
                     ignoreProgramacaoTopLevelRole: role === 'PRESIDENTE' ? 'PRESIDENTE' : undefined,
                 })
-                if (conflicts.length > 0) {
-                    const memberName = membros.find(member => member.id === membroId)?.nome_completo || 'Este irmão'
-                    alert(conflictMessage(memberName, conflicts))
-                    return
-                }
+                allConflicts.push(...dbConflicts)
             } catch (error: any) {
                 alert(error.message || 'Não foi possível verificar os conflitos desta data.')
-                return
+            }
+
+            const uniqueConflicts = Array.from(new Set(allConflicts))
+            if (uniqueConflicts.length > 0) {
+                const memberName = membros.find(member => member.id === membroId)?.nome_completo || 'Este irmão'
+                alert(conflictMessage(memberName, uniqueConflicts))
             }
         }
 
@@ -159,20 +162,6 @@ export default function EscalaEditorPage({ params }: { params: Promise<{ date: s
         try {
             const isWknd = isWeekend(selectedDate)
             const validRoles = ROLES.filter(role => (role.id !== 'PRESIDENTE' && role.id !== 'LEITOR_SENTINELA') || isWknd)
-
-            for (const role of validRoles) {
-                const membroId = assignments[role.id]
-                if (!membroId) continue
-
-                const conflicts = await checkConflicts(selectedDate, membroId, {
-                    ignoreSupportRole: role.id,
-                    ignoreProgramacaoTopLevelRole: role.id === 'PRESIDENTE' ? 'PRESIDENTE' : undefined,
-                })
-                if (conflicts.length > 0) {
-                    const memberName = membros.find(member => member.id === membroId)?.nome_completo || 'Este irmão'
-                    throw new Error(conflictMessage(memberName, conflicts))
-                }
-            }
 
             // 1. Get programacao_id if exists for this date
             const { data: progData, error: progError } = await supabase

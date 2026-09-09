@@ -229,11 +229,9 @@ export default function DiscursosTab({ membroId, membroNome }: { membroId: strin
             })
             if (conflicts.length > 0) {
                 alert(conflictMessage(membroNome, conflicts))
-                return
             }
         } catch (error) {
             alert(errorMessage(error, 'Não foi possível verificar os conflitos desta data.'))
-            return
         }
 
         if (tipo === 'LOCAL') {

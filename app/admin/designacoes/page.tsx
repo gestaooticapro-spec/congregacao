@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 import { Database } from '@/types/database.types'
+import { addMonths, format, parseISO } from 'date-fns'
+import { getCongregationDate } from '@/lib/dateUtils'
 
 type Programacao = Database['public']['Tables']['programacao_semanal']['Row']
 
@@ -17,9 +19,14 @@ export default function DesignacoesDashboard() {
 
     const fetchProgramacoes = async () => {
         try {
+            const today = getCongregationDate()
+            const twoMonthsFromToday = format(addMonths(parseISO(today), 2), 'yyyy-MM-dd')
+
             const { data, error } = await supabase
                 .from('programacao_semanal')
                 .select('*')
+                .gte('data_reuniao', today)
+                .lte('data_reuniao', twoMonthsFromToday)
                 .order('data_reuniao', { ascending: true })
 
             if (error) throw error
@@ -73,7 +80,7 @@ export default function DesignacoesDashboard() {
                                 <tr>
                                     <td colSpan={3} className="px-6 py-12 text-center">
                                         <div className="text-4xl mb-2">📅</div>
-                                        <p className="text-slate-500 dark:text-slate-400 font-medium">Nenhuma programação encontrada.</p>
+                                        <p className="text-slate-500 dark:text-slate-400 font-medium">Nenhuma programação encontrada entre hoje e os próximos dois meses.</p>
                                     </td>
                                 </tr>
                             )}

@@ -11,7 +11,7 @@ export default function MainContent({ children }: { children: React.ReactNode })
     const { isCollapsed } = useSidebar();
     const pathname = usePathname() || '';
 
-    const hideSidebar = pathname.includes('/acompanhar');
+    const hideSidebar = pathname.includes('/acompanhar') || pathname === '/laurinha';
 
     return (
         <main className={`${hideSidebar ? '' : 'pt-16'} md:pt-0 min-h-screen w-full min-w-0 overflow-x-clip transition-all duration-300 print:pl-0 print:overflow-visible ${hideSidebar ? '' : (isCollapsed ? 'md:pl-16' : 'md:pl-64')}`}>

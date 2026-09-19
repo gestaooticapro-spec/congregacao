@@ -51,6 +51,8 @@ function Sidebar() {
     const [isPioneiroSession, setIsPioneiroSession] = useState(false)
     const [isPinSession, setIsPinSession] = useState(false)
 
+    if (pathname === '/laurinha') return null
+
     useEffect(() => {
         const syncMemberSession = () => {
             const session = localStorage.getItem('membro_sessao')

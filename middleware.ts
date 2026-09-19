@@ -1,7 +1,11 @@
-import { type NextRequest } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
 export async function middleware(request: NextRequest) {
+    // Roteiro temporário da Laurinha: página pública, sem login ou PIN.
+    if (request.nextUrl.pathname === '/laurinha') {
+        return NextResponse.next()
+    }
     return await updateSession(request)
 }
 

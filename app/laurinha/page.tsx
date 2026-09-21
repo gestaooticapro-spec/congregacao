@@ -94,7 +94,15 @@ export default function LaurinhaPage() {
                                     </div>
                                     <span className="text-xs font-bold text-slate-300">{String(index + 1).padStart(2, '0')}</span>
                                 </div>
-                                <div className="mt-4 grid grid-cols-2 gap-2">
+                                {endereco ? (
+                                    <p className="mt-3 flex items-start gap-1.5 text-sm leading-relaxed text-slate-600">
+                                        <MapPin size={15} className="mt-0.5 shrink-0 text-slate-400" />
+                                        <span className="break-words">{endereco}</span>
+                                    </p>
+                                ) : (
+                                    <p className="mt-3 text-sm text-slate-400">Endereço não cadastrado</p>
+                                )}
+                                <div className="mt-3 grid grid-cols-2 gap-2">
                                     <a href={whatsapp || undefined} className={`flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-bold ${whatsapp ? 'bg-emerald-50 text-emerald-700' : 'cursor-not-allowed bg-slate-100 text-slate-400'}`} aria-disabled={!whatsapp}>
                                         <MessageCircle size={17} /> WhatsApp
                                     </a>

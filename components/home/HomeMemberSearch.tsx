@@ -179,7 +179,19 @@ export default function HomeMemberSearch(): React.ReactNode {
             })
             if (designacoesError) throw designacoesError
 
-            const itens = Array.isArray(designacoesPublicas) ? designacoesPublicas as Designacao[] : []
+            const itens = Array.isArray(designacoesPublicas)
+                ? (designacoesPublicas as Designacao[]).map((designacao) => {
+                    if (designacao.tipo !== 'LIMPEZA') return designacao
+
+                    return {
+                        ...designacao,
+                        descricao: designacao.descricao.replace(/\s*\((quarta|quarta-feira|sábado|sabado)\)/i, ''),
+                        detalhe: designacao.detalhe
+                            ? `Grupo: ${designacao.detalhe.replace(/^Grupo:\s*/i, '')}`
+                            : designacao.detalhe,
+                    }
+                })
+                : []
             const diasPublicosMap = new Map<string, Designacao[]>()
             itens.forEach((designacao) => {
                 const dia = diasPublicosMap.get(designacao.data) || []

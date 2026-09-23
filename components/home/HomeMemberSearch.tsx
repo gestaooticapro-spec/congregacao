@@ -368,7 +368,7 @@ export default function HomeMemberSearch(): React.ReactNode {
                 escalasDoGrupo.forEach(esc => {
                     const dataInicio = parseISO(esc.data_inicio)
                     const detalheLimpeza = esc.grupos_servico?.nome
-                        ? `${esc.grupos_servico.nome} - ${formatWeekRange(esc.data_inicio)}`
+                        ? `Grupo: ${esc.grupos_servico.nome} - ${formatWeekRange(esc.data_inicio)}`
                         : formatWeekRange(esc.data_inicio)
 
                     // Quarta-feira (Monday + 2 days)
@@ -387,7 +387,7 @@ export default function HomeMemberSearch(): React.ReactNode {
                         novasDesignacoes.push({
                             tipo: 'LIMPEZA',
                             data: quartaStr,
-                            descricao: 'Limpeza do Salão (Quarta)',
+                            descricao: 'Limpeza do Salão',
                             detalhe: detalheLimpeza
                         })
                     }
@@ -397,7 +397,7 @@ export default function HomeMemberSearch(): React.ReactNode {
                         novasDesignacoes.push({
                             tipo: 'LIMPEZA',
                             data: sabadoStr,
-                            descricao: 'Limpeza do Salão (Sábado)',
+                            descricao: 'Limpeza do Salão',
                             detalhe: detalheLimpeza
                         })
                     }

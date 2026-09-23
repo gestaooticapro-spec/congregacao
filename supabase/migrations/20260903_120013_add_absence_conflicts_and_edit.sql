@@ -52,8 +52,8 @@ AS $$
         UNION ALL SELECT ec.data, 'Dirigir o campo' FROM public.escalas_campo ec WHERE ec.dirigente_id = p_membro_id AND ec.data BETWEEN p_data_inicio AND p_data_fim
         UNION ALL SELECT adl.data, 'Discurso publico' FROM public.agenda_discursos_locais adl WHERE adl.orador_local_id = p_membro_id AND adl.data BETWEEN p_data_inicio AND p_data_fim
         UNION ALL SELECT adf.data, 'Discurso fora' FROM public.agenda_discursos_fora adf WHERE adf.orador_id = p_membro_id AND adf.data BETWEEN p_data_inicio AND p_data_fim
-        UNION ALL SELECT el.data_inicio + 2, 'Limpeza do Salao (quarta)' FROM public.escala_limpeza el JOIN public.membros m ON m.grupo_id = el.grupo_id WHERE m.id = p_membro_id AND el.data_inicio + 2 BETWEEN p_data_inicio AND p_data_fim
-        UNION ALL SELECT el.data_inicio + 5, 'Limpeza do Salao (sabado)' FROM public.escala_limpeza el JOIN public.membros m ON m.grupo_id = el.grupo_id WHERE m.id = p_membro_id AND el.data_inicio + 5 BETWEEN p_data_inicio AND p_data_fim
+        UNION ALL SELECT el.data_inicio + 2, 'Limpeza do Salão (quarta)' FROM public.escala_limpeza el JOIN public.membros m ON m.grupo_id = el.grupo_id WHERE m.id = p_membro_id AND el.data_inicio + 2 BETWEEN p_data_inicio AND p_data_fim
+        UNION ALL SELECT el.data_inicio + 5, 'Limpeza do Salão (sábado)' FROM public.escala_limpeza el JOIN public.membros m ON m.grupo_id = el.grupo_id WHERE m.id = p_membro_id AND el.data_inicio + 5 BETWEEN p_data_inicio AND p_data_fim
     ) conflitos
     ORDER BY 1, 2;
 $$;

@@ -93,14 +93,14 @@ AS $$
         WHERE ds.membro_id = m.id AND ds.data BETWEEN CURRENT_DATE AND CURRENT_DATE + 21
 
         UNION ALL
-        SELECT el.data_inicio + 2, 'LIMPEZA', 'Limpeza do Salao (Quarta)', gs.nome
+        SELECT el.data_inicio + 2, 'LIMPEZA', 'Limpeza do Salão (Quarta)', gs.nome
         FROM public.escala_limpeza el
         JOIN public.grupos_servico gs ON gs.id = el.grupo_id
         JOIN membro m ON m.grupo_id = el.grupo_id
         WHERE el.data_inicio + 2 BETWEEN CURRENT_DATE AND CURRENT_DATE + 21
 
         UNION ALL
-        SELECT el.data_inicio + 5, 'LIMPEZA', 'Limpeza do Salao (Sabado)', gs.nome
+        SELECT el.data_inicio + 5, 'LIMPEZA', 'Limpeza do Salão (Sábado)', gs.nome
         FROM public.escala_limpeza el
         JOIN public.grupos_servico gs ON gs.id = el.grupo_id
         JOIN membro m ON m.grupo_id = el.grupo_id

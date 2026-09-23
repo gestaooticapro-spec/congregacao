@@ -18,12 +18,12 @@ const geistMono = Geist_Mono({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#ffffff",
+  themeColor: "#1473B8",
 };
 
 export const metadata: Metadata = {
-  title: "CongGuaíra",
-  description: "Sistema de Gestão da Congregação Guaíra",
+  title: "CongGua\u00edra",
+  description: "Sistema de Gest\u00e3o da Congrega\u00e7\u00e3o Gua\u00edra",
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_BASE_URL || "https://www.cong.mentebinaria.com"
   ),
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     siteName: "CongGuaira",
     images: [
       {
-        url: "https://cong.mentebinaria.com/opengraph-image.png?v=3",
+        url: "/opengraph-image.png?v=5",
         width: 1200,
         height: 630,
         alt: "Logo da Congregacao Guaira",
@@ -43,11 +43,14 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    images: ["https://cong.mentebinaria.com/opengraph-image.png?v=3"],
+    images: ["/opengraph-image.png?v=5"],
   },
   icons: {
-    icon: "/icon.svg",
-    apple: "/apple-icon.png",
+    icon: [
+      { url: "/favicon.png", sizes: "48x48", type: "image/png" },
+      { url: "/icon.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
   },
   other: {
     google: "notranslate",
@@ -76,3 +79,4 @@ export default function RootLayout({
     </html>
   );
 }
+

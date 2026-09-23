@@ -34,16 +34,17 @@ export const metadata: Metadata = {
     siteName: "CongGuaira",
     images: [
       {
-        url: "/opengraph-image.png?v=5",
+        url: "https://www.cong.mentebinaria.com/whatsapp-preview-v5.png",
         width: 1200,
         height: 630,
         alt: "Logo da Congregacao Guaira",
+        type: "image/png",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    images: ["/opengraph-image.png?v=5"],
+    images: ["https://www.cong.mentebinaria.com/whatsapp-preview-v5.png"],
   },
   icons: {
     icon: [

@@ -185,7 +185,10 @@ export default function HomeMemberSearch(): React.ReactNode {
 
                     return {
                         ...designacao,
-                        descricao: designacao.descricao.replace(/\s*\((quarta|quarta-feira|sábado|sabado)\)/i, ''),
+                        descricao: designacao.descricao
+                            .replace(/\s*\((quarta|quarta-feira|sábado|sabado)\)/i, '')
+                            .replace(/salao/gi, 'salão')
+                            .replace(/salÃ£o/gi, 'salão'),
                         detalhe: designacao.detalhe
                             ? `Grupo: ${designacao.detalhe.replace(/^Grupo:\s*/i, '')}`
                             : designacao.detalhe,

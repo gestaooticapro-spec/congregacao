@@ -16,6 +16,7 @@ export default function Home() {
                 <span className="hidden md:inline">Gestor Congregação Guaira</span>
               </h1>
               {zoomMeetingUrl && (
+                <>
                 <a
                   href={zoomMeetingUrl}
                   target="_blank"
@@ -41,6 +42,7 @@ export default function Home() {
                   </svg>
                   Enviar pelo WhatsApp
                 </a>
+                </>
               )}
             </div>
             <div className="h-1 w-20 bg-primary mx-auto rounded-full mt-2" />

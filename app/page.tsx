@@ -29,7 +29,7 @@ export default function Home() {
                   Entrar no Zoom
                 </a>
                 <a
-                  href={`https://wa.me/?text=${encodeURIComponent(`Entre na reunião pelo Zoom: ${zoomMeetingUrl}`)}`}
+                  href={"https://wa.me/?text=" + encodeURIComponent("Entre na reunião pelo Zoom: " + zoomMeetingUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Enviar link da reunião pelo WhatsApp"

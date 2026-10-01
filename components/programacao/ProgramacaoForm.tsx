@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import { Database } from '@/types/database.types'
 import PageHeader from '@/components/PageHeader'
+import { importarApostila } from '@/lib/importarApostila'
 
 type Programacao = Database['public']['Tables']['programacao_semanal']['Row']
 
@@ -25,6 +26,12 @@ interface ProgramacaoFormProps {
 export default function ProgramacaoForm({ initialData, isEditing = false }: ProgramacaoFormProps) {
     const router = useRouter()
     const [saving, setSaving] = useState(false)
+    const [textoApostila, setTextoApostila] = useState('')
+    const [anoApostila, setAnoApostila] = useState('')
+    const [importando, setImportando] = useState(false)
+    const [erroImportacao, setErroImportacao] = useState('')
+    const [resumoImportacao, setResumoImportacao] = useState('')
+    const [partesAlteradas, setPartesAlteradas] = useState(false)
 
     // Basic Info
     const [dataReuniao, setDataReuniao] = useState(initialData?.data_reuniao || '')
@@ -39,7 +46,7 @@ export default function ProgramacaoForm({ initialData, isEditing = false }: Prog
         if (initialData?.partes) {
             // If editing, load parts from initialData
             // We need to ensure they have IDs for UI handling
-            const loadedPartes = (initialData.partes as any[]).map((p, index) => ({
+            const loadedPartes = (initialData.partes as unknown as Parte[]).map(p => ({
                 ...p,
                 id: p.id || Math.random().toString(36).substr(2, 9)
             }))
@@ -57,7 +64,7 @@ export default function ProgramacaoForm({ initialData, isEditing = false }: Prog
     }, [initialData])
 
     const handleEventoTipoChange = (novoTipo: string) => {
-        setEventoTipo(novoTipo as any);
+        setEventoTipo(novoTipo as Programacao['evento_tipo']);
         if (novoTipo === 'visita spte') {
             setPartes(prev => prev.filter(p => !p.nome.toLowerCase().includes('estudo bíblico')));
         } else if (eventoTipo === 'visita spte' && novoTipo !== 'visita spte') {
@@ -72,6 +79,7 @@ export default function ProgramacaoForm({ initialData, isEditing = false }: Prog
     }
 
     const addParte = (tipo: TipoParte) => {
+        setPartesAlteradas(true)
         const newParte: Parte = {
             id: Math.random().toString(36).substr(2, 9),
             tipo,
@@ -82,16 +90,54 @@ export default function ProgramacaoForm({ initialData, isEditing = false }: Prog
     }
 
     const removeParte = (id: string) => {
+        setPartesAlteradas(true)
         setPartes(partes.filter(p => p.id !== id))
     }
 
     const updateParte = (id: string, field: keyof Parte, value: string | number) => {
+        setPartesAlteradas(true)
         setPartes(partes.map(p => {
             if (p.id === id) {
                 return { ...p, [field]: value }
             }
             return p
         }))
+    }
+
+    const handleImportar = async () => {
+        setErroImportacao('')
+        setResumoImportacao('')
+        setImportando(true)
+        try {
+            const { data: congregacao, error } = await supabase
+                .from('dados_congregacao')
+                .select('dia_reuniao_meio_semana')
+                .eq('id', true)
+                .maybeSingle()
+            if (error) throw new Error('Não foi possível consultar o dia da reunião. Tente novamente.')
+            const extraida = importarApostila(textoApostila, congregacao?.dia_reuniao_meio_semana ?? null, anoApostila.trim() ? Number(anoApostila) : undefined)
+            const { data: existente, error: erroConsulta } = await supabase
+                .from('programacao_semanal')
+                .select('id')
+                .eq('data_reuniao', extraida.dataReuniao)
+                .maybeSingle()
+            if (erroConsulta) throw new Error('Não foi possível verificar se a semana já está cadastrada. Tente novamente.')
+            if (existente) throw new Error('Já existe uma programação para a data calculada. Abra a programação cadastrada para editá-la.')
+            if ((dataReuniao || semanaDescricao || partesAlteradas) && !window.confirm('Preencher o formulário com a apostila substituirá a data, a descrição e as partes atuais. Deseja continuar?')) return
+            setDataReuniao(extraida.dataReuniao)
+            setSemanaDescricao(extraida.semanaDescricao)
+            const partesImportadas = eventoTipo === 'visita spte'
+                ? extraida.partes.filter(parte => !parte.nome.toLowerCase().includes('estudo bíblico'))
+                : extraida.partes
+            setPartes(partesImportadas.map(parte => ({ ...parte, id: crypto.randomUUID() })))
+            setPartesAlteradas(true)
+            const dataFormatada = extraida.dataReuniao.split('-').reverse().join('/')
+            setResumoImportacao(`${partesImportadas.length} partes extraídas da semana ${extraida.semana}. Reunião em ${dataFormatada}. Revise os campos abaixo e clique em Salvar Programação.`)
+        } catch (error: unknown) {
+            setErroImportacao(error instanceof Error ? error.message : 'Não foi possível extrair a programação.')
+        } finally {
+            setImportando(false)
+        }
     }
 
     const handleSalvar = async () => {
@@ -127,6 +173,7 @@ export default function ProgramacaoForm({ initialData, isEditing = false }: Prog
             // Clean parts for storage (remove temp ID)
             const partesParaSalvar = partes.map((parte) => {
                 const { id, ...rest } = parte
+                void id
                 return rest
             })
 
@@ -158,9 +205,10 @@ export default function ProgramacaoForm({ initialData, isEditing = false }: Prog
             alert('Programação salva com sucesso!')
             router.push('/programacao')
             router.refresh()
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error)
-            alert('Erro ao salvar: ' + error.message)
+            const message = error && typeof error === 'object' && 'message' in error ? String(error.message) : 'erro desconhecido'
+            alert('Erro ao salvar: ' + message)
         } finally {
             setSaving(false)
         }
@@ -230,6 +278,37 @@ export default function ProgramacaoForm({ initialData, isEditing = false }: Prog
                 backLabel="Reunião de Meio de Semana"
             />
 
+            {!isEditing && (
+                <details className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 sm:p-6 mb-6">
+                    <summary className="cursor-pointer font-semibold text-lg text-slate-900 dark:text-white">Importar da apostila</summary>
+                    <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">Na página da semana, use Ctrl+A e Ctrl+C. Cole o conteúdo abaixo para preencher o formulário e revisar antes de salvar.</p>
+                    <label htmlFor="texto-apostila" className="block mt-4 mb-1 text-sm font-medium text-slate-700 dark:text-slate-300">Conteúdo da página</label>
+                    <textarea id="texto-apostila" value={textoApostila} onChange={event => { setTextoApostila(event.target.value); setErroImportacao(''); setResumoImportacao('') }} rows={8} placeholder="Cole aqui o conteúdo completo da semana..." className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-transparent text-slate-900 dark:text-white resize-y" />
+                    <div className="mt-3 flex flex-col sm:flex-row sm:items-end gap-3">
+                        <label className="block text-sm text-slate-700 dark:text-slate-300">
+                            Ano (se não constar no texto)
+                            <input type="number" min={2000} max={2099} value={anoApostila} onChange={event => setAnoApostila(event.target.value)} placeholder="Ex.: 2026" className="block mt-1 w-full sm:w-40 p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-transparent text-slate-900 dark:text-white" />
+                        </label>
+                        <button type="button" onClick={handleImportar} disabled={importando || saving || !textoApostila.trim() || !['normal', 'visita spte'].includes(eventoTipo)} className="px-4 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50">
+                            {importando ? 'Extraindo...' : 'Extrair e revisar'}
+                        </button>
+                    </div>
+                    <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">A data usa o dia de meio de semana definido em <a href="/administracao/dados" className="underline">Dados da Congregação</a>. A importação está disponível para reuniões normais e visitas.</p>
+                    {erroImportacao && <p role="alert" className="mt-3 text-sm text-red-700 dark:text-red-400">{erroImportacao}</p>}
+                    {resumoImportacao && (
+                        <>
+                            <p role="status" className="mt-3 text-sm text-emerald-700 dark:text-emerald-400">{resumoImportacao}</p>
+                            <details className="mt-3 text-sm text-slate-700 dark:text-slate-300">
+                                <summary className="cursor-pointer font-medium">Conferir texto completo das partes</summary>
+                                <ul className="mt-3 space-y-3">
+                                    {partes.map(parte => <li key={parte.id} className="break-words">{parte.nome}</li>)}
+                                </ul>
+                            </details>
+                        </>
+                    )}
+                </details>
+            )}
+
             <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 sm:p-6 mb-6">
                 <h2 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Informações Gerais</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -297,7 +376,7 @@ export default function ProgramacaoForm({ initialData, isEditing = false }: Prog
                     <button
                         type="button"
                         onClick={handleSalvar}
-                        disabled={saving}
+                        disabled={saving || importando}
                         className="px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium text-sm shadow-sm"
                     >
                         {saving ? 'Salvando...' : 'Salvar Programação'}

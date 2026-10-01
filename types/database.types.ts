@@ -97,6 +97,8 @@ export interface Database {
           endereco: string
           cidade: string
           estado: string
+          dia_reuniao_meio_semana: number | null
+          dia_reuniao_fim_semana: number | null
           created_at: string
           updated_at: string
         }
@@ -109,6 +111,8 @@ export interface Database {
           endereco?: string
           cidade?: string
           estado?: string
+          dia_reuniao_meio_semana?: number | null
+          dia_reuniao_fim_semana?: number | null
           created_at?: string
           updated_at?: string
         }
@@ -121,6 +125,8 @@ export interface Database {
           endereco?: string
           cidade?: string
           estado?: string
+          dia_reuniao_meio_semana?: number | null
+          dia_reuniao_fim_semana?: number | null
           created_at?: string
           updated_at?: string
         }

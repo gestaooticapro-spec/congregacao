@@ -17,7 +17,20 @@ const EMPTY_DATA: Omit<DadosCongregacao, 'created_at' | 'updated_at'> = {
     endereco: '',
     cidade: '',
     estado: '',
+    dia_reuniao_meio_semana: null,
+    dia_reuniao_fim_semana: null,
 }
+
+// Mesma numeracao de Date.getDay(): domingo = 0 e sabado = 6.
+const DIAS_DA_SEMANA = [
+    'Domingo',
+    'Segunda-feira',
+    'Terça-feira',
+    'Quarta-feira',
+    'Quinta-feira',
+    'Sexta-feira',
+    'Sábado',
+]
 
 const formatCep = (value: string) => {
     const digits = value.replace(/\D/g, '').slice(0, 8)
@@ -52,6 +65,8 @@ export default function DadosCongregacaoPage() {
                     endereco: data.endereco,
                     cidade: data.cidade,
                     estado: data.estado,
+                    dia_reuniao_meio_semana: data.dia_reuniao_meio_semana ?? null,
+                    dia_reuniao_fim_semana: data.dia_reuniao_fim_semana ?? null,
                 })
             }
 
@@ -62,7 +77,7 @@ export default function DadosCongregacaoPage() {
         return () => cepRequestRef.current?.abort()
     }, [])
 
-    const updateField = (field: keyof typeof EMPTY_DATA, value: string | boolean) => {
+    const updateField = <K extends keyof typeof EMPTY_DATA>(field: K, value: typeof EMPTY_DATA[K]) => {
         setForm(current => ({ ...current, [field]: value }))
     }
 
@@ -120,6 +135,12 @@ export default function DadosCongregacaoPage() {
             return
         }
 
+        const diasReunioes = [form.dia_reuniao_meio_semana, form.dia_reuniao_fim_semana]
+        if (diasReunioes.some(dia => dia !== null && (!Number.isInteger(dia) || dia < 0 || dia > 6))) {
+            alert('Selecione um dia da semana válido para cada reunião.')
+            return
+        }
+
         setSaving(true)
         try {
             const { error } = await supabase
@@ -132,9 +153,12 @@ export default function DadosCongregacaoPage() {
 
             if (error) throw error
             alert('Dados da congregação salvos com sucesso.')
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Erro ao salvar dados da congregação:', error)
-            alert(`Não foi possível salvar: ${error.message || 'erro desconhecido'}`)
+            const message = error && typeof error === 'object' && 'message' in error
+                ? String(error.message)
+                : 'erro desconhecido'
+            alert(`Não foi possível salvar: ${message}`)
         } finally {
             setSaving(false)
         }
@@ -191,6 +215,27 @@ export default function DadosCongregacaoPage() {
                     <label className="block">
                         <span className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Estado</span>
                         <input value={form.estado} onChange={event => updateField('estado', event.target.value.toUpperCase().slice(0, 2))} maxLength={2} className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary uppercase" placeholder="SP" />
+                    </label>
+
+                    <div className="sm:col-span-2 pt-5 border-t border-slate-200 dark:border-slate-800">
+                        <h2 className="text-base font-bold text-slate-900 dark:text-white">Dias das reuniões</h2>
+                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Selecione os dias atuais e atualize quando houver mudança.</p>
+                    </div>
+
+                    <label className="block">
+                        <span className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Reunião de meio de semana</span>
+                        <select value={form.dia_reuniao_meio_semana ?? ''} onChange={event => updateField('dia_reuniao_meio_semana', event.target.value === '' ? null : Number(event.target.value))} className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary">
+                            <option value="">Selecione o dia</option>
+                            {DIAS_DA_SEMANA.map((dia, index) => <option key={index} value={index}>{dia}</option>)}
+                        </select>
+                    </label>
+
+                    <label className="block">
+                        <span className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Reunião de fim de semana</span>
+                        <select value={form.dia_reuniao_fim_semana ?? ''} onChange={event => updateField('dia_reuniao_fim_semana', event.target.value === '' ? null : Number(event.target.value))} className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary">
+                            <option value="">Selecione o dia</option>
+                            {DIAS_DA_SEMANA.map((dia, index) => <option key={index} value={index}>{dia}</option>)}
+                        </select>
                     </label>
                 </div>
 

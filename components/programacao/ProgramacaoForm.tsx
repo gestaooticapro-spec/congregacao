@@ -280,8 +280,13 @@ export default function ProgramacaoForm({ initialData, isEditing = false }: Prog
 
             {!isEditing && (
                 <details className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 sm:p-6 mb-6">
-                    <summary className="cursor-pointer font-semibold text-lg text-slate-900 dark:text-white">Importar da apostila</summary>
-                    <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">Na página da semana, use Ctrl+A e Ctrl+C. Cole o conteúdo abaixo para preencher o formulário e revisar antes de salvar.</p>
+                    <summary className="cursor-pointer font-semibold text-lg text-blue-600 dark:text-blue-400">Importar do site wol.jw.org</summary>
+                    <ol className="mt-3 list-decimal pl-5 space-y-2 text-sm text-slate-600 dark:text-slate-400">
+                        <li>Entre no site <a href="https://wol.jw.org/pt/wol/meetings/r5/lp-t" target="_blank" rel="noopener noreferrer" className="underline">wol.jw.org</a> e abra a página da semana que deseja cadastrar.</li>
+                        <li>Selecione todo o conteúdo da página com <strong>Ctrl+A</strong> e copie com <strong>Ctrl+C</strong>.</li>
+                        <li>Volte para esta tela e cole o conteúdo no campo <strong>Conteúdo da página</strong>, abaixo, usando <strong>Ctrl+V</strong>.</li>
+                        <li>Clique em <strong>Extrair e revisar</strong>. Confira os dados preenchidos antes de salvar a programação.</li>
+                    </ol>
                     <label htmlFor="texto-apostila" className="block mt-4 mb-1 text-sm font-medium text-slate-700 dark:text-slate-300">Conteúdo da página</label>
                     <textarea id="texto-apostila" value={textoApostila} onChange={event => { setTextoApostila(event.target.value); setErroImportacao(''); setResumoImportacao('') }} rows={8} placeholder="Cole aqui o conteúdo completo da semana..." className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-transparent text-slate-900 dark:text-white resize-y" />
                     <div className="mt-3 flex flex-col sm:flex-row sm:items-end gap-3">

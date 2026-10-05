@@ -8,8 +8,6 @@ import {
     Users,
     CheckCircle2,
     XCircle,
-    Calendar,
-    ChevronDown,
     Shield,
     Clock
 } from 'lucide-react'
@@ -19,6 +17,7 @@ import { Database } from '@/types/database.types'
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import PageHeader from '@/components/PageHeader'
+import MonthSelect from '@/components/MonthSelect'
 
 type Membro = Database['public']['Tables']['membros']['Row']
 type Relatorio = Database['public']['Tables']['relatorios_servico']['Row']
@@ -30,15 +29,14 @@ interface RelatorioView {
 
 const getMonthOptions = () => {
     const now = new Date()
-    const currentMonth = startOfMonth(now)
-    const prevMonth = startOfMonth(subMonths(now, 1))
-    const prevPrevMonth = startOfMonth(subMonths(now, 2))
 
-    return [
-        { value: format(prevMonth, 'yyyy-MM-dd'), label: format(prevMonth, 'MMMM yyyy', { locale: ptBR }) },
-        { value: format(currentMonth, 'yyyy-MM-dd'), label: format(currentMonth, 'MMMM yyyy', { locale: ptBR }) },
-        { value: format(prevPrevMonth, 'yyyy-MM-dd'), label: format(prevPrevMonth, 'MMMM yyyy', { locale: ptBR }) }
-    ]
+    return Array.from({ length: 6 }, (_, i) => {
+        const month = startOfMonth(subMonths(now, i))
+        return {
+            value: format(month, 'yyyy-MM-dd'),
+            label: format(month, 'MMMM yyyy', { locale: ptBR })
+        }
+    })
 }
 
 function RelatoriosGrupoContent() {
@@ -49,7 +47,7 @@ function RelatoriosGrupoContent() {
 
     const [isLoading, setIsLoading] = useState(true)
     const [meses] = useState(getMonthOptions())
-    const [mes, setMes] = useState(queryMes || meses[0].value)
+    const [mes, setMes] = useState(queryMes || meses[1]?.value || meses[0].value)
     const [membrosGrupo, setMembrosGrupo] = useState<RelatorioView[]>([])
     const [nomeGrupo, setNomeGrupo] = useState('')
 
@@ -265,18 +263,11 @@ function RelatoriosGrupoContent() {
                 backHref={queryGrupoId ? '/admin/relatorios-secretaria' : '/anciaos'}
                 backLabel={queryGrupoId ? 'Relatórios' : 'Anciãos'}
                 actions={
-                    <div className="flex bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl px-4 py-2 items-center gap-2 shadow-sm">
-                        <Calendar className="w-5 h-5 text-gray-400" />
-                        <select
-                            value={mes}
-                            onChange={e => setMes(e.target.value)}
-                            className="bg-transparent border-none focus:ring-0 text-sm font-medium text-gray-700 dark:text-gray-300 py-1 cursor-pointer capitalize"
-                        >
-                            {meses.map(m => (
-                                <option key={m.value} value={m.value}>{m.label}</option>
-                            ))}
-                        </select>
-                    </div>
+                    <MonthSelect
+                        value={mes}
+                        options={meses}
+                        onChange={setMes}
+                    />
                 }
             />
 

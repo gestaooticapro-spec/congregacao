@@ -15,6 +15,7 @@ import {
     Shield
 } from 'lucide-react'
 import { format, startOfMonth, subMonths, parseISO } from 'date-fns'
+import { membroSessaoEhPublicador } from '@/lib/membroSessao'
 import { ptBR } from 'date-fns/locale'
 
 interface SessaoMembro {
@@ -73,6 +74,15 @@ export default function MeuRelatorioPage() {
         const validateAndFetchDrafts = async () => {
             try {
                 const parsed: SessaoMembro = JSON.parse(stored)
+                if (!(await membroSessaoEhPublicador())) {
+                    toast('O relatório fica disponível para quem está marcado como publicador.', {
+                        id: 'meu-relatorio-sem-publicador',
+                        icon: 'ℹ️',
+                        duration: 5000,
+                    })
+                    router.replace('/')
+                    return
+                }
                 setSessao(parsed)
 
                 const { data: jaEnviado, error: relatorioError } = await supabase.rpc('verificar_relatorio_viamembro', {

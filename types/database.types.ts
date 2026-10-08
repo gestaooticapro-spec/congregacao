@@ -1098,6 +1098,7 @@ export interface Database {
           grupo_id: string | null
           is_anciao: boolean
           is_pioneiro: boolean
+          is_publicador: boolean
         }[]
       }
       listar_minhas_ausencias: {

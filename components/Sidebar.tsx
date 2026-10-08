@@ -22,6 +22,7 @@ import {
     CalendarOff,
 } from 'lucide-react'
 import { MENU_GROUPS, isMenuLinkVisible, type MenuGroup } from '@/lib/menuConfig'
+import { lerMembroSessao, membroSessaoEhPublicador } from '@/lib/membroSessao'
 
 type MenuItem =
     | { type: 'link'; href: string; label: string; icon: LucideIcon; restricted?: boolean; allowedRoles?: PerfilAcesso[] }
@@ -50,26 +51,27 @@ function Sidebar() {
     const { user, roles, hasRole, loading, signOut, canAccessPastoreio } = useAuth()
     const [isPioneiroSession, setIsPioneiroSession] = useState(false)
     const [isPinSession, setIsPinSession] = useState(false)
+    const [isPublicadorSession, setIsPublicadorSession] = useState(false)
 
     if (pathname === '/laurinha') return null
 
     useEffect(() => {
         const syncMemberSession = () => {
-            const session = localStorage.getItem('membro_sessao')
-            if (!session) {
+            const parsed = lerMembroSessao()
+            if (!parsed) {
                 setIsPioneiroSession(false)
                 setIsPinSession(false)
+                setIsPublicadorSession(false)
                 return
             }
 
-            try {
-                const parsed = JSON.parse(session)
-                setIsPioneiroSession(!!parsed.is_pioneiro)
-                setIsPinSession(!!parsed.id)
-            } catch {
-                setIsPioneiroSession(false)
-                setIsPinSession(false)
-            }
+            setIsPioneiroSession(!!parsed.is_pioneiro)
+            setIsPinSession(true)
+            const sessaoId = parsed.id
+            void membroSessaoEhPublicador().then(publicador => {
+                if (lerMembroSessao()?.id !== sessaoId) return
+                setIsPublicadorSession(publicador)
+            })
         }
 
         syncMemberSession()
@@ -173,6 +175,7 @@ function Sidebar() {
                 <nav className="flex-1 overflow-y-auto p-2 space-y-1 thin-scrollbar">
                     {visibleItems.map((item) => {
                         if (item.type === 'pin-button') {
+                            if (!isPinSession || !isPublicadorSession) return null
                             const Icon = item.icon
                             return (
                                 <button

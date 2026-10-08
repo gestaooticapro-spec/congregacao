@@ -6,6 +6,7 @@ import { toast } from 'react-hot-toast'
 import { FileText } from 'lucide-react'
 import { format, startOfMonth, subMonths } from 'date-fns'
 import { supabase } from '@/lib/supabaseClient'
+import { membroSessaoEhPublicador } from '@/lib/membroSessao'
 
 const SESSION_EVENT = 'membro-sessao-atualizada'
 
@@ -26,7 +27,7 @@ export default function ReportNotificationBanner() {
 
             try {
                 const sessao = JSON.parse(stored) as { id?: string }
-                if (!sessao.id) {
+                if (!sessao.id || !(await membroSessaoEhPublicador())) {
                     setVisible(false)
                     return
                 }

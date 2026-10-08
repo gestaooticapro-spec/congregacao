@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation'
 import { getCongregationDate } from '@/lib/dateUtils'
 
 
-type Membro = Pick<Database['public']['Tables']['membros']['Row'], 'id' | 'nome_completo' | 'nome_civil' | 'grupo_id' | 'is_anciao' | 'is_pioneiro'>
+type Membro = Pick<Database['public']['Tables']['membros']['Row'], 'id' | 'nome_completo' | 'nome_civil' | 'grupo_id' | 'is_anciao' | 'is_pioneiro' | 'is_publicador'>
 
 type Designacao = {
     tipo: 'REUNIAO' | 'SUPORTE' | 'LIMPEZA' | 'CAMPO' | 'DISCURSO' | 'AGENDA'
@@ -161,6 +161,7 @@ export default function HomeMemberSearch(): React.ReactNode {
                 nome: membro.nome_completo,
                 grupo_id: membro.grupo_id,
                 is_pioneiro: membro.is_pioneiro,
+                is_publicador: membro.is_publicador,
                 pin: pinAutenticado || '',
                 timestamp: Date.now()
             }))

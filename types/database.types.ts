@@ -99,6 +99,7 @@ export interface Database {
           estado: string
           dia_reuniao_meio_semana: number | null
           dia_reuniao_fim_semana: number | null
+          confirmacao_designacao_habilitada: boolean
           created_at: string
           updated_at: string
         }
@@ -113,6 +114,7 @@ export interface Database {
           estado?: string
           dia_reuniao_meio_semana?: number | null
           dia_reuniao_fim_semana?: number | null
+          confirmacao_designacao_habilitada?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -127,6 +129,7 @@ export interface Database {
           estado?: string
           dia_reuniao_meio_semana?: number | null
           dia_reuniao_fim_semana?: number | null
+          confirmacao_designacao_habilitada?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -1053,6 +1056,12 @@ export interface Database {
           p_grupo_id: string | null
         }
         Returns: undefined
+      }
+      salvar_confirmacao_designacao_habilitada: {
+        Args: {
+          p_habilitada: boolean
+        }
+        Returns: boolean
       }
       obter_confirmacao_designacao: {
         Args: {

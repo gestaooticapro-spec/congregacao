@@ -12,6 +12,7 @@ import HistoryModal from '@/components/HistoryModal'
 import { calculatePartTimes } from '@/lib/scheduleUtils'
 import { ArrowLeft } from 'lucide-react'
 import { getCongregationDate } from '@/lib/dateUtils'
+import { confirmacaoDesignacaoHabilitada, textoLinkDesignacao } from '@/lib/confirmacaoDesignacao'
 
 type Programacao = Database['public']['Tables']['programacao_semanal']['Row']
 type Membro = Database['public']['Tables']['membros']['Row']
@@ -44,6 +45,7 @@ export default function EditarDesignacoesPage() {
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [generating, setGenerating] = useState(false)
+    const [confirmacaoHabilitada, setConfirmacaoHabilitada] = useState(true)
 
     const isEditable = programacao?.evento_tipo === 'normal' || programacao?.evento_tipo === 'visita spte';
 
@@ -112,6 +114,8 @@ export default function EditarDesignacoesPage() {
                 })
                 setLastAssignments(last)
             }
+
+            setConfirmacaoHabilitada(await confirmacaoDesignacaoHabilitada())
 
         } catch (error) {
             console.error('Erro ao carregar dados:', error)
@@ -184,7 +188,7 @@ export default function EditarDesignacoesPage() {
         }
 
         const link = `${window.location.origin}/confirmar?id=${id}&membro=${membroId}&role=${roleIdentifier}`
-        message += `\n\nClique no link pra confirmar:\n\n${link}`
+        message += textoLinkDesignacao(confirmacaoHabilitada, link)
 
         return `https://wa.me/?text=${encodeURIComponent(message)}`
     }

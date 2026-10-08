@@ -7,8 +7,9 @@ import { supabase } from '@/lib/supabaseClient'
 import type { Database } from '@/types/database.types'
 
 type DadosCongregacao = Database['public']['Tables']['dados_congregacao']['Row']
+type DadosForm = Omit<DadosCongregacao, 'created_at' | 'updated_at' | 'confirmacao_designacao_habilitada'>
 
-const EMPTY_DATA: Omit<DadosCongregacao, 'created_at' | 'updated_at'> = {
+const EMPTY_DATA: DadosForm = {
     id: true,
     nome: '',
     numero: '',

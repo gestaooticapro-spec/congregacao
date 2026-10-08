@@ -27,6 +27,7 @@ type DiscursoFora = Database['public']['Tables']['agenda_discursos_fora']['Row']
 }
 
 import TemasPreparadosTab from './TemasPreparadosTab'
+import { confirmacaoDesignacaoHabilitada, textoLinkDesignacao } from '@/lib/confirmacaoDesignacao'
 
 type FiltroDiscursos = 'proximos' | 'tudo'
 
@@ -177,6 +178,7 @@ export default function DiscursosPage() {
 }
 
 function DiscursosLocaisList({ discursos, onUpdate }: { discursos: DiscursoLocal[], onUpdate: () => void }) {
+    const [confirmacaoHabilitada, setConfirmacaoHabilitada] = useState(true)
     const [showModal, setShowModal] = useState(false)
     const [saving, setSaving] = useState(false)
     const [editingId, setEditingId] = useState<string | null>(null)
@@ -218,6 +220,10 @@ function DiscursosLocaisList({ discursos, onUpdate }: { discursos: DiscursoLocal
     const [visitantes, setVisitantes] = useState<{ id: string, nome: string, congregacao: string, cidade: string }[]>([])
     const [temasPreparados, setTemasPreparados] = useState<TemaResumo[]>([])
     const [allTemas, setAllTemas] = useState<TemaResumo[]>([])
+
+    useEffect(() => {
+        void confirmacaoDesignacaoHabilitada().then(setConfirmacaoHabilitada)
+    }, [])
 
     useEffect(() => {
         if (showModal) {
@@ -534,7 +540,7 @@ ${midiaTexto}`
 
         if (id) {
             const link = `${window.location.origin}/confirmar?id=${id}&membro=${membroId}&type=hospitalidade`
-            message += `\n\nClique no link pra confirmar:\n\n${link}`
+            message += textoLinkDesignacao(confirmacaoHabilitada, link)
         }
 
         return `https://wa.me/?text=${encodeURIComponent(message)}`

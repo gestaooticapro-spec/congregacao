@@ -10,6 +10,7 @@ type ConfirmationData = {
     status: string
     parte_nome: string
     ajudante_nome: string | null
+    aceite_habilitado?: boolean
 }
 
 function ConfirmarContent() {
@@ -85,10 +86,14 @@ function ConfirmarContent() {
     if (loading) return <div className="p-8 text-center">Carregando...</div>
     if (error || !info) return <div className="p-8 text-center text-red-600">{error || 'Link inválido.'}</div>
 
+    const podeResponder = info.aceite_habilitado !== false
+
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
             <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Confirmação de Designação</h1>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                    {podeResponder ? 'Confirmação de Designação' : 'Designação'}
+                </h1>
                 <p className="text-gray-600 dark:text-gray-400 mb-6">
                     Olá, <span className="font-semibold">{info.membro_nome}</span>!
                 </p>
@@ -109,7 +114,7 @@ function ConfirmarContent() {
                     )}
                 </div>
 
-                {status === 'pending' && (
+                {podeResponder && status === 'pending' && (
                     <div className="space-y-3">
                         <button onClick={() => handleResponse('accepted')} className="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium transition-colors">
                             Aceitar Designação
@@ -120,18 +125,24 @@ function ConfirmarContent() {
                     </div>
                 )}
 
-                {status === 'accepted' && (
+                {podeResponder && status === 'accepted' && (
                     <div className="text-green-600 dark:text-green-400">
                         <p className="text-lg font-medium">Designação aceita!</p>
                         <p className="text-sm mt-1">Obrigado por confirmar.</p>
                     </div>
                 )}
 
-                {status === 'declined' && (
+                {podeResponder && status === 'declined' && (
                     <div className="text-red-600 dark:text-red-400">
                         <p className="text-lg font-medium">Designação recusada</p>
                         <p className="text-sm mt-1">O irmão responsável será notificado.</p>
                     </div>
+                )}
+
+                {!podeResponder && (
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Esta mensagem é apenas para informar a sua designação.
+                    </p>
                 )}
             </div>
         </div>

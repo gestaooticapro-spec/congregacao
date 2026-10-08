@@ -178,6 +178,7 @@ export const ADMINISTRACAO_GROUP: MenuGroup = {
     items: [
         { label: 'Senha e Acesso', href: '/admin/meu-login', icon: ShieldCheck, restricted: true },
         { label: 'Dados da congregação', href: '/administracao/dados', icon: Building2, restricted: true, allowedRoles: [...PERFIS_ADMINISTRACAO] },
+        { label: 'Configurações', href: '/administracao/configuracoes', icon: Settings, restricted: true, allowedRoles: [...PERFIS_ADMIN] },
     ],
 }
 

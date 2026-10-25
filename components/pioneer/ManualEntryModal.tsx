@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { X, Save, Clock, CalendarDays } from 'lucide-react'
 import { CategoriaMinisterio, Database } from '@/types/database.types'
 import { getCongregationDate } from '@/lib/dateUtils'
@@ -8,6 +8,14 @@ import { getCongregationDate } from '@/lib/dateUtils'
 type CategoriaOption = {
     value: CategoriaMinisterio;
     label: string;
+}
+
+const getEntryDate = (startTime: string | null) => {
+    if (startTime) {
+        const start = new Date(startTime)
+        if (!Number.isNaN(start.getTime())) return getCongregationDate(start)
+    }
+    return getCongregationDate()
 }
 
 const CATEGORIAS: CategoriaOption[] = [
@@ -28,16 +36,19 @@ interface ManualEntryModalProps {
     initialStartTime?: string | null;
     initialEndTime?: string | null;
     entryToEdit?: Database['public']['Tables']['ministerio_logs']['Row'] | null;
+    returnFocusRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
-export default function ManualEntryModal({ isOpen, onClose, onSave, initialMinutes = 0, initialStartTime = null, initialEndTime = null, entryToEdit = null }: ManualEntryModalProps) {
-    const [data, setData] = useState(getCongregationDate())
+export default function ManualEntryModal({ isOpen, onClose, onSave, initialMinutes = 0, initialStartTime = null, initialEndTime = null, entryToEdit = null, returnFocusRef }: ManualEntryModalProps) {
+    const [data, setData] = useState(() => getEntryDate(initialStartTime))
     const [horas, setHoras] = useState(Math.floor(initialMinutes / 60).toString())
     const [minutos, setMinutos] = useState((initialMinutes % 60).toString())
     const [categoria, setCategoria] = useState<CategoriaMinisterio>('CAMPO')
     const [comentarios, setComentarios] = useState('')
     const [isSaving, setIsSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const dialogRef = useRef<HTMLDivElement>(null)
+    const dateInputRef = useRef<HTMLInputElement>(null)
 
     useEffect(() => {
         if (!isOpen) return
@@ -49,14 +60,59 @@ export default function ManualEntryModal({ isOpen, onClose, onSave, initialMinut
             setCategoria(entryToEdit.categoria)
             setComentarios(entryToEdit.comentarios || '')
         } else {
-            setData(getCongregationDate())
+            setData(getEntryDate(initialStartTime))
             setHoras(Math.floor(initialMinutes / 60).toString())
             setMinutos((initialMinutes % 60).toString())
             setCategoria('CAMPO')
             setComentarios('')
         }
         setError(null)
-    }, [isOpen, initialMinutes, entryToEdit])
+    }, [isOpen, initialMinutes, initialStartTime, entryToEdit])
+
+    useEffect(() => {
+        if (!isOpen) return
+
+        const activeElement = document.activeElement
+        const previousFocus = activeElement instanceof HTMLElement && activeElement !== document.body ? activeElement : null
+        const fallbackFocus = returnFocusRef?.current ?? null
+        const focusFrame = window.requestAnimationFrame(() => dateInputRef.current?.focus())
+
+        return () => {
+            window.cancelAnimationFrame(focusFrame)
+            const focusTarget = previousFocus?.isConnected ? previousFocus : fallbackFocus
+            focusTarget?.focus()
+        }
+    }, [isOpen, returnFocusRef])
+
+    const handleDialogKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+        if (event.key === 'Escape' && !isSaving) {
+            event.preventDefault()
+            onClose()
+            return
+        }
+
+        if (event.key !== 'Tab') return
+
+        const focusableElements = dialogRef.current?.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+        const focusable = Array.from(focusableElements || []).filter(element => element.getAttribute('aria-hidden') !== 'true')
+        if (focusable.length === 0) {
+            event.preventDefault()
+            dialogRef.current?.focus()
+            return
+        }
+
+        const first = focusable[0]
+        const last = focusable[focusable.length - 1]
+        if (event.shiftKey && (document.activeElement === first || !dialogRef.current?.contains(document.activeElement))) {
+            event.preventDefault()
+            last.focus()
+        } else if (!event.shiftKey && (document.activeElement === last || !dialogRef.current?.contains(document.activeElement))) {
+            event.preventDefault()
+            first.focus()
+        }
+    }
 
     if (!isOpen) return null
 
@@ -98,16 +154,27 @@ export default function ManualEntryModal({ isOpen, onClose, onSave, initialMinut
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-800">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200 sm:items-center">
+            <div
+                ref={dialogRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="manual-entry-title"
+                aria-describedby={error ? 'manual-entry-error' : undefined}
+                tabIndex={-1}
+                onKeyDown={handleDialogKeyDown}
+                className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800"
+            >
                 <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
-                    <h3 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                    <h3 id="manual-entry-title" className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
                         {entryToEdit ? 'Editar Atividade' : initialMinutes > 0 ? (
                             <>Confirmar Tempo <span className="text-sm font-normal text-blue-600 bg-blue-50 px-2 py-0.5 rounded ml-2">Cronômetro</span></>
                         ) : 'Lançamento Manual'}
                     </h3>
-                    <button 
+                    <button
+                        type="button"
                         onClick={onClose}
+                        aria-label="Fechar janela de lançamento"
                         className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                     >
                         <X className="w-5 h-5" />
@@ -116,17 +183,19 @@ export default function ManualEntryModal({ isOpen, onClose, onSave, initialMinut
 
                 <div className="p-6 space-y-6">
                     {error && (
-                        <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100">
+                        <div id="manual-entry-error" role="alert" className="p-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100">
                             {error}
                         </div>
                     )}
                     
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-2">
+                            <label htmlFor="manual-entry-date" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-2">
                                 <CalendarDays className="w-4 h-4 text-slate-400" /> Data
                             </label>
-                            <input 
+                            <input
+                                ref={dateInputRef}
+                                id="manual-entry-date"
                                 type="date" 
                                 value={data}
                                 onChange={(e) => setData(e.target.value)}
@@ -140,7 +209,9 @@ export default function ManualEntryModal({ isOpen, onClose, onSave, initialMinut
                             </label>
                             <div className="flex gap-4">
                                 <div className="flex-1 relative">
-                                    <input 
+                                    <label htmlFor="manual-entry-hours" className="sr-only">Horas</label>
+                                    <input
+                                        id="manual-entry-hours"
                                         type="number" 
                                         min="0"
                                         placeholder="0"
@@ -148,10 +219,12 @@ export default function ManualEntryModal({ isOpen, onClose, onSave, initialMinut
                                         onChange={(e) => setHoras(e.target.value)}
                                         className="w-full p-3 pr-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow text-center text-lg font-bold dark:text-white"
                                     />
-                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">h</span>
+                                    <span aria-hidden="true" className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">h</span>
                                 </div>
                                 <div className="flex-1 relative">
-                                    <input 
+                                    <label htmlFor="manual-entry-minutes" className="sr-only">Minutos</label>
+                                    <input
+                                        id="manual-entry-minutes"
                                         type="number" 
                                         min="0"
                                         max="59"
@@ -160,16 +233,17 @@ export default function ManualEntryModal({ isOpen, onClose, onSave, initialMinut
                                         onChange={(e) => setMinutos(e.target.value)}
                                         className="w-full p-3 pr-12 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow text-center text-lg font-bold dark:text-white"
                                     />
-                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">min</span>
+                                    <span aria-hidden="true" className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">min</span>
                                 </div>
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            <label htmlFor="manual-entry-category" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                                 Categoria
                             </label>
-                            <select 
+                            <select
+                                id="manual-entry-category"
                                 value={categoria}
                                 onChange={(e) => setCategoria(e.target.value as CategoriaMinisterio)}
                                 className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow dark:text-white"
@@ -186,10 +260,11 @@ export default function ManualEntryModal({ isOpen, onClose, onSave, initialMinut
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            <label htmlFor="manual-entry-comments" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                                 Observações <span className="text-slate-400 font-normal">(Opcional)</span>
                             </label>
-                            <input 
+                            <input
+                                id="manual-entry-comments"
                                 type="text" 
                                 placeholder="Com quem trabalhou, território, etc."
                                 value={comentarios}
@@ -201,14 +276,16 @@ export default function ManualEntryModal({ isOpen, onClose, onSave, initialMinut
                 </div>
 
                 <div className="p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3">
-                    <button 
+                    <button
+                        type="button"
                         onClick={onClose}
                         className="px-5 py-2.5 rounded-xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
                         disabled={isSaving}
                     >
                         Cancelar
                     </button>
-                    <button 
+                    <button
+                        type="button"
                         onClick={handleSave}
                         disabled={isSaving}
                         className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-white transition-all transform hover:scale-105 active:scale-95 ${
@@ -216,7 +293,10 @@ export default function ManualEntryModal({ isOpen, onClose, onSave, initialMinut
                         }`}
                     >
                         {isSaving ? (
-                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            <>
+                                <div aria-hidden="true" className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                <span className="sr-only">Salvando...</span>
+                            </>
                         ) : (
                             <><Save className="w-4 h-4" /> {entryToEdit ? 'Salvar Alterações' : 'Salvar Tempo'}</>
                         )}

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { CategoriaMinisterio, Database } from '@/types/database.types'
 import RadialProgress from './RadialProgress'
@@ -46,6 +46,7 @@ export default function PioneerDashboard({ membroId, pin, onOnboardingCompleted 
     const [editingLog, setEditingLog] = useState<LogEntry | null>(null)
     const [isPastMonthsOpen, setIsPastMonthsOpen] = useState(false)
     const [savedTimerNonce, setSavedTimerNonce] = useState(0)
+    const timerActionButtonRef = useRef<HTMLButtonElement | null>(null)
 
     // Service Year Bounds
     const getServiceYearRange = () => {
@@ -327,6 +328,7 @@ export default function PioneerDashboard({ membroId, pin, onOnboardingCompleted 
                     <TimerCard 
                         membroId={membroId} 
                         savedTimerNonce={savedTimerNonce}
+                        actionButtonRef={timerActionButtonRef}
                         onManualEntry={() => { setEditingLog(null); setInitialTimerMinutes(0); setInitialStartTime(null); setInitialEndTime(null); setIsModalOpen(true); }}
                         onTimerStop={(min, start, end) => { setEditingLog(null); setInitialTimerMinutes(min); setInitialStartTime(start); setInitialEndTime(end); setIsModalOpen(true); }}
                     />
@@ -499,6 +501,7 @@ export default function PioneerDashboard({ membroId, pin, onOnboardingCompleted 
                 initialMinutes={initialTimerMinutes}
                 initialStartTime={initialStartTime}
                 initialEndTime={initialEndTime}
+                returnFocusRef={timerActionButtonRef}
             />
         </div>
     )

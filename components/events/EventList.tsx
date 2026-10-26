@@ -1,6 +1,6 @@
 'use client'
 
-import { format, differenceInDays, differenceInWeeks, differenceInMonths, startOfDay } from 'date-fns'
+import { addMonths, differenceInCalendarDays, format, startOfDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Database } from '@/types/database.types'
 
@@ -63,17 +63,18 @@ export default function EventList({ events, onEventClick }: EventListProps) {
         const today = startOfDay(new Date())
         const eventDate = startOfDay(new Date(dateString + 'T12:00:00'))
 
-        const diffMonths = differenceInMonths(eventDate, today)
-        if (diffMonths > 0) {
-            return diffMonths === 1 ? 'Falta 1 mês' : `Faltam ${diffMonths} meses`
+        const diffDays = differenceInCalendarDays(eventDate, today)
+
+        if (eventDate > addMonths(today, 2)) {
+            const months = Math.round(diffDays / 30)
+            return `Faltam cerca de ${months} meses`
         }
 
-        const diffWeeks = differenceInWeeks(eventDate, today)
-        if (diffWeeks > 0) {
-            return diffWeeks === 1 ? 'Falta 1 semana' : `Faltam ${diffWeeks} semanas`
+        if (eventDate > addMonths(today, 1)) {
+            const weeks = Math.round(diffDays / 7)
+            return `Faltam cerca de ${weeks} semanas`
         }
 
-        const diffDays = differenceInDays(eventDate, today)
         if (diffDays === 0) return 'Hoje'
         if (diffDays === 1) return 'Amanhã'
         if (diffDays > 0) return `Faltam ${diffDays} dias`

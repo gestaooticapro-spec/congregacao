@@ -177,7 +177,7 @@ export default function EditarDesignacoesPage() {
     const getWhatsAppUrl = (membroId: string | undefined, parteNome: string, roleIdentifier: string, ajudanteId?: string) => {
         if (!membroId || !programacao) return ''
 
-        const date = new Date(programacao.data_reuniao).toLocaleDateString('pt-BR')
+        const date = format(parseISO(programacao.data_reuniao), 'dd/MM/yyyy', { locale: ptBR })
         let message = `Olá!\nVocê terá parte no dia: ${date}\nParte: ${parteNome}`
 
         if (ajudanteId) {

@@ -8,12 +8,15 @@ import { format, parseISO, startOfWeek, endOfWeek } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { calculatePartTimes } from '@/lib/scheduleUtils'
 import MeetingAttendanceButton from '@/components/MeetingAttendanceButton'
-import { ChevronLeft, ChevronRight, Loader2, MessageCircle, Printer } from 'lucide-react'
+import PartTimerModal from '@/components/PartTimerModal'
+import { ChevronLeft, ChevronRight, Loader2, MessageCircle, Printer, Timer } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
 import { getCongregationDate } from '@/lib/dateUtils'
+import { lerMembroSessao } from '@/lib/membroSessao'
 import {
     buildMidweekReminderText,
     isLogadoPresidenteMeioSemana,
+    resolveMembroLogadoSupabase,
     shareMidweekReminderToWhatsApp,
 } from '@/lib/midweekReminder'
 
@@ -43,6 +46,19 @@ function RelatorioContent() {
     const [loading, setLoading] = useState(true)
     const [isPresidenteLogado, setIsPresidenteLogado] = useState(false)
     const [enviandoLembrete, setEnviandoLembrete] = useState(false)
+    const [membroLogadoId, setMembroLogadoId] = useState<string | null>(null)
+    const [timerParte, setTimerParte] = useState<{ key: string; nome: string; tempo: number } | null>(null)
+    const [timerOpen, setTimerOpen] = useState(false)
+
+    useEffect(() => {
+        let active = true
+        const identificar = async () => {
+            const membro = await resolveMembroLogadoSupabase()
+            if (active) setMembroLogadoId(membro?.id ?? lerMembroSessao()?.id ?? null)
+        }
+        void identificar()
+        return () => { active = false }
+    }, [])
 
     useEffect(() => {
         fetchDates()
@@ -253,7 +269,30 @@ function RelatorioContent() {
         )
     }
 
-    const renderPartSection = (title: string, tipo: string, colorClass: string) => {
+    const renderPartMember = (parte: Parte, membroId: string | undefined, interactive: boolean) => {
+        const nome = getMemberName(membroId)
+        if (!interactive || !membroId || membroId !== membroLogadoId || !Number.isFinite(parte.tempo) || parte.tempo <= 0) return nome
+
+        return (
+            <button
+                type="button"
+                onClick={() => {
+                    const rawPartes = (programacao?.partes as unknown as Parte[]) || []
+                    const partIndex = rawPartes.findIndex(p => p.nome === parte.nome && p.tipo === parte.tipo && p.membro_id === parte.membro_id && p.ajudante_id === parte.ajudante_id)
+                    setTimerParte({ key: `${programacao?.id}:${partIndex}:${membroId}`, nome: parte.nome, tempo: parte.tempo })
+                    setTimerOpen(true)
+                }}
+                title="Cronometrar minha parte"
+                aria-label={`${nome}: cronometrar minha parte de ${parte.tempo} minutos`}
+                className="inline-flex min-h-11 items-center justify-end gap-1.5 rounded-lg px-1 py-2 text-blue-700 underline decoration-dotted underline-offset-4 hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-blue-600 dark:text-blue-400 dark:hover:bg-blue-950"
+            >
+                <span>{nome}</span>
+                <Timer className="h-4 w-4 shrink-0" aria-hidden="true" />
+            </button>
+        )
+    }
+
+    const renderPartSection = (title: string, tipo: string, colorClass: string, interactive = false) => {
         const rawPartes = (programacao?.partes as any as Parte[]) || []
 
         let sectionParts = rawPartes.filter(p => p.tipo === tipo)
@@ -296,12 +335,12 @@ function RelatorioContent() {
                             </div>
                             <div className="col-span-4 text-right">
                                 <div className="font-bold text-slate-900">
-                                    {getMemberName(parte.membro_id)}
+                                    {renderPartMember(parte, parte.membro_id, interactive)}
                                 </div>
                                 {(parte.ajudante_id) && (
                                     <div className="text-xs text-slate-500 italic">
                                         {(parte.tipo === 'VIDA_CRISTA' && parte.nome.toLowerCase().includes('estudo bíblico')) ? 'Leitor: ' : 'Ajudante: '}
-                                        {getMemberName(parte.ajudante_id)}
+                                        {renderPartMember(parte, parte.ajudante_id, interactive)}
                                     </div>
                                 )}
                             </div>
@@ -537,8 +576,8 @@ function RelatorioContent() {
                             )}
 
                             {/* Sections */}
-                            {renderPartSection('Tesouros da Palavra de Deus', 'TESOUROS', 'text-slate-700')}
-                            {renderPartSection('Faça Seu Melhor no Ministério', 'MINISTERIO', 'text-yellow-700')}
+                            {renderPartSection('Tesouros da Palavra de Deus', 'TESOUROS', 'text-slate-700', true)}
+                            {renderPartSection('Faça Seu Melhor no Ministério', 'MINISTERIO', 'text-yellow-700', true)}
 
                             {/* Cântico do Meio if visit week */}
                             {programacao?.evento_tipo === 'visita spte' && visitaConfig?.cantico_meio_meio_semana && (
@@ -547,7 +586,7 @@ function RelatorioContent() {
                                 </div>
                             )}
 
-                            {renderPartSection('Nossa Vida Cristã', 'VIDA_CRISTA', 'text-red-700')}
+                            {renderPartSection('Nossa Vida Cristã', 'VIDA_CRISTA', 'text-red-700', true)}
 
                             {/* Discurso do Superintendente if visit week */}
                             {programacao?.evento_tipo === 'visita spte' && visitaConfig?.midweek_discurso_tema && (
@@ -603,6 +642,15 @@ function RelatorioContent() {
                     <MeetingAttendanceButton date={dates[currentIndex]} meetingType="MEIO_SEMANA" />
                 </div>
             </div>
+            {timerParte && (
+                <PartTimerModal
+                    key={timerParte.key}
+                    open={timerOpen}
+                    title={timerParte.nome}
+                    durationMinutes={timerParte.tempo}
+                    onClose={() => setTimerOpen(false)}
+                />
+            )}
         </div>
     )
 }

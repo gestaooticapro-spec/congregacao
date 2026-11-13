@@ -5,6 +5,12 @@ import { useMemo } from 'react'
 import toast from 'react-hot-toast'
 import { useAuth } from '@/contexts/AuthProvider'
 import { getMenuGroup, getVisibleMenuSections, type MenuGroupId, type MenuLink } from '@/lib/menuConfig'
+import { countSourceForHref } from '@/lib/responsibilityCounts'
+import { elderSourceForHref } from '@/lib/elderCounts'
+import { useResponsibilityCounts } from '@/lib/useResponsibilityCounts'
+import { useElderCounts } from '@/lib/useElderCounts'
+import CoverageBadge from '@/components/CoverageBadge'
+import ElderCountBadge from '@/components/ElderCountBadge'
 import PageHeader from '@/components/PageHeader'
 
 /**
@@ -58,8 +64,18 @@ export default function MenuHub({ groupId }: { groupId: MenuGroupId }) {
         [group, user, roles, loading, hasRole, canAccessPastoreio]
     )
     const visibleCount = visibleSections.reduce((total, section) => total + section.length, 0)
+    const countedHrefs = useMemo(() => {
+        if (groupId !== 'responsabilidades') return []
+        return visibleSections.flat().map(item => item.href).filter(href => countSourceForHref(href))
+    }, [groupId, visibleSections])
+    const elderHrefs = useMemo(() => {
+        if (groupId !== 'anciaos') return []
+        return visibleSections.flat().map(item => item.href).filter(href => elderSourceForHref(href))
+    }, [groupId, visibleSections])
+    const coverage = useResponsibilityCounts(countedHrefs)
+    const elders = useElderCounts(elderHrefs, user?.id ?? null)
 
-    const tileClass = 'group flex flex-col items-center justify-center gap-3 p-5 min-h-[128px] rounded-2xl border bg-white dark:bg-slate-900 text-center transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5'
+    const tileClass = 'group relative flex flex-col items-center justify-center gap-3 p-5 min-h-[128px] rounded-2xl border bg-white dark:bg-slate-900 text-center transition-all duration-200 hover:z-20 hover:shadow-lg hover:-translate-y-0.5 focus-within:z-20'
 
     const renderTile = (item: MenuLink) => {
         const ItemIcon = item.icon
@@ -83,19 +99,34 @@ export default function MenuHub({ groupId }: { groupId: MenuGroupId }) {
             )
         }
 
+        const source = groupId === 'responsabilidades' ? countSourceForHref(item.href) : null
+        const elderSource = groupId === 'anciaos' ? elderSourceForHref(item.href) : null
+
         return (
-            <Link
+            <div
                 key={item.href}
-                href={item.href}
                 className={`${tileClass} ${color.borderClass}`}
             >
-                <span className={`p-3 rounded-xl transition-colors ${color.iconClass}`}>
-                    <ItemIcon className="w-6 h-6" />
+                <Link
+                    href={item.href}
+                    aria-label={item.label}
+                    className="absolute inset-0 z-0 rounded-2xl"
+                />
+                <span className="relative z-20 pointer-events-none">
+                    <span className={`relative block p-3 rounded-xl transition-colors ${color.iconClass}`}>
+                        <ItemIcon className="w-6 h-6" />
+                    </span>
+                    {source && (
+                        <CoverageBadge source={source} status={coverage.status} counts={coverage.counts} />
+                    )}
+                    {elderSource && (
+                        <ElderCountBadge source={elderSource} status={elders.status} counts={elders.counts} />
+                    )}
                 </span>
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-tight">
+                <span className="relative z-10 pointer-events-none text-sm font-semibold text-slate-700 dark:text-slate-200 leading-tight">
                     {item.label}
                 </span>
-            </Link>
+            </div>
         )
     }
 

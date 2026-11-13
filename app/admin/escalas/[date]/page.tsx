@@ -6,19 +6,11 @@ import { Database } from '@/types/database.types'
 import { useRouter } from 'next/navigation'
 import { checkConflicts, conflictMessage } from '@/lib/conflictCheck'
 import { generateSupportAssignments } from '@/app/actions/autoAssignSupport'
+import { isCivilWeekend } from '@/lib/civilDate'
+import { SUPPORT_ROLES as ROLES } from '@/lib/supportRoles'
 
 type Membro = Database['public']['Tables']['membros']['Row']
 type DesignacaoSuporte = Database['public']['Tables']['designacoes_suporte']['Row']
-
-const ROLES = [
-    { id: 'PRESIDENTE', label: 'Presidente', required: 'is_presidente' },
-    { id: 'SOM', label: 'Som', required: 'is_som' },
-    { id: 'MICROFONE_1', label: 'Microfone 1', required: 'is_microfone' },
-    { id: 'MICROFONE_2', label: 'Microfone 2', required: 'is_microfone' },
-    { id: 'INDICADOR_ENTRADA', label: 'Indicador Entrada', required: 'is_indicador' },
-    { id: 'INDICADOR_AUDITORIO', label: 'Indicador Auditório', required: 'is_indicador' },
-    { id: 'LEITOR_SENTINELA', label: 'Leitor da Sentinela', required: 'is_leitor_sentinela' },
-] as const
 
 export default function EscalaEditorPage({ params }: { params: Promise<{ date: string }> }) {
     const { date } = use(params)
@@ -160,7 +152,7 @@ export default function EscalaEditorPage({ params }: { params: Promise<{ date: s
         }
         setSaving(true)
         try {
-            const isWknd = isWeekend(selectedDate)
+            const isWknd = isCivilWeekend(selectedDate)
             const validRoles = ROLES.filter(role => (role.id !== 'PRESIDENTE' && role.id !== 'LEITOR_SENTINELA') || isWknd)
 
             // 1. Get programacao_id if exists for this date
@@ -215,17 +207,9 @@ export default function EscalaEditorPage({ params }: { params: Promise<{ date: s
         return membros.filter(m => (m as any)[roleRequired])
     }
 
-    const isWeekend = (dateString: string) => {
-        if (!dateString) return false
-        const [year, month, day] = dateString.split('-').map(Number)
-        const date = new Date(year, month - 1, day)
-        const dayOfWeek = date.getDay()
-        return dayOfWeek === 0 || dayOfWeek === 6
-    }
-
     if (loading && !isNew) return <div className="p-8">Carregando...</div>
 
-    const isWknd = isWeekend(selectedDate)
+    const isWknd = isCivilWeekend(selectedDate)
 
     return (
         <div className="max-w-3xl mx-auto p-8 pb-24">

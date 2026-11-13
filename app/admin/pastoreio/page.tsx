@@ -1,20 +1,21 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Database } from '@/types/database.types'
 import { useRouter } from 'next/navigation'
-import { format, subDays, parseISO, isValid } from 'date-fns'
+import { format, parseISO, isValid } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import toast from 'react-hot-toast'
 import { Info, AlertTriangle, Loader2 } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
+import PastoreioCalendar from '@/components/pastoreio/PastoreioCalendar'
+import PastoreioDayModal from '@/components/pastoreio/PastoreioDayModal'
 import { getCongregationDate } from '@/lib/dateUtils'
+import { isVisitaAtrasada, isYmd, situacaoVisita, type SituacaoVisita } from '@/lib/pastoreioDates'
 
 type Membro = Database['public']['Tables']['membros']['Row']
-
-// D+2: se proxima_visita <= hoje - 2 dias, considera atrasada
-const OVERDUE_THRESHOLD = 2
+type AbaPastoreio = 'calendario' | 'grupo'
 
 function formatDateBR(dateStr: string | null): string {
     if (!dateStr) return '—'
@@ -23,27 +24,40 @@ function formatDateBR(dateStr: string | null): string {
     return format(d, 'dd/MM/yyyy', { locale: ptBR })
 }
 
-function isOverdue(dateStr: string | null): boolean {
-    if (!dateStr) return false
-    const d = parseISO(dateStr)
-    if (!isValid(d)) return false
-    const threshold = subDays(new Date(), OVERDUE_THRESHOLD)
-    // Zera as horas para comparar só a data
-    threshold.setHours(0, 0, 0, 0)
-    d.setHours(0, 0, 0, 0)
-    return d <= threshold
+const COR_DO_NOME: Record<SituacaoVisita, string> = {
+    marcada: 'text-blue-600 dark:text-blue-400',
+    recente: 'text-green-600 dark:text-green-400',
+    seisMeses: 'text-yellow-600 dark:text-yellow-300',
+    umAno: 'text-red-600 dark:text-red-400',
+}
+
+const LEGENDA_DO_NOME: Record<SituacaoVisita, string> = {
+    marcada: 'Visita marcada',
+    recente: 'Visitado há menos de 6 meses',
+    seisMeses: 'Visitado há mais de 6 meses',
+    umAno: 'Sem visita há mais de 1 ano, ou nunca visitado',
+}
+
+function mesDaCongregacao(): { year: number, month: number } {
+    const [year, month] = getCongregationDate().split('-').map(Number)
+    return { year, month }
 }
 
 export default function PastoreioPage() {
     const router = useRouter()
+    const hoje = getCongregationDate()
     const [membros, setMembros] = useState<Membro[]>([])
+    const [membrosSalvos, setMembrosSalvos] = useState<Membro[]>([])
     const [loading, setLoading] = useState(true)
     const [savingId, setSavingId] = useState<string | null>(null)
     const [observacoes, setObservacoes] = useState<Record<string, string>>({})
     const [sgNome, setSgNome] = useState<string>('')
     const [papel, setPapel] = useState<'Superintendente' | 'Ajudante'>('Superintendente')
     const [popoverOpen, setPopoverOpen] = useState<string | null>(null)
-    const [overdueMembers, setOverdueMembers] = useState<Membro[]>([])
+    const [mes, setMes] = useState(mesDaCongregacao)
+    const [aba, setAba] = useState<AbaPastoreio>('calendario')
+    const [diaAberto, setDiaAberto] = useState<string | null>(null)
+    const [scrollParaId, setScrollParaId] = useState<string | null>(null)
 
     useEffect(() => {
         fetchMembros()
@@ -100,20 +114,15 @@ export default function PastoreioPage() {
                 .from('membros')
                 .select('*')
                 .eq('grupo_id', grupoId)
+                .eq('ativo', true)
+                .eq('is_anciao', false)
                 .neq('id', sgData.id)
                 .order('nome_completo')
 
             if (membrosError) throw membrosError
-            setMembros(membrosData || [])
-
-            // Verifica atrasados: visita agendada está a 2+ dias e ainda não foi confirmada
-            // (confirmada = ultima_visita >= proxima_visita)
-            const overdue = (membrosData || []).filter(m =>
-                m.proxima_visita &&
-                isOverdue(m.proxima_visita) &&
-                (!m.ultima_visita || m.ultima_visita < m.proxima_visita!)
-            )
-            setOverdueMembers(overdue)
+            const lista = membrosData || []
+            setMembros(lista)
+            setMembrosSalvos(lista)
 
         } catch (error) {
             console.error('Erro ao buscar membros:', error)
@@ -185,6 +194,77 @@ export default function PastoreioPage() {
         }
     }
 
+    useEffect(() => {
+        if (aba !== 'grupo' || !scrollParaId) return
+        const targetId = window.matchMedia('(min-width: 768px)').matches
+            ? `pastoreio-row-${scrollParaId}`
+            : `pastoreio-card-${scrollParaId}`
+        const frame = requestAnimationFrame(() => {
+            document.getElementById(targetId)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+            setScrollParaId(null)
+        })
+        return () => cancelAnimationFrame(frame)
+    }, [aba, scrollParaId])
+
+    const overdueMembers = useMemo(
+        () => membrosSalvos.filter(membro => isVisitaAtrasada(membro.proxima_visita, membro.ultima_visita, hoje)),
+        [membrosSalvos, hoje],
+    )
+
+    const visitasDoMes = useMemo(
+        () => membrosSalvos.flatMap(membro => {
+            if (!isYmd(membro.proxima_visita)) return []
+            const [year, month] = membro.proxima_visita.split('-').map(Number)
+            if (year !== mes.year || month !== mes.month) return []
+            return [{
+                id: membro.id,
+                nome: membro.nome_civil || membro.nome_completo,
+                data: membro.proxima_visita,
+                atrasada: isVisitaAtrasada(membro.proxima_visita, membro.ultima_visita, hoje),
+            }]
+        }),
+        [membrosSalvos, mes, hoje],
+    )
+
+    const visitasDoDia = useMemo(
+        () => membrosSalvos.flatMap(membro => {
+            if (!diaAberto || membro.proxima_visita !== diaAberto || !isYmd(membro.proxima_visita)) return []
+            return [{
+                id: membro.id,
+                nome: membro.nome_civil || membro.nome_completo,
+                atrasada: isVisitaAtrasada(membro.proxima_visita, membro.ultima_visita, hoje),
+            }]
+        }),
+        [membrosSalvos, diaAberto, hoje],
+    )
+
+    const semData = useMemo(
+        () => membrosSalvos.filter(membro => !isYmd(membro.proxima_visita)).length,
+        [membrosSalvos],
+    )
+
+    const mudarMes = (delta: number) => {
+        setMes(atual => {
+            const cursor = new Date(atual.year, atual.month - 1 + delta, 1)
+            return { year: cursor.getFullYear(), month: cursor.getMonth() + 1 }
+        })
+    }
+
+    const verNaLista = (id: string) => {
+        setAba('grupo')
+        setScrollParaId(id)
+        setDiaAberto(null)
+    }
+
+    const abaAtiva = 'px-4 py-2 rounded-md text-sm font-medium transition-all bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+    const abaInativa = 'px-4 py-2 rounded-md text-sm font-medium transition-all text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+
+    const atrasadaSalva = (id: string) => {
+        const salvo = membrosSalvos.find(item => item.id === id)
+        if (!salvo) return false
+        return isVisitaAtrasada(salvo.proxima_visita, salvo.ultima_visita, hoje)
+    }
+
     if (loading) {
         return (
             <div className="flex items-center justify-center h-64">
@@ -208,6 +288,24 @@ export default function PastoreioPage() {
                 }
                 backHref="/anciaos"
                 backLabel="Anciãos"
+                actions={
+                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                        <button
+                            type="button"
+                            onClick={() => setAba('calendario')}
+                            className={aba === 'calendario' ? abaAtiva : abaInativa}
+                        >
+                            Calendário
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setAba('grupo')}
+                            className={aba === 'grupo' ? abaAtiva : abaInativa}
+                        >
+                            Grupo
+                        </button>
+                    </div>
+                }
             />
 
             {/* Aviso */}
@@ -241,18 +339,39 @@ export default function PastoreioPage() {
                 </div>
             )}
 
-            {/* Lista */}
+            {aba === 'calendario' ? (
+                <PastoreioCalendar
+                    year={mes.year}
+                    month={mes.month}
+                    hoje={hoje}
+                    visitas={visitasDoMes}
+                    totalMembros={membrosSalvos.length}
+                    semData={semData}
+                    onPrev={() => mudarMes(-1)}
+                    onNext={() => mudarMes(1)}
+                    onDayClick={setDiaAberto}
+                    onVerGrupo={() => setAba('grupo')}
+                />
+            ) : (
             <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                <ul className="flex flex-wrap gap-x-4 gap-y-1 border-b border-slate-200 dark:border-slate-800 px-3 py-2 text-xs">
+                    {(['umAno', 'seisMeses', 'recente', 'marcada'] as SituacaoVisita[]).map(situacao => (
+                        <li key={situacao} className={`font-medium ${COR_DO_NOME[situacao]}`}>
+                            {LEGENDA_DO_NOME[situacao]}
+                        </li>
+                    ))}
+                </ul>
                 <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
                     {membros.map(membro => {
                         const nome = membro.nome_civil || membro.nome_completo
-                        const temOverdue = isOverdue(membro.proxima_visita)
+                        const situacao = situacaoVisita(membro.ultima_visita, membro.proxima_visita, hoje)
+                        const temOverdue = atrasadaSalva(membro.id)
                         const isPopoverOpen = popoverOpen === membro.id
 
                         return (
-                            <div key={membro.id} className="p-4 space-y-3">
+                            <div id={`pastoreio-card-${membro.id}`} key={membro.id} className="p-4 space-y-3">
                                 <div className="flex items-center justify-between gap-2">
-                                    <p className="font-medium text-slate-800 dark:text-white leading-tight">{nome}</p>
+                                    <p className={`font-medium leading-tight ${COR_DO_NOME[situacao]}`} title={LEGENDA_DO_NOME[situacao]}>{nome}</p>
                                     {temOverdue && <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />}
                                 </div>
 
@@ -354,24 +473,16 @@ export default function PastoreioPage() {
                         <tbody className="divide-y divide-slate-100">
                             {membros.map(membro => {
                                 const nome = membro.nome_civil || membro.nome_completo
-                                const isAtivo = membro.is_publicador
-                                const temOverdue = isOverdue(membro.proxima_visita)
+                                const situacao = situacaoVisita(membro.ultima_visita, membro.proxima_visita, hoje)
+                                const temOverdue = atrasadaSalva(membro.id)
                                 const popoverId = `popover-${membro.id}`
                                 const isPopoverOpen = popoverOpen === membro.id
 
                                 return (
-                                    <tr key={membro.id} className="hover:bg-slate-50/50">
+                                    <tr id={`pastoreio-row-${membro.id}`} key={membro.id} className="hover:bg-slate-50/50">
                                         {/* Nome */}
                                         <td className="p-3">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-medium text-slate-800">{nome}</span>
-                                                {isAtivo && (
-                                                    <span
-                                                        className="inline-block w-2.5 h-2.5 rounded-full bg-green-500"
-                                                        title="Ativo"
-                                                    />
-                                                )}
-                                            </div>
+                                            <span className={`font-medium ${COR_DO_NOME[situacao]}`} title={LEGENDA_DO_NOME[situacao]}>{nome}</span>
                                         </td>
 
                                         {/* Última Visita */}
@@ -382,7 +493,7 @@ export default function PastoreioPage() {
                                                         onClick={() =>
                                                             setPopoverOpen(isPopoverOpen ? null : membro.id)
                                                         }
-                                                        className="flex items-center gap-1 text-slate-700 hover:text-blue-600 transition-colors"
+                                                        className="flex items-center gap-1 text-slate-700 hover:text-blue-600 dark:text-slate-200 dark:hover:text-blue-400 transition-colors"
                                                     >
                                                         <span>{formatDateBR(membro.ultima_visita)}</span>
                                                         <Info className="w-3.5 h-3.5 text-blue-500" />
@@ -424,58 +535,38 @@ export default function PastoreioPage() {
 
                                         {/* Próxima Visita */}
                                         <td className="p-3">
-                                            {membro.proxima_visita ? (
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        type="date"
-                                                        value={membro.proxima_visita}
-                                                        onChange={e => handleDateChange(membro.id, e.target.value)}
-                                                        className={`text-xs border rounded px-2 py-1 ${
-                                                            temOverdue
-                                                                ? 'border-red-400 bg-red-50 text-red-700'
-                                                                : 'border-slate-300 bg-white text-slate-800'
-                                                        }`}
-                                                    />
-                                                    <button
-                                                        onClick={() => handleSaveDate(membro)}
-                                                        disabled={savingId === membro.id}
-                                                        className="text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50"
-                                                    >
-                                                        {savingId === membro.id ? (
-                                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                        ) : (
-                                                            '✓'
-                                                        )}
-                                                    </button>
-                                                    {temOverdue && (
-                                                        <>
-                                                            <AlertTriangle
-                                                                className="w-4 h-4 text-red-500 shrink-0"
-                                                            />
-                                                            <span className="sr-only">Visita pendente - remarque a data</span>
-                                                        </>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="date"
+                                                    value={membro.proxima_visita || ''}
+                                                    onChange={e => handleDateChange(membro.id, e.target.value)}
+                                                    className={`text-xs border rounded px-2 py-1 ${
+                                                        temOverdue
+                                                            ? 'border-red-400 bg-red-50 text-red-700'
+                                                            : 'border-slate-300 bg-white text-slate-800'
+                                                    }`}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleSaveDate(membro)}
+                                                    disabled={savingId === membro.id || !membro.proxima_visita}
+                                                    className="text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50"
+                                                >
+                                                    {savingId === membro.id ? (
+                                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                    ) : membro.proxima_visita ? (
+                                                        '✓'
+                                                    ) : (
+                                                        'Agendar'
                                                     )}
-                                                </div>
-                                            ) : (
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        type="date"
-                                                        onChange={e => handleDateChange(membro.id, e.target.value)}
-                                                        className="text-xs border border-slate-300 rounded px-2 py-1 text-slate-800"
-                                                    />
-                                                    <button
-                                                        onClick={() => handleSaveDate(membro)}
-                                                        disabled={savingId === membro.id || !membro.proxima_visita}
-                                                        className="text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50"
-                                                    >
-                                                        {savingId === membro.id ? (
-                                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                        ) : (
-                                                            'Agendar'
-                                                        )}
-                                                    </button>
-                                                </div>
-                                            )}
+                                                </button>
+                                                {temOverdue && (
+                                                    <>
+                                                        <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
+                                                        <span className="sr-only">Visita pendente - remarque a data</span>
+                                                    </>
+                                                )}
+                                            </div>
                                         </td>
 
                                         {/* Observações */}
@@ -518,10 +609,20 @@ export default function PastoreioPage() {
 
                 {membros.length === 0 && (
                     <div className="text-center py-12 text-slate-400">
-                        Nenhum membro encontrado neste grupo.
+                        Nenhum membro ativo neste grupo.
                     </div>
                 )}
             </div>
+            )}
+
+            {diaAberto && visitasDoDia.length > 0 && (
+                <PastoreioDayModal
+                    data={diaAberto}
+                    visitas={visitasDoDia}
+                    onClose={() => setDiaAberto(null)}
+                    onVerNaLista={verNaLista}
+                />
+            )}
         </div>
     )
 }

@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database.types'
 import { addDays, parseISO, isSameDay } from 'date-fns'
 import { createClient as createServerSupabase } from '@/lib/supabase/server'
+import { parteExigeAjudante } from '@/lib/parteAjudante'
 
 // Initialize Supabase Admin Client for server actions
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -232,8 +233,7 @@ export async function generateAutoAssignments(programacaoId: string): Promise<{ 
                     newParte.ajudante_id = selectedReader.id
                     assignedMembers.add(selectedReader.id)
                 }
-            } else if (parte.tipo === 'MINISTERIO' && !newParte.ajudante_id) {
-                // Assign assistant for Ministry parts
+            } else if (parte.tipo === 'MINISTERIO' && parteExigeAjudante(parte) && !newParte.ajudante_id) {
                 // Rule: Assistant gender must match Main Assignee gender
                 const mainMember = membros.find(m => m.id === newParte.membro_id)
                 if (mainMember && mainMember.genero) {

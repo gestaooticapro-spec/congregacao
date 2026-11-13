@@ -13,6 +13,8 @@ import { calculatePartTimes } from '@/lib/scheduleUtils'
 import { ArrowLeft } from 'lucide-react'
 import { getCongregationDate } from '@/lib/dateUtils'
 import { confirmacaoDesignacaoHabilitada, textoLinkDesignacao } from '@/lib/confirmacaoDesignacao'
+import { parteExigeAjudante } from '@/lib/parteAjudante'
+import { preparePartesForSave, roleStatusPatch } from '@/lib/assignmentStatus'
 
 type Programacao = Database['public']['Tables']['programacao_semanal']['Row']
 type Membro = Database['public']['Tables']['membros']['Row']
@@ -130,7 +132,7 @@ export default function EditarDesignacoesPage() {
         const activeMembros = membros.filter(m => m.ativo !== false)
 
         if (isAssistant) {
-            if (parte.tipo === 'VIDA_CRISTA' && parte.nome.toLowerCase().includes('estudo bíblico')) {
+            if (parteExigeAjudante(parte) && parte.tipo === 'VIDA_CRISTA') {
                 return activeMembros.filter(m => m.is_leitor_estudo_biblico)
             }
             return activeMembros.filter(m => m.is_ajudante)
@@ -283,21 +285,15 @@ export default function EditarDesignacoesPage() {
     const handleSave = async () => {
         setSaving(true)
         try {
-            const cleanedPartes = partes.map(p => {
-                const isEligible = p.tipo === 'MINISTERIO' || (p.tipo === 'VIDA_CRISTA' && p.nome.toLowerCase().includes('estudo bíblico'));
-                return {
-                    ...p,
-                    ajudante_id: isEligible ? p.ajudante_id || null : null
-                };
-            });
+            const cleanedPartes = preparePartesForSave(partes, programacao?.partes)
 
             const { error } = await supabase
                 .from('programacao_semanal')
                 .update({
                     partes: cleanedPartes as any,
-                    presidente_id: presidenteId || null,
-                    oracao_inicial_id: oracaoInicialId || null,
-                    oracao_final_id: oracaoFinalId || null
+                    ...roleStatusPatch(presidenteId, programacao?.presidente_id, 'presidente_id', 'presidente_status'),
+                    ...roleStatusPatch(oracaoInicialId, programacao?.oracao_inicial_id, 'oracao_inicial_id', 'oracao_inicial_status'),
+                    ...roleStatusPatch(oracaoFinalId, programacao?.oracao_final_id, 'oracao_final_id', 'oracao_final_status'),
                 })
                 .eq('id', id)
 
@@ -316,8 +312,8 @@ export default function EditarDesignacoesPage() {
             if (oracaoFinalId) historyEntries.push({ membro_id: oracaoFinalId, programacao_id: id, data_reuniao: dataReuniao, parte_descricao: 'Oração Final' })
 
             cleanedPartes.forEach(p => {
-                if (p.membro_id) historyEntries.push({ membro_id: p.membro_id, programacao_id: id, data_reuniao: dataReuniao, parte_descricao: p.nome })
-                if (p.ajudante_id) historyEntries.push({ membro_id: p.ajudante_id, programacao_id: id, data_reuniao: dataReuniao, parte_descricao: p.nome + ' (Ajudante)' })
+                if (typeof p.membro_id === 'string') historyEntries.push({ membro_id: p.membro_id, programacao_id: id, data_reuniao: dataReuniao, parte_descricao: p.nome })
+                if (typeof p.ajudante_id === 'string') historyEntries.push({ membro_id: p.ajudante_id, programacao_id: id, data_reuniao: dataReuniao, parte_descricao: p.nome + ' (Ajudante)' })
             })
 
             if (historyEntries.length > 0) {
@@ -472,10 +468,10 @@ export default function EditarDesignacoesPage() {
                                 </div>
                             </div>
 
-                            {(parte.tipo === 'MINISTERIO' || (parte.tipo === 'VIDA_CRISTA' && parte.nome.toLowerCase().includes('estudo bíblico'))) && (
+                            {parteExigeAjudante(parte) && (
                                 <div className="md:col-span-4">
                                     <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                                        {(parte.tipo === 'VIDA_CRISTA' && parte.nome.toLowerCase().includes('estudo bíblico')) ? 'Leitor' : 'Ajudante'}
+                                        {parte.tipo === 'VIDA_CRISTA' ? 'Leitor' : 'Ajudante'}
                                     </label>
                                     <select
                                         value={parte.ajudante_id || ''}
@@ -632,9 +628,9 @@ export default function EditarDesignacoesPage() {
                                                 <div className="font-bold text-slate-900">
                                                     {membros.find(m => m.id === parte.membro_id)?.nome_completo || '______________________'}
                                                 </div>
-                                                {(parte.ajudante_id || (parte.tipo === 'VIDA_CRISTA' && parte.nome.toLowerCase().includes('estudo bíblico') && parte.ajudante_id)) && (
+                                                {parte.ajudante_id && (
                                                     <div className="text-xs text-slate-500 italic">
-                                                        {(parte.tipo === 'VIDA_CRISTA' && parte.nome.toLowerCase().includes('estudo bíblico')) ? 'Leitor: ' : 'Ajudante: '}
+                                                        {parteExigeAjudante(parte) && parte.tipo === 'VIDA_CRISTA' ? 'Leitor: ' : 'Ajudante: '}
                                                         {membros.find(m => m.id === parte.ajudante_id)?.nome_completo}
                                                     </div>
                                                 )}

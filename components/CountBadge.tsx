@@ -2,6 +2,27 @@
 
 import { useState } from 'react'
 
+/** 0 e 1 em vermelho, 2 e 3 em amarelo. 4 ou mais herda o branco do selo. */
+function classeDaFaixa(valor: number): string | null {
+    if (valor <= 1) return 'text-red-600 dark:text-red-400'
+    if (valor <= 3) return 'text-yellow-600 dark:text-yellow-300'
+    return null
+}
+
+function NumerosDoSelo({ texto }: { texto: string }) {
+    const partes = texto.split(/(\d+)/)
+    return partes.map((parte, indice) => {
+        if (!/^\d+$/.test(parte)) return <span key={indice}>{parte}</span>
+        const classe = classeDaFaixa(Number(parte))
+        if (!classe) return <span key={indice}>{parte}</span>
+        return (
+            <span key={indice} className={classe}>
+                {parte}
+            </span>
+        )
+    })
+}
+
 export default function CountBadge({
     id,
     status,
@@ -64,7 +85,7 @@ export default function CountBadge({
                     setPinned(atual => !atual)
                 }}
             >
-                {numero}
+                <NumerosDoSelo texto={numero} />
             </button>
             {aberto && (
                 <span

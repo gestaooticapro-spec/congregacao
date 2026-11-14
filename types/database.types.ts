@@ -893,6 +893,7 @@ export interface Database {
           nome: string
           imagem_url: string
           configuracao: Json
+          mapa_config?: Json | null
           referencia?: string | null
           responsavel_id?: string | null
           territorio_pessoal: boolean
@@ -903,6 +904,7 @@ export interface Database {
           nome: string
           imagem_url: string
           configuracao?: Json
+          mapa_config?: Json | null
           referencia?: string | null
           responsavel_id?: string | null
           territorio_pessoal?: boolean
@@ -913,6 +915,7 @@ export interface Database {
           nome?: string
           imagem_url?: string
           configuracao?: Json
+          mapa_config?: Json | null
           referencia?: string | null
           responsavel_id?: string | null
           territorio_pessoal?: boolean

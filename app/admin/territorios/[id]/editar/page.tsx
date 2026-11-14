@@ -3,8 +3,10 @@
 import { useState, useEffect, use } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import MapaInterativo from '@/components/territorios/MapaInterativo'
+import EditorMapaGoogle, { type ConfiguracaoMapaGoogle } from '@/components/territorios/EditorMapaGoogle'
 import { getTerritory, updateTerritory } from '@/app/actions/territorios.actions'
 import { useRouter } from 'next/navigation'
+import { MapPinned, Image as ImageIcon } from 'lucide-react'
 
 type Quadra = {
     id: number
@@ -23,6 +25,8 @@ export default function EditarTerritorioPage({ params }: { params: Promise<{ id:
     const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null)
     const [uploading, setUploading] = useState(false)
     const [configuracao, setConfiguracao] = useState<Quadra[]>([])
+    const [mapaGoogle, setMapaGoogle] = useState<ConfiguracaoMapaGoogle | null>(null)
+    const [tipoMapa, setTipoMapa] = useState<'cartao' | 'google'>('cartao')
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
@@ -47,6 +51,8 @@ export default function EditarTerritorioPage({ params }: { params: Promise<{ id:
         setOriginalImageUrl(t.imagem_url)
         setPreviewUrl(t.imagem_url)
         setConfiguracao((t.configuracao as any) || [])
+        const mapaSalvo = (t as any).mapa_config as ConfiguracaoMapaGoogle | null
+        setMapaGoogle(mapaSalvo)
         setLoading(false)
     }
 
@@ -87,6 +93,7 @@ export default function EditarTerritorioPage({ params }: { params: Promise<{ id:
                 formData.append('imagem_url_original', originalImageUrl)
             }
             formData.append('configuracao', JSON.stringify(configuracao))
+            formData.append('mapa_config', mapaGoogle ? JSON.stringify(mapaGoogle) : '')
 
             const result = await updateTerritory(formData)
 
@@ -155,10 +162,36 @@ export default function EditarTerritorioPage({ params }: { params: Promise<{ id:
               file:bg-blue-50 file:text-blue-700
               hover:file:bg-blue-100"
                     />
+                    <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setTipoMapa('cartao')}
+                            aria-pressed={tipoMapa === 'cartao'}
+                            className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${tipoMapa === 'cartao' ? 'border-blue-600 bg-blue-50 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200' : 'border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800'}`}
+                        >
+                            <ImageIcon size={16} /> Usar cartão por imagem
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setTipoMapa('google')}
+                            aria-pressed={tipoMapa === 'google'}
+                            className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${tipoMapa === 'google' ? 'border-blue-600 bg-blue-50 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200' : 'border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800'}`}
+                        >
+                            <MapPinned size={16} /> Mapear no Google Maps
+                        </button>
+                    </div>
                 </div>
 
                 {/* Editor */}
-                {previewUrl && (
+                {tipoMapa === 'google' ? (
+                    <div className="space-y-3">
+                        <EditorMapaGoogle value={mapaGoogle} onChange={setMapaGoogle} />
+                        {previewUrl && <details className="rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+                            <summary className="cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-200">Ver cartão original guardado</summary>
+                            <div className="mt-3 max-w-xl"><MapaInterativo imageUrl={previewUrl} configuracao={configuracao} mode="admin" /></div>
+                        </details>}
+                    </div>
+                ) : previewUrl && (
                     <div className="border p-4 rounded-lg bg-white shadow-sm">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="font-semibold text-lg">Mapeamento de Quadras</h3>

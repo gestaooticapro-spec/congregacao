@@ -1,14 +1,18 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 import PageHeader from '@/components/PageHeader'
+import { List, Map as MapIcon } from 'lucide-react'
+import MapaVisaoTerritorios from '@/components/territorios/MapaVisaoTerritorios'
 
 export default function TerritoriosPage() {
     const [territories, setTerritories] = useState<any[]>([])
     const [searchTerm, setSearchTerm] = useState('')
-    const [activeTab, setActiveTab] = useState<'reservados' | 'disponiveis'>('reservados')
+    const [activeTab, setActiveTab] = useState<'todos' | 'reservados' | 'disponiveis'>('reservados')
+    const [showOverviewMap, setShowOverviewMap] = useState(false)
+    const [mapFilteredTerritoryId, setMapFilteredTerritoryId] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
@@ -52,6 +56,13 @@ export default function TerritoriosPage() {
 
         let list = territories.filter(matchesSearch)
 
+        if (mapFilteredTerritoryId) {
+            list = list.filter((territory) => territory.id === mapFilteredTerritoryId)
+        }
+
+        // A busca é global, então uma aba selecionada não esconde resultados.
+        if (search.trim()) return list
+
         if (activeTab === 'reservados') {
             // Show territories with active visits OR assigned to someone
             list = list.filter(t => {
@@ -59,7 +70,7 @@ export default function TerritoriosPage() {
                 const isAssigned = !!t.responsavel
                 return activeVisitsCount > 0 || isAssigned
             })
-        } else {
+        } else if (activeTab === 'disponiveis') {
             // Show available territories: no responsible AND no active visits
             list = list.filter(t => {
                 const activeVisitsCount = t.visitas_ativas?.[0]?.count || 0
@@ -78,7 +89,26 @@ export default function TerritoriosPage() {
         }
 
         return list
-    }, [territories, searchTerm, activeTab])
+    }, [territories, searchTerm, activeTab, mapFilteredTerritoryId])
+
+    const mappedTerritories = useMemo(
+        () => territories.filter((territory) => territory.mapa_config?.limite?.length >= 3),
+        [territories],
+    )
+
+    const handleOverviewTerritorySelect = useCallback((territoryId: string) => {
+        const territory = territories.find((item) => item.id === territoryId)
+        if (!territory) return
+        const activeVisitsCount = territory.visitas_ativas?.[0]?.count || 0
+        const isReserved = Boolean(territory.responsavel) || activeVisitsCount > 0
+        setActiveTab(isReserved ? 'reservados' : 'disponiveis')
+        setSearchTerm('')
+        setMapFilteredTerritoryId(territoryId)
+        setShowOverviewMap(false)
+        window.setTimeout(() => {
+            document.getElementById(`territory-card-${territoryId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 100)
+    }, [territories])
 
     if (loading) return <div className="container mx-auto p-4">Carregando...</div>
 
@@ -102,19 +132,63 @@ export default function TerritoriosPage() {
             <PageHeader title="Territórios" />
 
             {/* Search Bar */}
-            <div className="mb-4">
+            <div className="mb-4 flex gap-2">
                 <input
                     type="text"
                     placeholder="Buscar por nome, referência ou responsável..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full p-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    onChange={(e) => {
+                        const value = e.target.value
+                        setSearchTerm(value)
+                        if (value.trim()) {
+                            setShowOverviewMap(false)
+                            setMapFilteredTerritoryId(null)
+                        }
+                        setActiveTab(value.trim() ? 'todos' : (activeTab === 'todos' ? 'reservados' : activeTab))
+                    }}
+                    className="min-w-0 flex-1 p-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                 />
+                <button
+                    type="button"
+                    onClick={() => setShowOverviewMap((current) => !current)}
+                    aria-label={showOverviewMap ? 'Voltar à lista de territórios' : 'Ver territórios no mapa'}
+                    title={showOverviewMap ? 'Voltar à lista' : 'Ver territórios no mapa'}
+                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 text-blue-700 hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/60"
+                >
+                    {showOverviewMap ? <List size={21} /> : <MapIcon size={21} />}
+                    <span className="hidden sm:inline">{showOverviewMap ? 'Lista' : 'Mapa'}</span>
+                </button>
             </div>
 
+            {!showOverviewMap && mapFilteredTerritoryId && (
+                <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-sm text-violet-900 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-200">
+                    <span>Filtro do mapa: {territories.find((territory) => territory.id === mapFilteredTerritoryId)?.nome}</span>
+                    <button type="button" onClick={() => setMapFilteredTerritoryId(null)} className="shrink-0 font-semibold underline underline-offset-2">
+                        Limpar filtro
+                    </button>
+                </div>
+            )}
+
+            {showOverviewMap ? (
+                <MapaVisaoTerritorios
+                    territorios={mappedTerritories}
+                    onSelecionar={handleOverviewTerritorySelect}
+                />
+            ) : <>
             {/* Tabs */}
             <div className="flex justify-center mb-6">
                 <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl inline-flex">
+                    {searchTerm.trim() && (
+                        <button
+                            onClick={() => setActiveTab('todos')}
+                            className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'todos'
+                                ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                                }`}
+                        >
+                            Todos
+                        </button>
+                    )}
                     <button
                         onClick={() => setActiveTab('reservados')}
                         className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'reservados'
@@ -155,6 +229,7 @@ export default function TerritoriosPage() {
                     return (
                         <Link
                             key={t.id}
+                            id={`territory-card-${t.id}`}
                             href={`/territorios/${t.id}`}
                             className="block border rounded-lg overflow-hidden hover:shadow-lg transition-shadow bg-white flex flex-col h-full"
                         >
@@ -201,10 +276,10 @@ export default function TerritoriosPage() {
                                         <>
                                             <div className="flex items-center gap-2 mb-1">
                                                 <span className={`text-xs font-bold px-2 py-1 rounded self-start ${t.territorio_pessoal
-                                                    ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20'
+                                                    ? 'border border-purple-300 bg-purple-200 text-purple-950'
                                                     : 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
                                                     }`}>
-                                                    {t.territorio_pessoal ? '🔴 Território Pessoal' : '🔵 Sendo trabalhado pela Congregação'}
+                                                    {t.territorio_pessoal ? '🟣 Território Pessoal' : '🔵 Sendo trabalhado pela Congregação'}
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-2">
@@ -235,6 +310,7 @@ export default function TerritoriosPage() {
                     </div>
                 )}
             </div>
+            </>}
         </div>
     )
 }

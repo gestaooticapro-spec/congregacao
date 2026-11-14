@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from 'react'
 import { getTerritory, toggleVisita, closeTerritory, assignTerritory, releaseTerritory, toggleTerritorioPessoal } from '@/app/actions/territorios.actions'
 import MapaInterativo from '@/components/territorios/MapaInterativo'
+import MapaTerritorioGoogle from '@/components/territorios/MapaTerritorioGoogle'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 
@@ -19,6 +20,8 @@ export default function TerritorioPage({ params }: { params: Promise<{ id: strin
     const [assigning, setAssigning] = useState(false)
     const [togglingPessoal, setTogglingPessoal] = useState(false)
     const [loggedMember, setLoggedMember] = useState<{ id: string; nome: string } | null>(null)
+    const [mostrarMapaGoogle, setMostrarMapaGoogle] = useState(false)
+    const [mapaGoogleInicializado, setMapaGoogleInicializado] = useState(false)
     const router = useRouter()
 
     useEffect(() => {
@@ -134,7 +137,11 @@ export default function TerritorioPage({ params }: { params: Promise<{ id: strin
     if (loading) return <div className="p-4">Carregando...</div>
     if (!territorio) return <div className="p-4">Território não encontrado.</div>
 
-    const totalQuadras = Array.isArray(territorio.configuracao) ? territorio.configuracao.length : 0
+    const mapaConfig = territorio.mapa_config as import('@/components/territorios/EditorMapaGoogle').ConfiguracaoMapaGoogle | null
+    const temMapaGoogle = Boolean(mapaConfig?.limite?.length)
+    const totalQuadras = temMapaGoogle && mapaConfig?.quadras?.length
+        ? mapaConfig.quadras.length
+        : Array.isArray(territorio.configuracao) ? territorio.configuracao.length : 0
     const isComplete = visitas.length === totalQuadras && totalQuadras > 0
 
     // If no responsible, show assignment screen
@@ -220,26 +227,52 @@ export default function TerritorioPage({ params }: { params: Promise<{ id: strin
                 onClick={handleTogglePessoal}
                 disabled={togglingPessoal}
                 className={`w-full mb-4 p-3 rounded-lg border-2 flex items-center justify-between transition-all ${territorio.territorio_pessoal
-                    ? 'border-red-300 bg-red-50 dark:bg-red-900/20'
+                    ? 'border-purple-300 bg-purple-100 dark:border-purple-700 dark:bg-purple-900/50'
                     : 'border-blue-300 bg-blue-50 dark:bg-blue-900/20'
                     } ${togglingPessoal ? 'opacity-50' : 'hover:shadow-md'}`}
             >
-                <span className={`text-sm font-bold ${territorio.territorio_pessoal ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`}>
-                    {territorio.territorio_pessoal ? '🔴 Território Pessoal' : '🔵 Congregação'}
+                <span className={`text-sm font-bold ${territorio.territorio_pessoal ? 'text-purple-900 dark:text-purple-200' : 'text-blue-600 dark:text-blue-400'}`}>
+                    {territorio.territorio_pessoal ? '🟣 Território Pessoal' : '🔵 Congregação'}
                 </span>
-                <span className={`text-xs ${territorio.territorio_pessoal ? 'text-red-400' : 'text-blue-400'}`}>
+                <span className={`text-xs ${territorio.territorio_pessoal ? 'text-purple-800 dark:text-purple-200' : 'text-blue-400'}`}>
                     {togglingPessoal ? 'Salvando...' : 'Toque para alterar'}
                 </span>
             </button>
 
             <div className="mb-6">
-                <MapaInterativo
-                    imageUrl={territorio.imagem_url}
-                    configuracao={territorio.configuracao}
-                    mode="user"
-                    visitas={visitas}
-                    onQuadraClick={handleQuadraClick}
-                />
+                {temMapaGoogle && (
+                    <div className="mb-3 flex justify-end">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (!mapaGoogleInicializado) setMapaGoogleInicializado(true)
+                                setMostrarMapaGoogle((current) => !current)
+                            }}
+                            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                        >
+                            {mostrarMapaGoogle ? 'Ver cartão original' : 'Ver no Google Maps'}
+                        </button>
+                    </div>
+                )}
+                <div className={mostrarMapaGoogle ? 'hidden' : ''}>
+                    <MapaInterativo
+                        imageUrl={territorio.imagem_url}
+                        configuracao={territorio.configuracao}
+                        mode="user"
+                        visitas={visitas}
+                        onQuadraClick={handleQuadraClick}
+                    />
+                </div>
+                {temMapaGoogle && mapaGoogleInicializado && (
+                    <div className={mostrarMapaGoogle ? '' : 'hidden'}>
+                        <MapaTerritorioGoogle
+                            value={mapaConfig!}
+                            visible={mostrarMapaGoogle}
+                            visitas={visitas}
+                            onQuadraClick={handleQuadraClick}
+                        />
+                    </div>
+                )}
             </div>
 
             {isComplete && (

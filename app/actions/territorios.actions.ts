@@ -9,6 +9,7 @@ export async function createTerritory(formData: FormData) {
     const nome = formData.get('nome') as string
     const referencia = formData.get('referencia') as string
     const configuracao = formData.get('configuracao') as string
+    const mapaConfigRaw = formData.get('mapa_config') as string | null
     const imagem = formData.get('imagem') as File
 
     if (!nome || !imagem || !configuracao) {
@@ -44,6 +45,7 @@ export async function createTerritory(formData: FormData) {
             referencia,
             imagem_url: publicUrl,
             configuracao: JSON.parse(configuracao),
+            mapa_config: mapaConfigRaw ? JSON.parse(mapaConfigRaw) : null,
         })
 
     if (error) {
@@ -62,6 +64,7 @@ export async function updateTerritory(formData: FormData) {
     const nome = formData.get('nome') as string
     const referencia = formData.get('referencia') as string
     const configuracao = formData.get('configuracao') as string
+    const mapaConfigRaw = formData.get('mapa_config') as string | null
     const imagem = formData.get('imagem') as File | null
     const imagemUrlOriginal = formData.get('imagem_url_original') as string
 
@@ -103,6 +106,7 @@ export async function updateTerritory(formData: FormData) {
             referencia,
             imagem_url: finalImageUrl,
             configuracao: JSON.parse(configuracao),
+            mapa_config: mapaConfigRaw ? JSON.parse(mapaConfigRaw) : null,
         })
         .eq('id', id)
 

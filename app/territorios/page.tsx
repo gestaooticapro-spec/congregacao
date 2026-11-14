@@ -92,7 +92,7 @@ export default function TerritoriosPage() {
     }, [territories, searchTerm, activeTab, mapFilteredTerritoryId])
 
     const mappedTerritories = useMemo(
-        () => territories.filter((territory) => territory.mapa_config?.limite?.length >= 3),
+        () => territories.filter((territory) => (territory.mapa_config?.limite?.length ?? 0) >= 3),
         [territories],
     )
 

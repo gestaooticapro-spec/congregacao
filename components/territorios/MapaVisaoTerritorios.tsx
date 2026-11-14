@@ -110,7 +110,7 @@ export default function MapaVisaoTerritorios({ territorios, onSelecionar }: Prop
             })
             mapRef.current = map
 
-            const mapped = territorios.filter((territorio) => territorio.mapa_config?.limite?.length >= 3)
+            const mapped = territorios.filter((territorio) => (territorio.mapa_config?.limite?.length ?? 0) >= 3)
             if (mapped.length) {
                 const bounds = new maps.LatLngBounds()
                 mapped.forEach((territorio) => territorio.mapa_config!.limite.forEach((point) => bounds.extend(point)))

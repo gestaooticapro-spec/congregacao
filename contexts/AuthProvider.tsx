@@ -12,6 +12,7 @@ type AuthContextType = {
     roles: PerfilAcesso[]
     loading: boolean
     canAccessPastoreio: boolean
+    territoryOnly: boolean
     hasRole: (requiredRoles: PerfilAcesso[]) => boolean
     signOut: () => Promise<void>
 }
@@ -43,6 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [session, setSession] = useState<Session | null>(null)
     const [roles, setRoles] = useState<PerfilAcesso[]>([])
     const [canAccessPastoreio, setCanAccessPastoreio] = useState(false)
+    const [territoryOnly, setTerritoryOnly] = useState(false)
     const [loading, setLoading] = useState(true)
     const mountedRef = useRef(false)
     const syncIdRef = useRef(0)
@@ -58,21 +60,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         pastoreioRef.current = canAccessPastoreio
     }, [canAccessPastoreio])
 
-    const fetchRolesForUser = useCallback(async (userId: string, syncId: number): Promise<{ roles: PerfilAcesso[]; canAccessPastoreio: boolean } | null> => {
+    const fetchRolesForUser = useCallback(async (userId: string, syncId: number): Promise<{ roles: PerfilAcesso[]; canAccessPastoreio: boolean; territoryOnly: boolean } | null> => {
         logAuth('Fetching roles', { userId, syncId })
 
         try {
             return await retry(async () => {
                 const { data: member, error: memberError } = await supabase
                     .from('membros')
-                    .select('id, is_sg, is_ajudante')
+                    .select('id, is_sg, is_ajudante, is_anciao, is_servo_ministerial')
                     .eq('user_id', userId)
                     .maybeSingle()
 
                 if (memberError) throw memberError
                 if (!member) {
                     logAuth('No member linked to user', { userId, syncId })
-                    return { roles: [], canAccessPastoreio: false }
+                    return { roles: [], canAccessPastoreio: false, territoryOnly: false }
                 }
 
                 const [{ data: roleRows, error: rolesError }, { data: grupo, error: grupoError }] = await Promise.all([
@@ -90,9 +92,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 if (rolesError) throw rolesError
                 if (grupoError) throw grupoError
 
+                const roles = (roleRows || []).map(row => row.perfil as PerfilAcesso)
                 return {
-                    roles: (roleRows || []).map(row => row.perfil as PerfilAcesso),
+                    roles,
                     canAccessPastoreio: !!(member.is_sg || member.is_ajudante || grupo),
+                    territoryOnly: !member.is_anciao && !member.is_servo_ministerial && roles.includes('RT') && roles.every(role => role === 'RT' || role === 'IRMAO'),
                 }
             })
         } catch (error) {
@@ -127,6 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!nextUser) {
             setRoles([])
             setCanAccessPastoreio(false)
+            setTerritoryOnly(false)
             setLoading(false)
             logAuth('Sync finished without active session', { source, syncId })
             return
@@ -158,6 +163,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                 setRoles([])
                 setCanAccessPastoreio(false)
+                setTerritoryOnly(false)
                 logAuth('Sync failed before roles could be resolved', { source, syncId })
                 return
             }
@@ -168,6 +174,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return current === next ? prevRoles : fetchedAccess.roles
             })
             setCanAccessPastoreio(fetchedAccess.canAccessPastoreio)
+            setTerritoryOnly(fetchedAccess.territoryOnly)
 
             logAuth('Roles applied', {
                 source,
@@ -189,6 +196,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null)
         setRoles([])
         setCanAccessPastoreio(false)
+        setTerritoryOnly(false)
         setLoading(false)
 
         try {
@@ -250,6 +258,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUser(null)
                 setRoles([])
                 setCanAccessPastoreio(false)
+                setTerritoryOnly(false)
                 setLoading(false)
                 return
             }
@@ -327,9 +336,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         roles,
         loading,
         canAccessPastoreio,
+        territoryOnly,
         hasRole,
         signOut,
-    }), [user, session, roles, loading, canAccessPastoreio, hasRole, signOut])
+    }), [user, session, roles, loading, canAccessPastoreio, territoryOnly, hasRole, signOut])
 
     return (
         <AuthContext.Provider value={value}>

@@ -67,6 +67,7 @@ export type MenuVisibilityContext = {
     loading: boolean
     hasRole: (requiredRoles: PerfilAcesso[]) => boolean
     canAccessPastoreio?: boolean
+    territoryOnly?: boolean
 }
 
 /** Admin do sistema e Coordenador: mesma visao de menu. */
@@ -103,6 +104,7 @@ export function isMenuLinkVisible(item: MenuLink, ctx: MenuVisibilityContext): b
     if (!item.restricted) return true
     if (ctx.loading && ctx.roles.length === 0) return false
     if (!ctx.user) return false
+    if (ctx.territoryOnly && item.href !== '/admin/territorios' && item.href !== '/admin/meu-login') return false
     if (item.allowedRoles && !ctx.hasRole(item.allowedRoles)) return false
     if (item.requiresPastoreio && !ctx.canAccessPastoreio) return false
     return true

@@ -9,6 +9,7 @@ import PageHeader from '@/components/PageHeader'
 export default function MeuLoginPage() {
     const [loading, setLoading] = useState(true)
     const [isSharedAdmin, setIsSharedAdmin] = useState(false)
+    const [canCreateLogin, setCanCreateLogin] = useState(false)
     const [membros, setMembros] = useState<any[]>([])
     const [selectedMembro, setSelectedMembro] = useState('')
     const [email, setEmail] = useState('')
@@ -32,13 +33,15 @@ export default function MeuLoginPage() {
 
             const { data: membro, error } = await supabase
                 .from('membros')
-                .select('id, nome_completo')
+                .select('id, nome_completo, membro_perfis(perfil)')
                 .eq('user_id', session.user.id)
                 .single()
 
             if (error && error.code !== 'PGRST116') throw error
 
-            if (!membro || membro.nome_completo.toLowerCase().includes('admin')) {
+            const canCreate = !!membro?.membro_perfis?.some(({ perfil }) => perfil === 'ADMIN' || perfil === 'COORDENADOR')
+            setCanCreateLogin(canCreate)
+            if (canCreate && membro?.nome_completo.toLowerCase().includes('admin')) {
                 setIsSharedAdmin(true)
                 await fetchMembrosSemLogin()
             } else {
@@ -58,7 +61,6 @@ export default function MeuLoginPage() {
                 .from('membros')
                 .select('id, nome_completo')
                 .is('user_id', null)
-                .or('is_anciao.eq.true,is_servo_ministerial.eq.true')
                 .order('nome_completo')
 
             if (error) throw error
@@ -131,6 +133,15 @@ export default function MeuLoginPage() {
             />
 
             <div className="bg-white dark:bg-slate-900 shadow-xl rounded-2xl border border-slate-200 dark:border-slate-800 p-8">
+                {canCreateLogin && (
+                    <button type="button" onClick={() => {
+                        if (!isSharedAdmin) void fetchMembrosSemLogin()
+                        setIsSharedAdmin(!isSharedAdmin)
+                        setMessage(null)
+                    }} className="mb-6 text-sm font-semibold text-blue-700 dark:text-blue-400">
+                        {isSharedAdmin ? 'Alterar minha senha' : 'Criar login para um membro'}
+                    </button>
+                )}
                 {message && (
                     <div className={`p-4 mb-6 rounded-xl ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
                         {message.text}

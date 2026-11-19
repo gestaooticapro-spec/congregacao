@@ -56,12 +56,12 @@ const TILE_COLORS = [
  * pois os icones (funcoes) nao podem cruzar a fronteira Server -> Client.
  */
 export default function MenuHub({ groupId }: { groupId: MenuGroupId }) {
-    const { user, roles, loading, hasRole, canAccessPastoreio } = useAuth()
+    const { user, roles, loading, hasRole, canAccessPastoreio, territoryOnly } = useAuth()
     const group = getMenuGroup(groupId)
 
     const visibleSections = useMemo(
-        () => getVisibleMenuSections(group, { user, roles, loading, hasRole, canAccessPastoreio }),
-        [group, user, roles, loading, hasRole, canAccessPastoreio]
+        () => getVisibleMenuSections(group, { user, roles, loading, hasRole, canAccessPastoreio, territoryOnly }),
+        [group, user, roles, loading, hasRole, canAccessPastoreio, territoryOnly]
     )
     const visibleCount = visibleSections.reduce((total, section) => total + section.length, 0)
     const countedHrefs = useMemo(() => {

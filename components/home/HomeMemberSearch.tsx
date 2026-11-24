@@ -66,6 +66,7 @@ type EventoAgendaAnciaos = Pick<Database['public']['Tables']['agenda_anciaos']['
 export default function HomeMemberSearch(): React.ReactNode {
     const router = useRouter()
     const [membros, setMembros] = useState<Membro[]>([])
+    const [gruposPorId, setGruposPorId] = useState<Record<string, string>>({})
     const [selectedMembro, setSelectedMembro] = useState<Membro | null>(null)
     const [diasDesignacoes, setDiasDesignacoes] = useState<{ data: string, itens: Designacao[] }[]>([])
     const [loading, setLoading] = useState(false)
@@ -95,6 +96,22 @@ export default function HomeMemberSearch(): React.ReactNode {
             console.error('Erro ao carregar membros:', error)
             setMembros([])
         }
+
+        const { data: grupos, error: gruposError } = await supabase
+            .from('grupos_servico')
+            .select('id, nome')
+
+        if (gruposError) {
+            console.error('Erro ao carregar grupos:', gruposError)
+            return
+        }
+
+        const mapa: Record<string, string> = {}
+        for (const grupo of grupos ?? []) {
+            const nome = grupo.nome?.trim()
+            if (nome) mapa[grupo.id] = nome
+        }
+        setGruposPorId(mapa)
     }
 
     useEffect(() => {
@@ -611,6 +628,10 @@ export default function HomeMemberSearch(): React.ReactNode {
             (m.nome_civil && m.nome_civil.toLowerCase().includes(searchTerm.toLowerCase()))
         )
 
+    const nomeGrupo = selectedMembro?.grupo_id
+        ? gruposPorId[selectedMembro.grupo_id]
+        : undefined
+
     return (
         <div className="w-full max-w-2xl mx-auto">
             {membroAguardandoPin && (
@@ -731,21 +752,26 @@ export default function HomeMemberSearch(): React.ReactNode {
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {isSessaoMembroAtiva ? (
                         <div className="mb-4 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-sky-50 px-5 py-4 text-left shadow-sm dark:border-blue-900/30 dark:from-blue-950/40 dark:to-slate-900">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="text-sm font-medium uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
-                                        Olá, {primeiroNome(nomeSessao || selectedMembro.nome_completo)}
-                                    </p>
-                                    <h2 className="mt-1 text-xl font-bold text-slate-800 dark:text-white">
-                                        Seus próximos compromissos
-                                    </h2>
-                                </div>
-                                <button 
+                            <div>
+                                <button
                                     onClick={handleLogout}
-                                    className="text-xs font-semibold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-wider"
+                                    className="float-right ml-3 text-xs font-semibold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-wider"
                                 >
                                     Esse não sou eu
                                 </button>
+                                <p className="text-sm font-medium uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
+                                    <span className="whitespace-nowrap">
+                                        Olá, {primeiroNome(nomeSessao || selectedMembro.nome_completo)}
+                                    </span>
+                                    {nomeGrupo && (
+                                        <span className="ml-2 inline-block max-w-full align-baseline font-semibold normal-case tracking-normal text-amber-800 dark:text-primary">
+                                            (Grupo: {nomeGrupo})
+                                        </span>
+                                    )}
+                                </p>
+                                <h2 className="clear-both mt-1 text-xl font-bold text-slate-800 dark:text-white">
+                                    Seus próximos compromissos
+                                </h2>
                             </div>
                         </div>
                     ) : (

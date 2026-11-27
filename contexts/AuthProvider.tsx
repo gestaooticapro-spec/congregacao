@@ -137,7 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return
         }
 
-        setLoading(true)
+        if (!isBackgroundSync || !hadRoles) setLoading(true)
 
         try {
             const fetchedAccess = await fetchRolesForUser(nextUser.id, syncId)
@@ -268,59 +268,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
         })
 
-        const handleFocus = async () => {
-            if (!mountedRef.current) return
-            logAuth('Window focus, validating session')
-
-            try {
-                const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser()
-                if (userError) {
-                    logAuth('Focus validation failed', { error: userError.message })
-                    return
-                }
-
-                if (!currentUser) return
-
-                const { data: { session: focusedSession }, error: sessionError } = await supabase.auth.getSession()
-                if (sessionError) {
-                    logAuth('Focus getSession failed', { error: sessionError.message })
-                    return
-                }
-
-                await syncFromSession(focusedSession, 'window-focus')
-            } catch (error) {
-                logAuth('Unexpected focus sync error', {
-                    error: error instanceof Error ? error.message : String(error),
-                })
-            }
-        }
-
-        const handleVisibilityChange = async () => {
-            if (document.visibilityState !== 'visible' || !mountedRef.current) return
-
-            try {
-                const { data: { session: visibleSession }, error } = await supabase.auth.getSession()
-                if (error) {
-                    logAuth('Visibility getSession failed', { error: error.message })
-                    return
-                }
-
-                await syncFromSession(visibleSession, 'visibility-visible')
-            } catch (error) {
-                logAuth('Unexpected visibility sync error', {
-                    error: error instanceof Error ? error.message : String(error),
-                })
-            }
-        }
-
-        window.addEventListener('focus', handleFocus)
-        document.addEventListener('visibilitychange', handleVisibilityChange)
-
         return () => {
             mountedRef.current = false
             subscription.unsubscribe()
-            window.removeEventListener('focus', handleFocus)
-            document.removeEventListener('visibilitychange', handleVisibilityChange)
         }
     }, [syncFromSession])
 

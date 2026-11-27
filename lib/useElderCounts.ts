@@ -32,11 +32,11 @@ export function useElderCounts(hrefs: string[], userId: string | null) {
         let request = 0
         let lastDate = ''
 
-        const run = () => {
+        const run = (quiet: boolean) => {
             const hoje = getCongregationDate()
             lastDate = hoje
             const id = ++request
-            setStatus('loading')
+            if (!quiet) setStatus('loading')
             loadElderCounts(hoje, userId, sources).then(result => {
                 if (cancelled || id !== request) return
                 setCounts(result)
@@ -44,20 +44,15 @@ export function useElderCounts(hrefs: string[], userId: string | null) {
             })
         }
 
-        run()
+        run(false)
 
-        const onVisible = () => {
-            if (document.visibilityState === 'visible') run()
-        }
-        document.addEventListener('visibilitychange', onVisible)
         const timer = window.setInterval(() => {
             if (document.visibilityState !== 'visible') return
-            if (getCongregationDate() !== lastDate) run()
+            if (getCongregationDate() !== lastDate) run(true)
         }, MINUTE_MS)
 
         return () => {
             cancelled = true
-            document.removeEventListener('visibilitychange', onVisible)
             window.clearInterval(timer)
         }
     }, [key, userId])
